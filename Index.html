@@ -8,57 +8,42 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM (Wersje Produkcyjne) -->
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
     <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- PapaParse (Do obsługi plików CSV) -->
+    <!-- PapaParse (Najlepszy silnik do czytania przecinków w JS) -->
     <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 
     <style>
-        /* Ustawienia 3D */
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-        
-        /* Animacje */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-fadeIn { animation: fadeIn 0.4s ease-in-out; }
-        
-        /* Pasek przewijania */
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
-
-        /* Overlay błędów */
-        #error-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.98); z-index: 9999;
-            flex-direction: column; align-items: center; justify-content: center;
-            color: #991b1b; padding: 20px; text-align: center;
-        }
-        
+        #error-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.98); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; color: #991b1b; padding: 20px; text-align: center; }
         .no-tap-highlight { -webkit-tap-highlight-color: transparent; }
         .transition-colors-all { transition-property: background-color, border-color, color, fill, stroke; transition-duration: 300ms; }
     </style>
 </head>
 <body class="m-0 transition-colors duration-300 no-tap-highlight overflow-hidden">
 
-    <!-- Nakładka błędów krytycznych -->
     <div id="error-overlay">
         <h2 class="text-2xl font-bold mb-2">Wystąpił błąd</h2>
-        <p class="mb-4 text-gray-600">Sprawdź konsolę (F12) lub upewnij się, że pliki CSV są na serwerze.</p>
+        <p class="mb-4 text-gray-600">Nie udało się załadować bazy danych.</p>
         <pre id="error-message" class="bg-red-100 p-4 rounded text-sm text-left overflow-auto max-w-full max-h-64"></pre>
-        <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg">Odśwież stronę</button>
+        <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg">Spróbuj ponownie</button>
     </div>
 
     <div id="root"></div>
 
     <script>
-        // Globalny przechwytywacz błędów
         window.onerror = function(msg, url, line, col, error) {
             document.getElementById('error-overlay').style.display = 'flex';
             document.getElementById('error-message').textContent = `Błąd: ${msg}\nPlik: ${url}\nLinia: ${line}`;
@@ -70,11 +55,8 @@
         try {
             const { useState, useEffect } = React;
 
-            // --- KOMPONENT IKONY ---
             const Icon = ({ path, size = 24, className="" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                    {path}
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
             );
 
             const iconPaths = {
@@ -93,15 +75,14 @@
             };
 
             function FlashcardsApp() {
-                // --- STANY APLIKACJI ---
-                const [allData, setAllData] = useState([]); // Dane z aktualnie załadowanego pliku CSV
+                const [fullDatabase, setFullDatabase] = useState([]); // Cała baza z pliku
                 const [loading, setLoading] = useState(true);
                 const [fileError, setFileError] = useState(null);
 
                 const [level, setLevel] = useState('A1');
                 const [category, setCategory] = useState('');
                 const [tense, setTense] = useState('PresentSimple');
-                const [numberMode, setNumberMode] = useState('default'); // default, singular, plural
+                const [numberMode, setNumberMode] = useState('default');
                 
                 const [availableCategories, setAvailableCategories] = useState([]);
                 const [currentWordIds, setCurrentWordIds] = useState([]);
@@ -113,69 +94,77 @@
                 const [isSpeaking, setIsSpeaking] = useState(false);
                 const [isDarkMode, setIsDarkMode] = useState(false);
 
-                // Gesty
                 const [touchStart, setTouchStart] = useState(null);
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
 
-                // --- 1. POBIERANIE DANYCH Z PLIKU CSV (Zależne od Levelu) ---
+                // --- 1. POBIERANIE I PARSOWANIE PLIKU BAZA.TXT ---
                 useEffect(() => {
                     setLoading(true);
-                    setFileError(null);
-                    setAllData([]);
-                    setCategory(''); 
+                    console.log("Pobieranie pliku baza.txt...");
 
-                    // Konstrukcja nazwy pliku: data_a1.csv, data_b2.csv
-                    const fileName = `data_${level.toLowerCase()}.csv`;
-                    console.log(`Pobieranie pliku: ${fileName}`);
-
-                    Papa.parse(fileName, {
+                    Papa.parse('baza.txt', {
                         download: true,
-                        header: true,
+                        header: true, // Zakładamy, że pierwszy wiersz to nagłówki
                         skipEmptyLines: true,
+                        encoding: "UTF-8",
                         complete: (results) => {
                             if (results.data && results.data.length > 0) {
-                                console.log(`Załadowano ${results.data.length} wierszy.`);
-                                setAllData(results.data);
+                                console.log(`Wczytano ${results.data.length} wierszy z baza.txt`);
+                                // Normalizacja danych (czyszczenie spacji)
+                                const cleanedData = results.data.map(row => {
+                                    const newRow = {};
+                                    Object.keys(row).forEach(key => {
+                                        newRow[key.trim()] = row[key] ? row[key].trim() : "";
+                                    });
+                                    return newRow;
+                                });
+                                setFullDatabase(cleanedData);
                                 setLoading(false);
                             } else {
-                                setFileError(`Plik ${fileName} jest pusty lub ma niepoprawny format.`);
+                                setFileError("Plik baza.txt jest pusty lub ma zły format.");
                                 setLoading(false);
                             }
                         },
                         error: (err) => {
-                            console.warn("Błąd CSV:", err);
-                            setFileError(`Nie znaleziono pliku: ${fileName}. Upewnij się, że pliki (data_a1.csv, data_a2.csv...) są na GitHubie w tym samym folderze.`);
+                            console.warn("Błąd ładowania:", err);
+                            setFileError("Nie znaleziono pliku baza.txt. Upewnij się, że jest w głównym folderze na GitHub.");
                             setLoading(false);
                         }
                     });
-                }, [level]);
+                }, []);
 
-                // --- 2. AKTUALIZACJA KATEGORII ---
+                // --- 2. AKTUALIZACJA KATEGORII (Gdy zmienia się level lub baza) ---
                 useEffect(() => {
-                    if (!allData.length) {
+                    if (!fullDatabase.length) {
                         setAvailableCategories([]);
                         return;
                     }
-                    const cats = [...new Set(allData.map(row => row.category))];
+                    // Filtrujemy bazę po wybranym poziomie
+                    const levelData = fullDatabase.filter(row => row.level === level);
+                    // Wyciągamy unikalne kategorie
+                    const cats = [...new Set(levelData.map(row => row.category))];
                     setAvailableCategories(cats);
                     
+                    // Wybierz pierwszą kategorię lub zresetuj
                     if (cats.length > 0) {
                         setCategory(cats[0]);
+                    } else {
+                        setCategory('');
                     }
-                }, [allData]);
+                }, [level, fullDatabase]);
 
-                // --- 3. FILTROWANIE SŁÓW (Unikalne ID) ---
+                // --- 3. FILTROWANIE SŁÓW (Gdy zmienia się kategoria) ---
                 useEffect(() => {
-                    if (!allData.length || !category) {
+                    if (!fullDatabase.length || !category) {
                         setCurrentWordIds([]);
                         return;
                     }
                     
-                    // Znajdujemy unikalne ID dla wybranej kategorii
+                    // Znajdź unikalne ID słówek dla Levelu i Kategorii
                     const uniqueIds = [...new Set(
-                        allData
-                            .filter(row => row.category === category)
+                        fullDatabase
+                            .filter(row => row.level === level && row.category === category)
                             .map(row => row.id)
                     )];
                     
@@ -185,61 +174,41 @@
                     setCurrentWordIds(shuffledIds);
                     setCurrentIndex(0);
                     resetCard();
-                }, [category, allData]);
+                }, [category, level, fullDatabase]);
 
-                // --- 4. LOGIKA POBIERANIA DANYCH WYŚWIETLANIA ---
+                // --- 4. LOGIKA DANYCH DO WYŚWIETLENIA ---
                 const getDisplayData = () => {
-                    if (!currentWordIds.length || !allData.length) return null;
+                    if (!currentWordIds.length || !fullDatabase.length) return null;
                     
                     const currentId = currentWordIds[currentIndex];
                     
-                    // Szukamy wiersza pasującego do: ID, Czasu, Liczby
-                    let foundRow = allData.find(row => 
+                    // Szukamy wiersza w całej bazie
+                    let foundRow = fullDatabase.find(row => 
                         row.id === currentId && 
                         row.tense === tense && 
                         row.number_mode === numberMode
                     );
 
-                    // Fallback 1: Jeśli brak mnogiej dla tego czasu -> szukaj pojedynczej dla tego czasu
+                    // Fallbacki (jak wcześniej)
                     if (!foundRow && numberMode === 'plural') {
-                         foundRow = allData.find(row => 
-                            row.id === currentId && 
-                            row.tense === tense && 
-                            row.number_mode === 'singular'
-                        );
+                         foundRow = fullDatabase.find(row => row.id === currentId && row.tense === tense && row.number_mode === 'singular');
                     }
-
-                    // Fallback 2: Jeśli brak czasu -> szukaj PresentSimple (baza) + wybrana liczba
                     if (!foundRow) {
-                        foundRow = allData.find(row => 
-                            row.id === currentId && 
-                            row.tense === 'PresentSimple' && 
-                            row.number_mode === numberMode
-                        );
+                        foundRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple' && row.number_mode === numberMode);
                     }
-
-                    // Fallback 3: Ostateczność -> PresentSimple + singular
                     if (!foundRow) {
-                        foundRow = allData.find(row => 
-                            row.id === currentId && 
-                            row.tense === 'PresentSimple' && 
-                            row.number_mode === 'singular'
-                        );
+                        foundRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple' && row.number_mode === 'singular');
                     }
 
                     if (foundRow) {
                         const sentences = [];
                         for (let i = 1; i <= 5; i++) {
                             if (foundRow[`s${i}_en`] && foundRow[`s${i}_pl`]) {
-                                sentences.push({
-                                    en: foundRow[`s${i}_en`],
-                                    pl: foundRow[`s${i}_pl`]
-                                });
+                                sentences.push({ en: foundRow[`s${i}_en`], pl: foundRow[`s${i}_pl`] });
                             }
                         }
                         return { ...foundRow, sentences };
                     }
-                    
                     return null;
                 };
 
@@ -319,7 +288,6 @@
                     );
                 };
 
-                // --- STYLE ---
                 const theme = isDarkMode ? {
                     bg: 'bg-gray-900',
                     text: 'text-gray-100',
@@ -358,32 +326,159 @@
                     accent: 'bg-indigo-100 text-indigo-500'
                 };
 
-                // --- EKRAN ŁADOWANIA ---
                 if (loading) {
-                    return (
-                        <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text}`}>
-                            <div className="text-4xl mb-4 animate-spin text-indigo-500">
-                                <Icon path={iconPaths.layers} size={48} />
-                            </div>
-                            <div className="text-lg font-semibold">Wczytywanie poziomu {level}...</div>
-                        </div>
-                    );
+                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text}`}><div className="text-4xl mb-4 animate-spin text-indigo-500"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold">Wczytywanie bazy...</div></div>;
                 }
                 
-                // --- EKRAN BŁĘDU PLIKU ---
                 if (fileError) {
-                    return (
-                        <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}>
-                            <div className="text-4xl mb-4">⚠️</div>
-                            <div className="text-xl font-bold mb-4 text-red-500">Brak danych dla poziomu {level}</div>
-                            <p className="mb-6 text-sm">{fileError}</p>
+                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}><div className="text-4xl mb-4">⚠️</div><div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div><p className="mb-6 text-sm">{fileError}</p><div className="text-xs opacity-70 bg-black/10 p-4 rounded text-left max-w-md mb-6"><strong>Wskazówka:</strong> Stwórz plik <code>baza.txt</code> obok <code>index.html</code>.</div></div>;
+                }
+
+                if (!displayData) {
+                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text} text-center`}><div className="text-xl font-bold mb-2">Brak słówek</div><p>Poziom: {level}, Kategoria: {category}</p></div>;
+                }
+
+                return (
+                    <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-300 ${theme.bg} ${theme.text} relative overflow-hidden`}>
+                        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-50">
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}>
+                                <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
+                            </button>
+                        </div>
+
+                        <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-8 sm:mt-0 mb-2">
+                            <h1 className={`text-2xl sm:text-3xl font-extrabold flex items-center gap-2 ${theme.headerText}`}>
+                                <Icon path={iconPaths.layers} size={28} className="sm:w-8 sm:h-8" /> Fiszki Master
+                            </h1>
                             
-                            <div className="text-xs opacity-70 bg-black/10 p-4 rounded text-left max-w-md mb-6">
-                                <strong>Wskazówka:</strong> Upewnij się, że plik <code>data_{level.toLowerCase()}.csv</code> znajduje się na GitHubie w tym samym katalogu co <code>index.html</code>.
+                            <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
+                                <div className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md flex flex-col justify-center transition-colors-all duration-300`}>
+                                    <label className={`text-[10px] sm:text-xs font-bold uppercase block mb-0.5 sm:mb-1 ${theme.subText}`}>Poziom</label>
+                                    <select value={level} onChange={(e) => setLevel(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText}`}>
+                                        <option value="A1">A1</option><option value="A2">A2</option><option value="B1">B1</option><option value="B2">B2</option>
+                                    </select>
+                                </div>
+                                <div className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md border-l-4 ${isDarkMode ? 'border-indigo-600' : 'border-indigo-400'} flex flex-col justify-center transition-colors-all duration-300`}>
+                                    <label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 sm:mb-1 flex items-center gap-1 ${theme.subText}`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3"/> Temat</label>
+                                    <select value={category} onChange={(e) => setCategory(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText}`}>
+                                        {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    </select>
+                                </div>
                             </div>
                             
-                            <label className="block mb-2 text-sm font-bold">Zmień poziom na inny:</label>
-                            <select value={level} onChange={(e) => setLevel(e.target.value)} className="px-4 py-2 rounded border bg-white text-black shadow-lg font-bold">
-                                <option value="A1">A1</option><option value="A2">A2</option><option value="B1">B1</option><option value="B2">B2</option>
-                            </select>
-   
+                            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full max-w-lg justify-center">
+                                <div className={`${theme.controlsBg} px-2 py-1.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl shadow-sm border ${theme.controlsBorder} flex items-center gap-1 flex-1 min-w-[120px] transition-colors-all duration-300`}>
+                                    <Icon path={iconPaths.hash} size={12} className={`sm:w-3.5 sm:h-3.5 ${isDarkMode ? "text-gray-400" : "text-indigo-400"}`}/>
+                                    <select value={numberMode} onChange={(e) => setNumberMode(e.target.value)} className={`w-full bg-transparent text-xs sm:text-sm font-bold outline-none py-1 truncate ${theme.selectText}`}>
+                                        <option value="default">L. Domyślna</option><option value="singular">L. Pojedyncza</option><option value="plural">L. Mnoga</option>
+                                    </select>
+                                </div>
+                                
+                                <div className={`${theme.controlsBg} px-2 py-1.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl shadow-sm border ${theme.controlsBorder} flex items-center gap-1 flex-1 min-w-[120px] transition-colors-all duration-300`}>
+                                    <Icon path={iconPaths.clock} size={12} className={`sm:w-3.5 sm:h-3.5 ${isDarkMode ? "text-gray-400" : "text-indigo-400"}`}/>
+                                    <select value={tense} onChange={(e) => setTense(e.target.value)} className={`w-full bg-transparent text-xs sm:text-sm font-bold outline-none py-1 truncate ${theme.selectText}`}>
+                                        <option value="PresentSimple">1. Present Simple</option>
+                                        <option value="PresentContinuous">2. Present Continuous</option>
+                                        <option value="PastSimple">3. Past Simple</option>
+                                        <option value="FutureSimple">4. Future Simple</option>
+                                        <option value="PresentPerfect">5. Present Perfect</option>
+                                        <option value="PastContinuous">6. Past Continuous</option>
+                                        <option value="GoingTo">7. Going To</option>
+                                        <option value="mixed">Mix czasów</option>
+                                    </select>
+                                </div>
+
+                                <div className={`${theme.counterBg} px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm border border-white/10 font-semibold whitespace-nowrap ${theme.counterText} transition-colors-all duration-300 w-full sm:w-auto text-center`}>
+                                    {currentIndex + 1} / {currentWordIds.length}
+                                </div>
+                            </div>
+                        </header>
+
+                        <div className="relative w-full max-w-md flex-1 min-h-[250px] mb-4 z-10 perspective-1000">
+                            <div 
+                                className={`relative w-full h-full shadow-2xl rounded-2xl cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-700 ease-in-out'}`}
+                                style={{ transform: `rotateY(${rotation}deg)` }}
+                                onClick={handleCardClick}
+                                onTouchStart={onTouchStart}
+                                onTouchMove={onTouchMove}
+                                onTouchEnd={onTouchEnd}
+                            >
+                                <div className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardFrontBg} ${isDarkMode ? 'border-gray-600' : 'border-indigo-200'} transition-colors-all duration-300`} style={{ transform: 'rotateY(0deg)' }}>
+                                    {cardSide === 3 ? (
+                                        <div className="w-full h-full flex flex-col animate-fadeIn">
+                                            <div className="flex justify-between items-center mb-2 sm:mb-3 border-b pb-2 border-gray-200/20 flex-none">
+                                                <h3 className={`font-bold flex items-center gap-2 text-sm sm:text-base ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}><Icon path={iconPaths.book} size={16} className="sm:w-[18px] sm:h-[18px]"/> Zdania</h3>
+                                                <button onClick={showTranslation} className={`text-[10px] sm:text-xs px-2 sm:px-3 py-1 rounded-full border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Powrót</button>
+                                            </div>
+                                            <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1">
+                                                {displayData.sentences.map((s, i) => (
+                                                    <li key={i} className="flex flex-col gap-1">
+                                                        <div className="flex gap-2 leading-snug">
+                                                            <span className={`font-bold select-none mt-0.5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-300'}`}>{i+1}.</span>
+                                                            <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.word)}</span>
+                                                        </div>
+                                                        <div className={`pl-6 text-sm sm:text-base italic ${theme.subText}`}>({s.pl})</div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className={`absolute top-4 left-4 sm:top-6 sm:left-6 text-[10px] sm:text-xs font-bold uppercase flex flex-wrap items-center gap-1 sm:gap-2 max-w-full overflow-hidden ${theme.subText}`}>
+                                                <span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Angielski' : tense}</span>
+                                                {numberMode !== 'default' && (
+                                                    <span className={`px-1.5 py-0.5 sm:px-2 rounded-full text-[9px] sm:text-[10px] shrink-0 ${theme.accent}`}>
+                                                        {numberMode === 'plural' ? 'Mnoga' : 'Pojedyncza'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 flex items-center justify-center w-full px-2">
+                                                <h2 className={`text-3xl sm:text-5xl font-black text-center break-words leading-tight ${theme.cardFrontText}`}>
+                                                    {displayData.word}
+                                                </h2>
+                                            </div>
+                                            <div className={`absolute bottom-4 sm:bottom-6 text-[10px] sm:text-xs flex items-center gap-1 sm:gap-2 font-medium ${theme.subText}`}>
+                                                <Icon path={iconPaths.rotate} size={12} className="sm:w-[14px] sm:h-[14px]"/> Kliknij, aby obrócić
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className={`absolute inset-0 w-full h-full text-white rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardBackBg} ${isDarkMode ? 'border-indigo-950' : 'border-indigo-800'} transition-colors-all duration-300`} style={{ transform: 'rotateY(180deg)' }}>
+                                    <div className="absolute top-4 right-4 sm:top-6 sm:right-6 text-[10px] sm:text-xs font-bold text-indigo-200 uppercase">Tłumaczenie</div>
+                                    <h2 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-3 text-center">{displayData.translation}</h2>
+                                    <div className="bg-white/20 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full font-mono text-base sm:text-xl mb-6 sm:mb-8">{displayData.phonetic}</div>
+                                    <button onClick={showSentences} className={`font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg active:scale-95 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}>
+                                        <Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> 5 zdań
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="w-full max-w-md flex-none space-y-3 z-20 mb-2">
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-3 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-300 text-sm`}>
+                                    <Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia
+                                </button>
+                                <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">
+                                    Następna <Icon path={iconPaths.right} className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <button onClick={handleSpeak} disabled={isSpeaking} className={`w-full text-lg font-bold py-3 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}>
+                                {isSpeaking ? <Icon path={iconPaths.volX} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.vol} size={24} className="sm:w-6 sm:h-6"/>}
+                                {isSpeaking ? "Odtwarzanie..." : (cardSide === 3 ? "Czytaj zdania" : "Czytaj wymowę")}
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<FlashcardsApp />);
+        } catch (err) {
+            document.getElementById('error-overlay').style.display = 'flex';
+            document.getElementById('error-message').textContent = err.toString();
+        }
+    </script>
+</body>
+</html>
