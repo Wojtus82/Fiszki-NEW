@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fiszki Master 3D</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM (Wersje Produkcyjne) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- PapaParse (Do obsługi plików CSV) -->
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <style>
+        /* Ustawienia 3D */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        
+        /* Animacje */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-in-out; }
+        
+        /* Pasek przewijania */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+
+        /* Overlay błędów */
+        #error-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.98); z-index: 9999;
+            flex-direction: column; align-items: center; justify-content: center;
+            color: #991b1b; padding: 20px; text-align: center;
+        }
+        
+        .no-tap-highlight { -webkit-tap-highlight-color: transparent; }
+        .transition-colors-all { transition-property: background-color, border-color, color, fill, stroke; transition-duration: 300ms; }
+    </style>
+</head>
+<body class="m-0 transition-colors duration-300 no-tap-highlight overflow-hidden">
+
+    <!-- Nakładka błędów krytycznych -->
+    <div id="error-overlay">
+        <h2 class="text-2xl font-bold mb-2">Wystąpił błąd</h2>
+        <p class="mb-4 text-gray-600">Sprawdź konsolę (F12) lub upewnij się, że pliki CSV są na serwerze.</p>
+        <pre id="error-message" class="bg-red-100 p-4 rounded text-sm text-left overflow-auto max-w-full max-h-64"></pre>
+        <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg">Odśwież stronę</button>
+    </div>
+
+    <div id="root"></div>
+
+    <script>
+        // Globalny przechwytywacz błędów
+        window.onerror = function(msg, url, line, col, error) {
+            document.getElementById('error-overlay').style.display = 'flex';
+            document.getElementById('error-message').textContent = `Błąd: ${msg}\nPlik: ${url}\nLinia: ${line}`;
+            return false;
+        };
+    </script>
+
+    <script type="text/babel">
+        try {
+            const { useState, useEffect } = React;
+
+            // --- KOMPONENT IKONY ---
+            const Icon = ({ path, size = 24, className="" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {path}
+                </svg>
+            );
+
+            const iconPaths = {
+                layers: <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
+                book: <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
+                rotate: <><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></>,
+                left: <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
+                right: <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
+                vol: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></>,
+                volX: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></>,
+                tag: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>,
+                clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+                hash: <><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></>,
+                moon: <><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></>,
+                sun: <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>
+            };
+
+            function FlashcardsApp() {
+                // --- STANY APLIKACJI ---
+                const [allData, setAllData] = useState([]); // Dane z aktualnie załadowanego pliku CSV
+                const [loading, setLoading] = useState(true);
+                const [fileError, setFileError] = useState(null);
+
+                const [level, setLevel] = useState('A1');
+                const [category, setCategory] = useState('');
+                const [tense, setTense] = useState('PresentSimple');
+                const [numberMode, setNumberMode] = useState('default'); // default, singular, plural
+                
+                const [availableCategories, setAvailableCategories] = useState([]);
+                const [currentWordIds, setCurrentWordIds] = useState([]);
+                const [currentIndex, setCurrentIndex] = useState(0);
+                
+                const [cardSide, setCardSide] = useState(1);
+                const [rotation, setRotation] = useState(0);
+                const [noTransition, setNoTransition] = useState(false);
+                const [isSpeaking, setIsSpeaking] = useState(false);
+                const [isDarkMode, setIsDarkMode] = useState(false);
+
+                // Gesty
+                const [touchStart, setTouchStart] = useState(null);
+                const [touchEnd, setTouchEnd] = useState(null);
+                const minSwipeDistance = 50;
+
+                // --- 1. POBIERANIE DANYCH Z PLIKU CSV (Zależne od Levelu) ---
+                useEffect(() => {
+                    setLoading(true);
+                    setFileError(null);
+                    setAllData([]);
+                    setCategory(''); 
+
+                    // Konstrukcja nazwy pliku: data_a1.csv, data_b2.csv
+                    const fileName = `data_${level.toLowerCase()}.csv`;
+                    console.log(`Pobieranie pliku: ${fileName}`);
+
+                    Papa.parse(fileName, {
+                        download: true,
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            if (results.data && results.data.length > 0) {
+                                console.log(`Załadowano ${results.data.length} wierszy.`);
+                                setAllData(results.data);
+                                setLoading(false);
+                            } else {
+                                setFileError(`Plik ${fileName} jest pusty lub ma niepoprawny format.`);
+                                setLoading(false);
+                            }
+                        },
+                        error: (err) => {
+                            console.warn("Błąd CSV:", err);
+                            setFileError(`Nie znaleziono pliku: ${fileName}. Upewnij się, że pliki (data_a1.csv, data_a2.csv...) są na GitHubie w tym samym folderze.`);
+                            setLoading(false);
+                        }
+                    });
+                }, [level]);
+
+                // --- 2. AKTUALIZACJA KATEGORII ---
+                useEffect(() => {
+                    if (!allData.length) {
+                        setAvailableCategories([]);
+                        return;
+                    }
+                    const cats = [...new Set(allData.map(row => row.category))];
+                    setAvailableCategories(cats);
+                    
+                    if (cats.length > 0) {
+                        setCategory(cats[0]);
+                    }
+                }, [allData]);
+
+                // --- 3. FILTROWANIE SŁÓW (Unikalne ID) ---
+                useEffect(() => {
+                    if (!allData.length || !category) {
+                        setCurrentWordIds([]);
+                        return;
+                    }
+                    
+                    // Znajdujemy unikalne ID dla wybranej kategorii
+                    const uniqueIds = [...new Set(
+                        allData
+                            .filter(row => row.category === category)
+                            .map(row => row.id)
+                    )];
+                    
+                    // Tasowanie
+                    const shuffledIds = [...uniqueIds].sort(() => Math.random() - 0.5);
+                    
+                    setCurrentWordIds(shuffledIds);
+                    setCurrentIndex(0);
+                    resetCard();
+                }, [category, allData]);
+
+                // --- 4. LOGIKA POBIERANIA DANYCH WYŚWIETLANIA ---
+                const getDisplayData = () => {
+                    if (!currentWordIds.length || !allData.length) return null;
+                    
+                    const currentId = currentWordIds[currentIndex];
+                    
+                    // Szukamy wiersza pasującego do: ID, Czasu, Liczby
+                    let foundRow = allData.find(row => 
+                        row.id === currentId && 
+                        row.tense === tense && 
+                        row.number_mode === numberMode
+                    );
+
+                    // Fallback 1: Jeśli brak mnogiej dla tego czasu -> szukaj pojedynczej dla tego czasu
+                    if (!foundRow && numberMode === 'plural') {
+                         foundRow = allData.find(row => 
+                            row.id === currentId && 
+                            row.tense === tense && 
+                            row.number_mode === 'singular'
+                        );
+                    }
+
+                    // Fallback 2: Jeśli brak czasu -> szukaj PresentSimple (baza) + wybrana liczba
+                    if (!foundRow) {
+                        foundRow = allData.find(row => 
+                            row.id === currentId && 
+                            row.tense === 'PresentSimple' && 
+                            row.number_mode === numberMode
+                        );
+                    }
+
+                    // Fallback 3: Ostateczność -> PresentSimple + singular
+                    if (!foundRow) {
+                        foundRow = allData.find(row => 
+                            row.id === currentId && 
+                            row.tense === 'PresentSimple' && 
+                            row.number_mode === 'singular'
+                        );
+                    }
+
+                    if (foundRow) {
+                        const sentences = [];
+                        for (let i = 1; i <= 5; i++) {
+                            if (foundRow[`s${i}_en`] && foundRow[`s${i}_pl`]) {
+                                sentences.push({
+                                    en: foundRow[`s${i}_en`],
+                                    pl: foundRow[`s${i}_pl`]
+                                });
+                            }
+                        }
+                        return { ...foundRow, sentences };
+                    }
+                    
+                    return null;
+                };
+
+                const displayData = getDisplayData();
+
+                // --- HANDLERY ---
+                const onTouchStart = (e) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); }
+                const onTouchMove = (e) => { setTouchEnd(e.targetTouches[0].clientX); }
+                const onTouchEnd = () => {
+                    if (!touchStart || !touchEnd) return;
+                    const distance = touchStart - touchEnd;
+                    if (distance > minSwipeDistance) handleNext();
+                    else if (distance < -minSwipeDistance) handlePrev();
+                }
+
+                const resetCard = () => {
+                    setNoTransition(true);
+                    setCardSide(1);
+                    setRotation(0);
+                    cancelSpeech();
+                    setTimeout(() => setNoTransition(false), 50); 
+                };
+
+                const handleNext = () => {
+                    setNoTransition(true);
+                    setCardSide(1);
+                    setRotation(0);
+                    setTimeout(() => {
+                        setNoTransition(false);
+                        setCurrentIndex((prev) => (prev + 1) % currentWordIds.length);
+                    }, 50);
+                };
+
+                const handlePrev = () => {
+                    setNoTransition(true);
+                    setCardSide(1);
+                    setRotation(0);
+                    setTimeout(() => {
+                        setNoTransition(false);
+                        setCurrentIndex((prev) => (prev - 1 + currentWordIds.length) % currentWordIds.length);
+                    }, 50);
+                };
+
+                const handleCardClick = () => {
+                    if (cardSide === 1) { setCardSide(2); setRotation(180); }
+                    else if (cardSide === 2) { setCardSide(1); setRotation(0); }
+                    else if (cardSide === 3) { showTranslation(); }
+                };
+
+                const showSentences = (e) => { if(e) e.stopPropagation(); setCardSide(3); setRotation(360); };
+                const showTranslation = (e) => { if(e) e.stopPropagation(); setCardSide(2); setRotation(180); };
+
+                const handleSpeak = () => {
+                    if (!displayData || !window.speechSynthesis) return;
+                    window.speechSynthesis.cancel();
+                    const text = cardSide === 3 ? displayData.sentences.map(s => s.en).join('. ') : displayData.word;
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'en-US';
+                    utterance.rate = 0.85;
+                    utterance.onstart = () => setIsSpeaking(true);
+                    utterance.onend = () => setIsSpeaking(false);
+                    window.speechSynthesis.speak(utterance);
+                };
+
+                const cancelSpeech = () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); setIsSpeaking(false); };
+
+                const highlightTargetWord = (sentence, targetWord) => {
+                    if (!targetWord) return sentence;
+                    const cleanTarget = targetWord.replace(/[()]/g, '').trim();
+                    const escapedTarget = cleanTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedTarget})`, 'gi');
+                    const parts = sentence.split(regex);
+                    return parts.map((part, index) => 
+                        part.toLowerCase() === cleanTarget.toLowerCase() 
+                        ? <span key={index} className={`${isDarkMode ? 'text-red-400' : 'text-red-600'} font-extrabold text-xl sm:text-2xl`}>{part}</span> 
+                        : part
+                    );
+                };
+
+                // --- STYLE ---
+                const theme = isDarkMode ? {
+                    bg: 'bg-gray-900',
+                    text: 'text-gray-100',
+                    headerText: 'text-indigo-400',
+                    cardFrontBg: 'bg-gray-800',
+                    cardFrontText: 'text-white',
+                    cardBorder: 'border-gray-700',
+                    cardBackBg: 'bg-indigo-900',
+                    controlsBg: 'bg-gray-800',
+                    controlsBorder: 'border-gray-700',
+                    selectText: 'text-indigo-300',
+                    subText: 'text-gray-400',
+                    counterBg: 'bg-gray-800',
+                    counterText: 'text-gray-300',
+                    buttonBg: 'bg-gray-800',
+                    buttonHover: 'hover:bg-gray-700',
+                    buttonText: 'text-gray-200',
+                    accent: 'bg-indigo-800 text-indigo-200'
+                } : {
+                    bg: 'bg-gradient-to-br from-blue-50 to-indigo-100',
+                    text: 'text-gray-800',
+                    headerText: 'text-indigo-700',
+                    cardFrontBg: 'bg-white',
+                    cardFrontText: 'text-gray-800',
+                    cardBorder: 'border-indigo-200',
+                    cardBackBg: 'bg-indigo-600',
+                    controlsBg: 'bg-white',
+                    controlsBorder: 'border-indigo-200',
+                    selectText: 'text-indigo-700',
+                    subText: 'text-gray-500',
+                    counterBg: 'bg-white/50',
+                    counterText: 'text-indigo-800',
+                    buttonBg: 'bg-white',
+                    buttonHover: 'hover:bg-gray-50',
+                    buttonText: 'text-gray-700',
+                    accent: 'bg-indigo-100 text-indigo-500'
+                };
+
+                // --- EKRAN ŁADOWANIA ---
+                if (loading) {
+                    return (
+                        <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text}`}>
+                            <div className="text-4xl mb-4 animate-spin text-indigo-500">
+                                <Icon path={iconPaths.layers} size={48} />
+                            </div>
+                            <div className="text-lg font-semibold">Wczytywanie poziomu {level}...</div>
+                        </div>
+                    );
+                }
+                
+                // --- EKRAN BŁĘDU PLIKU ---
+                if (fileError) {
+                    return (
+                        <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}>
+                            <div className="text-4xl mb-4">⚠️</div>
+                            <div className="text-xl font-bold mb-4 text-red-500">Brak danych dla poziomu {level}</div>
+                            <p className="mb-6 text-sm">{fileError}</p>
+                            
+                            <div className="text-xs opacity-70 bg-black/10 p-4 rounded text-left max-w-md mb-6">
+                                <strong>Wskazówka:</strong> Upewnij się, że plik <code>data_{level.toLowerCase()}.csv</code> znajduje się na GitHubie w tym samym katalogu co <code>index.html</code>.
+                            </div>
+                            
+                            <label className="block mb-2 text-sm font-bold">Zmień poziom na inny:</label>
+                            <select value={level} onChange={(e) => setLevel(e.target.value)} className="px-4 py-2 rounded border bg-white text-black shadow-lg font-bold">
+                                <option value="A1">A1</option><option value="A2">A2</option><option value="B1">B1</option><option value="B2">B2</option>
+                            </select>
+   
