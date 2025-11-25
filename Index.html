@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Fiszki Master 3D</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <!-- PapaParse -->
     <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 
     <style>
@@ -78,7 +82,6 @@
                 const [level, setLevel] = useState('A1');
                 const [category, setCategory] = useState('');
                 const [tense, setTense] = useState('PresentSimple');
-                // ZMIANA 1: Domyślnie startujemy od 'singular' (L. Pojedyncza)
                 const [numberMode, setNumberMode] = useState('singular');
                 
                 const [availableCategories, setAvailableCategories] = useState([]);
@@ -173,18 +176,15 @@
                     
                     const currentId = currentWordIds[currentIndex];
                     
-                    // Szukamy idealnego dopasowania
                     let foundRow = fullDatabase.find(row => 
                         row.id === currentId && 
                         row.tense === tense && 
                         row.number_mode === numberMode
                     );
 
-                    // Fallbacki - jeśli nie znaleziono idealnego, szukaj PresentSimple w wybranej liczbie
                     if (!foundRow) {
                         foundRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple' && row.number_mode === numberMode);
                     }
-                    // Ostateczny fallback - PresentSimple, Singular
                     if (!foundRow) {
                         foundRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple' && row.number_mode === 'singular');
                     }
@@ -337,7 +337,7 @@
 
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-8 sm:mt-0 mb-2">
                             <h1 className={`text-2xl sm:text-3xl font-extrabold flex items-center gap-2 ${theme.headerText}`}>
-                                <Icon path={iconPaths.layers} size={28} className="sm:w-8 sm:h-8" /> Fiszki Master
+                                <Icon path={iconPaths.layers} size={28} className="sm:w-8 sm:h-8" /> Fiszki Master v2
                             </h1>
                             
                             <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
@@ -359,7 +359,6 @@
                                 <div className={`${theme.controlsBg} px-2 py-1.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl shadow-sm border ${theme.controlsBorder} flex items-center gap-1 flex-1 min-w-[120px] transition-colors-all duration-300`}>
                                     <Icon path={iconPaths.hash} size={12} className={`sm:w-3.5 sm:h-3.5 ${isDarkMode ? "text-gray-400" : "text-indigo-400"}`}/>
                                     <select value={numberMode} onChange={(e) => setNumberMode(e.target.value)} className={`w-full bg-transparent text-xs sm:text-sm font-bold outline-none py-1 truncate ${theme.selectText}`}>
-                                        {/* ZMIANA 2: Usunięto opcję 'Domyślna' */}
                                         <option value="singular">L. Pojedyncza</option>
                                         <option value="plural">L. Mnoga</option>
                                     </select>
@@ -378,10 +377,10 @@
                                         <option value="mixed">Mix czasów</option>
                                     </select>
                                 </div>
-
-                                <div className={`${theme.counterBg} px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm border border-white/10 font-semibold whitespace-nowrap ${theme.counterText} transition-colors-all duration-300 w-full sm:w-auto text-center`}>
-                                    {currentIndex + 1} / {currentWordIds.length}
-                                </div>
+                            </div>
+                            
+                            <div className={`${theme.counterBg} px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm border border-white/10 font-semibold whitespace-nowrap ${theme.counterText} transition-colors-all duration-300 w-full sm:w-auto text-center mt-2`}>
+                                {currentIndex + 1} / {currentWordIds.length}
                             </div>
                         </header>
 
