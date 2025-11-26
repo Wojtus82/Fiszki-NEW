@@ -34,6 +34,15 @@
 </head>
 <body class="m-0 transition-colors duration-300 no-tap-highlight overflow-hidden">
 
+    <!-- 
+        INSTRUKCJA DLA PLIKU baza.txt:
+        Plik musi mieć nagłówki (pierwszy wiersz). Kolejność dowolna, ale nazwy kluczowe to:
+        id, level, category, word, translation, phonetic, tense, s1, s2, s3, s4, s5
+        
+        Przykładowy wiersz:
+        1,A1,Rodzina,Mother,Matka,/'mʌð.ər/,PresentSimple,My mother is kind (Moja matka jest miła),She loves me (Ona mnie kocha),...,...,...
+    -->
+
     <div id="error-overlay">
         <h2 class="text-2xl font-bold mb-2">Wystąpił błąd</h2>
         <p class="mb-4 text-gray-600">Nie udało się załadować bazy danych.</p>
@@ -82,7 +91,6 @@
                 const [level, setLevel] = useState('A1');
                 const [category, setCategory] = useState('');
                 const [tense, setTense] = useState('PresentSimple');
-                const [numberMode, setNumberMode] = useState('singular');
                 
                 const [availableCategories, setAvailableCategories] = useState([]);
                 const [currentWordIds, setCurrentWordIds] = useState([]);
@@ -114,8 +122,6 @@
                                 const cleanedData = results.data.map(row => {
                                     const newRow = {};
                                     Object.keys(row).forEach(key => {
-                                        // POPRAWKA: Wymuszenie konwersji na String przed trim()
-                                        // To naprawia błąd "row[key].trim is not a function"
                                         newRow[key.trim()] = row[key] ? String(row[key]).trim() : "";
                                     });
                                     return newRow;
@@ -172,61 +178,92 @@
                     resetCard();
                 }, [category, level, fullDatabase]);
 
-                // --- 4. LOGIKA DANYCH DO WYŚWIETLENIA ---
+                // --- 4. PARSOWANIE ZDANIA (Angielski (Polski)) ---
+                const parseSentenceRow = (text) => {
+                    if (!text) return null;
+                    // Szukamy wzorca: "Tekst angielski (Tekst polski)"
+                    // Ostatni nawias otwierający traktujemy jako początek tłumaczenia
+                    const lastParenIndex = text.lastIndexOf('(');
+                    if (lastParenIndex === -1) {
+                        // Jeśli brak nawiasu, zakładamy, że to tylko angielski
+                        return { en: text.trim(), pl: '' };
+                    }
+                    
+                    const en = text.substring(0, lastParenIndex).trim();
+                    const pl = text.substring(lastParenIndex + 1, text.length - 1).trim(); // Usuwamy ostatni nawias zamykający
+                    
+                    return { en, pl };
+                };
+
+                // --- 5. LOGIKA DANYCH DO WYŚWIETLENIA ---
                 const getDisplayData = () => {
                     if (!currentWordIds.length || !fullDatabase.length) return null;
                     
                     const currentId = currentWordIds[currentIndex];
                     
-                    // 1. ZAWSZE pobieraj wersję podstawową (PresentSimple, singular) dla głównej karty (słowo/tłumaczenie)
+                    // 1. DANE BAZOWE (Strona 1 i 2): 
+                    // Szukamy wiersza dla PresentSimple, aby mieć podstawową formę słowa.
                     let baseRow = fullDatabase.find(row => 
                         row.id === currentId && 
-                        row.tense === 'PresentSimple' && 
-                        row.number_mode === 'singular'
+                        row.tense === 'PresentSimple'
                     );
 
-                    // Fallback dla baseRow (jeśli brak PresentSimple/singular, weź cokolwiek z tym ID)
+                    // Fallback: Jeśli nie ma PresentSimple, bierzemy pierwszy wiersz z tym ID.
                     if (!baseRow) {
                         baseRow = fullDatabase.find(row => row.id === currentId);
                     }
 
-                    // 2. Pobieraj wersję specyficzną dla zdań (zależną od wybranego czasu i liczby)
-                    let sentenceRow = fullDatabase.find(row => 
-                        row.id === currentId && 
-                        row.tense === tense && 
-                        row.number_mode === numberMode
-                    );
+                    if (!baseRow) return null;
 
-                    // Fallbacki dla zdań
-                    if (!sentenceRow) {
-                        sentenceRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple' && row.number_mode === numberMode);
-                    }
-                    if (!sentenceRow) {
-                        sentenceRow = baseRow;
-                    }
+                    // 2. DANE DLA ZDAŃ (Strona 3):
+                    let sentences = [];
+                    let conjugationWord = baseRow.word; 
 
-                    if (baseRow) {
-                        const sentences = [];
-                        // Zdania bierzemy z wiersza specyficznego (sentenceRow)
-                        const sourceRow = sentenceRow || baseRow;
+                    if (tense === 'mixed') {
+                        // TRYB MIX: Pobieramy wszystkie wiersze dla tego ID (różne czasy)
+                        const allVariations = fullDatabase.filter(row => row.id === currentId);
 
-                        for (let i = 1; i <= 5; i++) {
-                            if (sourceRow[`s${i}_en`] && sourceRow[`s${i}_pl`]) {
-                                sentences.push({ en: sourceRow[`s${i}_en`], pl: sourceRow[`s${i}_pl`] });
+                        allVariations.forEach(row => {
+                            for (let i = 1; i <= 5; i++) {
+                                const rawSentence = row[`s${i}`]; // szukamy kolumny s1, s2...
+                                if (rawSentence) {
+                                    const parsed = parseSentenceRow(rawSentence);
+                                    if (parsed && parsed.en) {
+                                        sentences.push(parsed);
+                                    }
+                                }
+                            }
+                        });
+                        // Mieszamy i przycinamy do 5
+                        sentences = sentences.sort(() => Math.random() - 0.5).slice(0, 5);
+                        
+                    } else {
+                        // TRYB KONKRETNY CZAS:
+                        const targetRow = fullDatabase.find(row => 
+                            row.id === currentId && 
+                            row.tense === tense
+                        );
+
+                        if (targetRow) {
+                            conjugationWord = targetRow.word;
+                            
+                            for (let i = 1; i <= 5; i++) {
+                                const rawSentence = targetRow[`s${i}`];
+                                if (rawSentence) {
+                                    const parsed = parseSentenceRow(rawSentence);
+                                    if (parsed && parsed.en) {
+                                        sentences.push(parsed);
+                                    }
+                                }
                             }
                         }
-                        
-                        // Zwracamy hybrydę:
-                        // - Dane podstawowe (word, translation) z baseRow
-                        // - sentences z sourceRow (reagują na przyciski)
-                        // - conjugation: słowo z sourceRow (do poprawnego podświetlania w zdaniach)
-                        return { 
-                            ...baseRow, 
-                            sentences, 
-                            conjugation: sourceRow.word 
-                        };
                     }
-                    return null;
+
+                    return { 
+                        ...baseRow, 
+                        sentences, 
+                        conjugation: conjugationWord 
+                    };
                 };
 
                 const displayData = getDisplayData();
@@ -385,14 +422,6 @@
                             
                             <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full max-w-lg justify-center">
                                 <div className={`${theme.controlsBg} px-2 py-1.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl shadow-sm border ${theme.controlsBorder} flex items-center gap-1 flex-1 min-w-[120px] transition-colors-all duration-300`}>
-                                    <Icon path={iconPaths.hash} size={12} className={`sm:w-3.5 sm:h-3.5 ${isDarkMode ? "text-gray-400" : "text-indigo-400"}`}/>
-                                    <select value={numberMode} onChange={(e) => setNumberMode(e.target.value)} className={`w-full bg-transparent text-xs sm:text-sm font-bold outline-none py-1 truncate ${theme.selectText}`}>
-                                        <option value="singular">L. Pojedyncza</option>
-                                        <option value="plural">L. Mnoga</option>
-                                    </select>
-                                </div>
-                                
-                                <div className={`${theme.controlsBg} px-2 py-1.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl shadow-sm border ${theme.controlsBorder} flex items-center gap-1 flex-1 min-w-[120px] transition-colors-all duration-300`}>
                                     <Icon path={iconPaths.clock} size={12} className={`sm:w-3.5 sm:h-3.5 ${isDarkMode ? "text-gray-400" : "text-indigo-400"}`}/>
                                     <select value={tense} onChange={(e) => setTense(e.target.value)} className={`w-full bg-transparent text-xs sm:text-sm font-bold outline-none py-1 truncate ${theme.selectText}`}>
                                         <option value="PresentSimple">1. Present Simple</option>
@@ -433,7 +462,6 @@
                                                     <li key={i} className="flex flex-col gap-1">
                                                         <div className="flex gap-2 leading-snug">
                                                             <span className={`font-bold select-none mt-0.5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-300'}`}>{i+1}.</span>
-                                                            {/* Używamy displayData.conjugation do podświetlania, jeśli istnieje, w przeciwnym razie word */}
                                                             <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.conjugation || displayData.word)}</span>
                                                         </div>
                                                         <div className={`pl-6 text-sm sm:text-base italic ${theme.subText}`}>({s.pl})</div>
@@ -445,9 +473,6 @@
                                         <>
                                             <div className={`absolute top-4 left-4 sm:top-6 sm:left-6 text-[10px] sm:text-xs font-bold uppercase flex flex-wrap items-center gap-1 sm:gap-2 max-w-full overflow-hidden ${theme.subText}`}>
                                                 <span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Angielski' : tense}</span>
-                                                <span className={`px-1.5 py-0.5 sm:px-2 rounded-full text-[9px] sm:text-[10px] shrink-0 ${theme.accent}`}>
-                                                    {numberMode === 'plural' ? 'Mnoga' : 'Pojedyncza'}
-                                                </span>
                                             </div>
                                             <div className="flex-1 flex items-center justify-center w-full px-2">
                                                 <h2 className={`text-3xl sm:text-5xl font-black text-center break-words leading-tight ${theme.cardFrontText}`}>
