@@ -114,7 +114,9 @@
                                 const cleanedData = results.data.map(row => {
                                     const newRow = {};
                                     Object.keys(row).forEach(key => {
-                                        newRow[key.trim()] = row[key] ? row[key].trim() : "";
+                                        // POPRAWKA: Wymuszenie konwersji na String przed trim()
+                                        // To naprawia błąd "row[key].trim is not a function"
+                                        newRow[key.trim()] = row[key] ? String(row[key]).trim() : "";
                                     });
                                     return newRow;
                                 });
