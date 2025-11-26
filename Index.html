@@ -30,7 +30,6 @@
         #error-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.98); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; color: #991b1b; padding: 20px; text-align: center; }
         .no-tap-highlight { -webkit-tap-highlight-color: transparent; }
         .transition-colors-all { transition-property: background-color, border-color, color, fill, stroke; transition-duration: 300ms; }
-        /* Disable text selection during drag */
         .noselect {
             -webkit-touch-callout: none;
             -webkit-user-select: none;
@@ -50,7 +49,7 @@
             <strong>⚠️ Wykryto uruchomienie lokalne (file://)</strong><br/><br/>
             Przeglądarki blokują wczytywanie pliku <code>baza.txt</code>, gdy otwierasz stronę bezpośrednio z dysku.
             <br/><br/>
-            <strong>Rozwiązanie:</strong> Wrzuć pliki na GitHub Pages (tak jak dla telefonu) i otwórz przez link internetowy.
+            <strong>Rozwiązanie:</strong> Wrzuć pliki na GitHub Pages i otwórz przez link internetowy.
         </div>
         <pre id="error-message" class="bg-red-100 p-4 rounded text-sm text-left overflow-auto max-w-full max-h-64 select-text"></pre>
         <button onclick="location.reload()" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-red-700 transition mt-4">Spróbuj ponownie</button>
@@ -62,7 +61,6 @@
         window.onerror = function(msg, url, line, col, error) {
             document.getElementById('error-overlay').style.display = 'flex';
             document.getElementById('error-message').textContent = `JS Error: ${msg}\nLine: ${line}`;
-            
             if (window.location.protocol === 'file:') {
                 document.getElementById('local-file-warning').style.display = 'block';
             }
@@ -119,7 +117,6 @@
                 // --- 1. POBIERANIE I PARSOWANIE PLIKU BAZA.TXT ---
                 useEffect(() => {
                     setLoading(true);
-                    // DODANO ?t=timestamp ABY WYMUSIĆ OMINIĘCIE CACHE NA KOMPUTERZE
                     const noCacheUrl = `baza.txt?t=${new Date().getTime()}`;
                     console.log("Pobieranie:", noCacheUrl);
 
@@ -130,20 +127,16 @@
                         encoding: "UTF-8",
                         delimiter: ",",
                         complete: (results) => {
-                            console.log("Wynik parsowania:", results);
-
-                            // DETEKCJA BŁĘDÓW 404
                             if (results.meta && results.meta.fields) {
                                 const fieldsStr = results.meta.fields.join("").toLowerCase();
                                 if (fieldsStr.includes("<!doctype") || fieldsStr.includes("<html")) {
-                                    setFileError("Błąd 404: Plik 'baza.txt' nie został znaleziony (GitHub zwrócił stronę błędu HTML). Sprawdź nazwę pliku.");
+                                    setFileError("Błąd 404: Plik 'baza.txt' nie został znaleziony. Sprawdź nazwę pliku.");
                                     setLoading(false);
                                     return;
                                 }
                             }
 
                             if (results.data && results.data.length > 0) {
-                                console.log(`Wczytano ${results.data.length} wierszy.`);
                                 const cleanedData = results.data.map(row => {
                                     const newRow = {};
                                     Object.keys(row).forEach(key => {
@@ -188,7 +181,7 @@
                     }
                 }, [level, fullDatabase]);
 
-                // --- 3. FILTROWANIE SŁÓW ---
+                // --- 3. FILTROWANIE SŁÓW I RESETOWANIE INDEXU ---
                 useEffect(() => {
                     if (!fullDatabase.length || !category) {
                         setCurrentWordIds([]);
@@ -208,6 +201,31 @@
                     resetCard();
                 }, [category, level, fullDatabase]);
 
+                // --- NOWOŚĆ: 3a. AUTOMATYCZNA ZMIANA CZASU ---
+                // Kiedy zmienia się karta (currentIndex), sprawdzamy "domyślny" czas dla tego słowa w bazie
+                useEffect(() => {
+                    if (currentWordIds.length > 0 && fullDatabase.length > 0) {
+                        const currentId = currentWordIds[currentIndex];
+                        
+                        // Szukamy pierwszego wiersza dla tego słowa w aktualnym poziomie i kategorii
+                        // Ten wiersz definiuje "słowo przewodnie"
+                        const mainRow = fullDatabase.find(row => 
+                            row.id === currentId && 
+                            row.level === level && 
+                            row.category === category
+                        );
+
+                        if (mainRow && mainRow.tense) {
+                            // Jeśli słowo ma zdefiniowany czas, ustaw go w selektorze
+                            setTense(mainRow.tense);
+                        } else {
+                            // Fallback jeśli coś pójdzie nie tak
+                            setTense('PresentSimple');
+                        }
+                    }
+                }, [currentIndex, currentWordIds, fullDatabase, level, category]);
+
+
                 // --- 4. PARSOWANIE ZDANIA ---
                 const parseSentenceRow = (text) => {
                     if (!text) return null;
@@ -223,10 +241,21 @@
                     if (!currentWordIds.length || !fullDatabase.length) return null;
                     const currentId = currentWordIds[currentIndex];
                     
-                    let baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple');
-                    if (!baseRow) baseRow = fullDatabase.find(row => row.id === currentId);
+                    // 1. DANE BAZOWE (Strona 1 i 2):
+                    // Zmiana: Priorytet ma wiersz zgodny z AKTUALNYM CZASEM (tense).
+                    // Jeśli go nie ma, szukamy PresentSimple, a potem czegokolwiek.
+                    let baseRow = fullDatabase.find(row => row.id === currentId && row.tense === tense);
+                    
+                    if (!baseRow) {
+                        baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple');
+                    }
+                    if (!baseRow) {
+                        baseRow = fullDatabase.find(row => row.id === currentId);
+                    }
+
                     if (!baseRow) return null;
 
+                    // 2. DANE DLA ZDAŃ (Strona 3):
                     let sentences = [];
                     let conjugationWord = baseRow.word; 
 
@@ -261,45 +290,29 @@
 
                 const displayData = getDisplayData();
 
-                // --- HANDLERY (DOTYK + MYSZKA - POPRAWIONE) ---
-                const handleStart = (clientX) => {
-                    setTouchEnd(null);
-                    setTouchStart(clientX);
-                };
-
-                const handleMove = (clientX) => {
-                    setTouchEnd(clientX);
-                };
-
+                // --- HANDLERY ---
+                const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
+                const handleMove = (clientX) => { setTouchEnd(clientX); };
                 const handleEnd = () => {
                     if (!touchStart || !touchEnd) return;
                     const distance = touchStart - touchEnd;
                     if (distance > minSwipeDistance) handleNext();
                     else if (distance < -minSwipeDistance) handlePrev();
-                    setTouchStart(null);
-                    setTouchEnd(null);
+                    setTouchStart(null); setTouchEnd(null);
                 };
 
-                // Touch events
                 const onTouchStart = (e) => handleStart(e.targetTouches[0].clientX);
                 const onTouchMove = (e) => handleMove(e.targetTouches[0].clientX);
                 const onTouchEnd = () => handleEnd();
-
-                // Mouse events (dla PC - NAPRAWIONE)
                 const onMouseDown = (e) => handleStart(e.clientX);
                 const onMouseMove = (e) => { if(touchStart) handleMove(e.clientX); };
-                // Zmieniona logika onMouseUp aby nie kolidowała z onClick
                 const onMouseUp = () => {
                     if (touchStart && touchEnd && Math.abs(touchStart - touchEnd) > minSwipeDistance) {
-                        handleEnd(); // Wykonaj swipe
+                        handleEnd();
                     }
-                    // Resetuj stan, ale nie wywołuj handleCardClick() ręcznie tutaj, 
-                    // bo systemowy onClick i tak się odpali jeśli ruch był mały.
-                    setTouchStart(null);
-                    setTouchEnd(null);
+                    setTouchStart(null); setTouchEnd(null);
                 };
                 const onMouseLeave = () => { setTouchStart(null); setTouchEnd(null); };
-
 
                 const resetCard = () => {
                     setNoTransition(true); setCardSide(1); setRotation(0); cancelSpeech();
@@ -386,7 +399,7 @@
                             <strong>⚠️ Wykryto uruchomienie lokalne (file://)</strong><br/><br/>
                             Przeglądarki blokują wczytywanie pliku <code>baza.txt</code>, gdy otwierasz stronę bezpośrednio z dysku.
                             <br/><br/>
-                            <strong>Rozwiązanie:</strong> Wrzuć pliki na GitHub Pages (tak jak dla telefonu) i otwórz przez link internetowy.
+                            <strong>Rozwiązanie:</strong> Wrzuć pliki na GitHub Pages i otwórz przez link internetowy.
                         </div>
                         <pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre>
                         <button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button>
