@@ -34,20 +34,12 @@
 </head>
 <body class="m-0 transition-colors duration-300 no-tap-highlight overflow-hidden">
 
-    <!-- 
-        INSTRUKCJA DLA PLIKU baza.txt:
-        Plik musi mieć nagłówki (pierwszy wiersz). Kolejność dowolna, ale nazwy kluczowe to:
-        id, level, category, word, translation, phonetic, tense, s1, s2, s3, s4, s5
-        
-        Przykładowy wiersz:
-        1,A1,Rodzina,Mother,Matka,/'mʌð.ər/,PresentSimple,My mother is kind (Moja matka jest miła),She loves me (Ona mnie kocha),...,...,...
-    -->
-
     <div id="error-overlay">
         <h2 class="text-2xl font-bold mb-2">Wystąpił błąd</h2>
         <p class="mb-4 text-gray-600">Nie udało się załadować bazy danych.</p>
-        <pre id="error-message" class="bg-red-100 p-4 rounded text-sm text-left overflow-auto max-w-full max-h-64"></pre>
-        <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg">Spróbuj ponownie</button>
+        <pre id="error-message" class="bg-red-100 p-4 rounded text-sm text-left overflow-auto max-w-full max-h-64 select-text"></pre>
+        <div class="text-xs text-gray-500 mt-2 mb-4">Upewnij się, że plik nazywa się dokładnie <strong>baza.txt</strong><br>i znajduje się w tym samym folderze co index.html.</div>
+        <button onclick="location.reload()" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-red-700 transition">Spróbuj ponownie</button>
     </div>
 
     <div id="root"></div>
@@ -55,7 +47,7 @@
     <script>
         window.onerror = function(msg, url, line, col, error) {
             document.getElementById('error-overlay').style.display = 'flex';
-            document.getElementById('error-message').textContent = `Błąd: ${msg}\nPlik: ${url}\nLinia: ${line}`;
+            document.getElementById('error-message').textContent = `JS Error: ${msg}\nLine: ${line}`;
             return false;
         };
     </script>
@@ -109,16 +101,33 @@
                 // --- 1. POBIERANIE I PARSOWANIE PLIKU BAZA.TXT ---
                 useEffect(() => {
                     setLoading(true);
-                    console.log("Pobieranie pliku baza.txt...");
+                    console.log("Rozpoczynam pobieranie baza.txt...");
 
                     Papa.parse('baza.txt', {
                         download: true,
                         header: true,
                         skipEmptyLines: true,
                         encoding: "UTF-8",
+                        delimiter: ",", // Wymuszenie przecinka jako separatora
                         complete: (results) => {
+                            console.log("Wynik parsowania:", results);
+
+                            // DETEKCJA BŁĘDÓW 404 (GitHub Pages zwraca HTML zamiast pliku)
+                            if (results.meta && results.meta.fields) {
+                                const fieldsStr = results.meta.fields.join("").toLowerCase();
+                                if (fieldsStr.includes("<!doctype") || fieldsStr.includes("<html")) {
+                                    setFileError("Błąd 404: Plik 'baza.txt' nie został znaleziony. Program otrzymał stronę HTML zamiast danych. Sprawdź nazwę pliku na GitHub (wielkość liter ma znaczenie).");
+                                    setLoading(false);
+                                    return;
+                                }
+                            }
+
+                            if (results.errors && results.errors.length > 0) {
+                                console.warn("Błędy CSV:", results.errors);
+                            }
+
                             if (results.data && results.data.length > 0) {
-                                console.log(`Wczytano ${results.data.length} wierszy z baza.txt`);
+                                console.log(`Wczytano ${results.data.length} wierszy.`);
                                 const cleanedData = results.data.map(row => {
                                     const newRow = {};
                                     Object.keys(row).forEach(key => {
@@ -129,13 +138,16 @@
                                 setFullDatabase(cleanedData);
                                 setLoading(false);
                             } else {
-                                setFileError("Plik baza.txt jest pusty lub ma zły format.");
+                                const errDetail = results.errors && results.errors.length > 0 
+                                    ? JSON.stringify(results.errors, null, 2) 
+                                    : "Plik wydaje się pusty.";
+                                setFileError(`Plik został pobrany, ale nie zawiera danych. Szczegóły: ${errDetail}`);
                                 setLoading(false);
                             }
                         },
                         error: (err) => {
-                            console.warn("Błąd ładowania:", err);
-                            setFileError("Nie znaleziono pliku baza.txt. Upewnij się, że jest w głównym folderze na GitHub.");
+                            console.error("Błąd sieci/pobierania:", err);
+                            setFileError(`Błąd pobierania pliku: ${err.message || err}`);
                             setLoading(false);
                         }
                     });
@@ -181,17 +193,12 @@
                 // --- 4. PARSOWANIE ZDANIA (Angielski (Polski)) ---
                 const parseSentenceRow = (text) => {
                     if (!text) return null;
-                    // Szukamy wzorca: "Tekst angielski (Tekst polski)"
-                    // Ostatni nawias otwierający traktujemy jako początek tłumaczenia
                     const lastParenIndex = text.lastIndexOf('(');
                     if (lastParenIndex === -1) {
-                        // Jeśli brak nawiasu, zakładamy, że to tylko angielski
                         return { en: text.trim(), pl: '' };
                     }
-                    
                     const en = text.substring(0, lastParenIndex).trim();
-                    const pl = text.substring(lastParenIndex + 1, text.length - 1).trim(); // Usuwamy ostatni nawias zamykający
-                    
+                    const pl = text.substring(lastParenIndex + 1, text.length - 1).trim(); 
                     return { en, pl };
                 };
 
@@ -202,13 +209,11 @@
                     const currentId = currentWordIds[currentIndex];
                     
                     // 1. DANE BAZOWE (Strona 1 i 2): 
-                    // Szukamy wiersza dla PresentSimple, aby mieć podstawową formę słowa.
                     let baseRow = fullDatabase.find(row => 
                         row.id === currentId && 
                         row.tense === 'PresentSimple'
                     );
 
-                    // Fallback: Jeśli nie ma PresentSimple, bierzemy pierwszy wiersz z tym ID.
                     if (!baseRow) {
                         baseRow = fullDatabase.find(row => row.id === currentId);
                     }
@@ -220,12 +225,11 @@
                     let conjugationWord = baseRow.word; 
 
                     if (tense === 'mixed') {
-                        // TRYB MIX: Pobieramy wszystkie wiersze dla tego ID (różne czasy)
                         const allVariations = fullDatabase.filter(row => row.id === currentId);
 
                         allVariations.forEach(row => {
                             for (let i = 1; i <= 5; i++) {
-                                const rawSentence = row[`s${i}`]; // szukamy kolumny s1, s2...
+                                const rawSentence = row[`s${i}`];
                                 if (rawSentence) {
                                     const parsed = parseSentenceRow(rawSentence);
                                     if (parsed && parsed.en) {
@@ -234,11 +238,9 @@
                                 }
                             }
                         });
-                        // Mieszamy i przycinamy do 5
                         sentences = sentences.sort(() => Math.random() - 0.5).slice(0, 5);
                         
                     } else {
-                        // TRYB KONKRETNY CZAS:
                         const targetRow = fullDatabase.find(row => 
                             row.id === currentId && 
                             row.tense === tense
@@ -246,7 +248,6 @@
 
                         if (targetRow) {
                             conjugationWord = targetRow.word;
-                            
                             for (let i = 1; i <= 5; i++) {
                                 const rawSentence = targetRow[`s${i}`];
                                 if (rawSentence) {
@@ -385,7 +386,18 @@
                 }
                 
                 if (fileError) {
-                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}><div className="text-4xl mb-4">⚠️</div><div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div><p className="mb-6 text-sm">{fileError}</p><div className="text-xs opacity-70 bg-black/10 p-4 rounded text-left max-w-md mb-6"><strong>Wskazówka:</strong> Stwórz plik <code>baza.txt</code> obok <code>index.html</code>.</div></div>;
+                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}>
+                        <div className="text-4xl mb-4">⚠️</div>
+                        <div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div>
+                        <pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre>
+                        <div className="text-xs opacity-70 bg-black/10 p-4 rounded text-left max-w-md mb-6">
+                            <strong>Diagnostyka:</strong><br/>
+                            1. Sprawdź nazwę pliku: <code>baza.txt</code> (małe litery!)<br/>
+                            2. Sprawdź czy nie masz nazwy <code>baza.txt.txt</code> (Windows)<br/>
+                            3. Wyczyść cache (Ctrl+F5)
+                        </div>
+                        <button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button>
+                    </div>;
                 }
 
                 if (!displayData) {
