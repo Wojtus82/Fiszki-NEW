@@ -178,27 +178,53 @@
                     
                     const currentId = currentWordIds[currentIndex];
                     
-                    let foundRow = fullDatabase.find(row => 
+                    // 1. ZAWSZE pobieraj wersję podstawową (PresentSimple, singular) dla głównej karty (słowo/tłumaczenie)
+                    let baseRow = fullDatabase.find(row => 
+                        row.id === currentId && 
+                        row.tense === 'PresentSimple' && 
+                        row.number_mode === 'singular'
+                    );
+
+                    // Fallback dla baseRow (jeśli brak PresentSimple/singular, weź cokolwiek z tym ID)
+                    if (!baseRow) {
+                        baseRow = fullDatabase.find(row => row.id === currentId);
+                    }
+
+                    // 2. Pobieraj wersję specyficzną dla zdań (zależną od wybranego czasu i liczby)
+                    let sentenceRow = fullDatabase.find(row => 
                         row.id === currentId && 
                         row.tense === tense && 
                         row.number_mode === numberMode
                     );
 
-                    if (!foundRow) {
-                        foundRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple' && row.number_mode === numberMode);
+                    // Fallbacki dla zdań
+                    if (!sentenceRow) {
+                        sentenceRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple' && row.number_mode === numberMode);
                     }
-                    if (!foundRow) {
-                        foundRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple' && row.number_mode === 'singular');
+                    if (!sentenceRow) {
+                        sentenceRow = baseRow;
                     }
 
-                    if (foundRow) {
+                    if (baseRow) {
                         const sentences = [];
+                        // Zdania bierzemy z wiersza specyficznego (sentenceRow)
+                        const sourceRow = sentenceRow || baseRow;
+
                         for (let i = 1; i <= 5; i++) {
-                            if (foundRow[`s${i}_en`] && foundRow[`s${i}_pl`]) {
-                                sentences.push({ en: foundRow[`s${i}_en`], pl: foundRow[`s${i}_pl`] });
+                            if (sourceRow[`s${i}_en`] && sourceRow[`s${i}_pl`]) {
+                                sentences.push({ en: sourceRow[`s${i}_en`], pl: sourceRow[`s${i}_pl`] });
                             }
                         }
-                        return { ...foundRow, sentences };
+                        
+                        // Zwracamy hybrydę:
+                        // - Dane podstawowe (word, translation) z baseRow
+                        // - sentences z sourceRow (reagują na przyciski)
+                        // - conjugation: słowo z sourceRow (do poprawnego podświetlania w zdaniach)
+                        return { 
+                            ...baseRow, 
+                            sentences, 
+                            conjugation: sourceRow.word 
+                        };
                     }
                     return null;
                 };
@@ -407,7 +433,8 @@
                                                     <li key={i} className="flex flex-col gap-1">
                                                         <div className="flex gap-2 leading-snug">
                                                             <span className={`font-bold select-none mt-0.5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-300'}`}>{i+1}.</span>
-                                                            <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.word)}</span>
+                                                            {/* Używamy displayData.conjugation do podświetlania, jeśli istnieje, w przeciwnym razie word */}
+                                                            <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.conjugation || displayData.word)}</span>
                                                         </div>
                                                         <div className={`pl-6 text-sm sm:text-base italic ${theme.subText}`}>({s.pl})</div>
                                                     </li>
