@@ -30,6 +30,15 @@
         #error-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.98); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; color: #991b1b; padding: 20px; text-align: center; }
         .no-tap-highlight { -webkit-tap-highlight-color: transparent; }
         .transition-colors-all { transition-property: background-color, border-color, color, fill, stroke; transition-duration: 300ms; }
+        /* Disable text selection during drag */
+        .noselect {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
     </style>
 </head>
 <body class="m-0 transition-colors duration-300 no-tap-highlight overflow-hidden">
@@ -37,9 +46,14 @@
     <div id="error-overlay">
         <h2 class="text-2xl font-bold mb-2">Wystąpił błąd</h2>
         <p class="mb-4 text-gray-600">Nie udało się załadować bazy danych.</p>
+        <div id="local-file-warning" class="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm max-w-md text-left">
+            <strong>⚠️ Wykryto uruchomienie lokalne (file://)</strong><br/><br/>
+            Przeglądarki blokują wczytywanie pliku <code>baza.txt</code>, gdy otwierasz stronę bezpośrednio z dysku.
+            <br/><br/>
+            <strong>Rozwiązanie:</strong> Wrzuć pliki na GitHub Pages (tak jak dla telefonu) i otwórz przez link internetowy.
+        </div>
         <pre id="error-message" class="bg-red-100 p-4 rounded text-sm text-left overflow-auto max-w-full max-h-64 select-text"></pre>
-        <div class="text-xs text-gray-500 mt-2 mb-4">Upewnij się, że plik nazywa się dokładnie <strong>baza.txt</strong><br>i znajduje się w tym samym folderze co index.html.</div>
-        <button onclick="location.reload()" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-red-700 transition">Spróbuj ponownie</button>
+        <button onclick="location.reload()" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-red-700 transition mt-4">Spróbuj ponownie</button>
     </div>
 
     <div id="root"></div>
@@ -48,6 +62,10 @@
         window.onerror = function(msg, url, line, col, error) {
             document.getElementById('error-overlay').style.display = 'flex';
             document.getElementById('error-message').textContent = `JS Error: ${msg}\nLine: ${line}`;
+            
+            if (window.location.protocol === 'file:') {
+                document.getElementById('local-file-warning').style.display = 'block';
+            }
             return false;
         };
     </script>
@@ -101,29 +119,27 @@
                 // --- 1. POBIERANIE I PARSOWANIE PLIKU BAZA.TXT ---
                 useEffect(() => {
                     setLoading(true);
-                    console.log("Rozpoczynam pobieranie baza.txt...");
+                    // DODANO ?t=timestamp ABY WYMUSIĆ OMINIĘCIE CACHE NA KOMPUTERZE
+                    const noCacheUrl = `baza.txt?t=${new Date().getTime()}`;
+                    console.log("Pobieranie:", noCacheUrl);
 
-                    Papa.parse('baza.txt', {
+                    Papa.parse(noCacheUrl, {
                         download: true,
                         header: true,
                         skipEmptyLines: true,
                         encoding: "UTF-8",
-                        delimiter: ",", // Wymuszenie przecinka jako separatora
+                        delimiter: ",",
                         complete: (results) => {
                             console.log("Wynik parsowania:", results);
 
-                            // DETEKCJA BŁĘDÓW 404 (GitHub Pages zwraca HTML zamiast pliku)
+                            // DETEKCJA BŁĘDÓW 404
                             if (results.meta && results.meta.fields) {
                                 const fieldsStr = results.meta.fields.join("").toLowerCase();
                                 if (fieldsStr.includes("<!doctype") || fieldsStr.includes("<html")) {
-                                    setFileError("Błąd 404: Plik 'baza.txt' nie został znaleziony. Program otrzymał stronę HTML zamiast danych. Sprawdź nazwę pliku na GitHub (wielkość liter ma znaczenie).");
+                                    setFileError("Błąd 404: Plik 'baza.txt' nie został znaleziony (GitHub zwrócił stronę błędu HTML). Sprawdź nazwę pliku.");
                                     setLoading(false);
                                     return;
                                 }
-                            }
-
-                            if (results.errors && results.errors.length > 0) {
-                                console.warn("Błędy CSV:", results.errors);
                             }
 
                             if (results.data && results.data.length > 0) {
@@ -138,16 +154,18 @@
                                 setFullDatabase(cleanedData);
                                 setLoading(false);
                             } else {
-                                const errDetail = results.errors && results.errors.length > 0 
-                                    ? JSON.stringify(results.errors, null, 2) 
-                                    : "Plik wydaje się pusty.";
-                                setFileError(`Plik został pobrany, ale nie zawiera danych. Szczegóły: ${errDetail}`);
+                                setFileError("Plik został pobrany, ale wygląda na pusty.");
                                 setLoading(false);
                             }
                         },
                         error: (err) => {
-                            console.error("Błąd sieci/pobierania:", err);
-                            setFileError(`Błąd pobierania pliku: ${err.message || err}`);
+                            console.error("Błąd sieci:", err);
+                            let msg = err.message || err;
+                            if (window.location.protocol === 'file:') {
+                                document.getElementById('local-file-warning').style.display = 'block';
+                                msg = "Blokada CORS (uruchomienie lokalne).";
+                            }
+                            setFileError(`Błąd pobierania pliku: ${msg}`);
                             setLoading(false);
                         }
                     });
@@ -190,107 +208,106 @@
                     resetCard();
                 }, [category, level, fullDatabase]);
 
-                // --- 4. PARSOWANIE ZDANIA (Angielski (Polski)) ---
+                // --- 4. PARSOWANIE ZDANIA ---
                 const parseSentenceRow = (text) => {
                     if (!text) return null;
                     const lastParenIndex = text.lastIndexOf('(');
-                    if (lastParenIndex === -1) {
-                        return { en: text.trim(), pl: '' };
-                    }
+                    if (lastParenIndex === -1) return { en: text.trim(), pl: '' };
                     const en = text.substring(0, lastParenIndex).trim();
                     const pl = text.substring(lastParenIndex + 1, text.length - 1).trim(); 
                     return { en, pl };
                 };
 
-                // --- 5. LOGIKA DANYCH DO WYŚWIETLENIA ---
+                // --- 5. LOGIKA WYŚWIETLANIA ---
                 const getDisplayData = () => {
                     if (!currentWordIds.length || !fullDatabase.length) return null;
-                    
                     const currentId = currentWordIds[currentIndex];
                     
-                    // 1. DANE BAZOWE (Strona 1 i 2): 
-                    let baseRow = fullDatabase.find(row => 
-                        row.id === currentId && 
-                        row.tense === 'PresentSimple'
-                    );
-
-                    if (!baseRow) {
-                        baseRow = fullDatabase.find(row => row.id === currentId);
-                    }
-
+                    let baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple');
+                    if (!baseRow) baseRow = fullDatabase.find(row => row.id === currentId);
                     if (!baseRow) return null;
 
-                    // 2. DANE DLA ZDAŃ (Strona 3):
                     let sentences = [];
                     let conjugationWord = baseRow.word; 
 
                     if (tense === 'mixed') {
                         const allVariations = fullDatabase.filter(row => row.id === currentId);
-
                         allVariations.forEach(row => {
                             for (let i = 1; i <= 5; i++) {
-                                const rawSentence = row[`s${i}`];
-                                if (rawSentence) {
-                                    const parsed = parseSentenceRow(rawSentence);
-                                    if (parsed && parsed.en) {
-                                        sentences.push(parsed);
-                                    }
+                                const raw = row[`s${i}`];
+                                if (raw) {
+                                    const parsed = parseSentenceRow(raw);
+                                    if (parsed && parsed.en) sentences.push(parsed);
                                 }
                             }
                         });
                         sentences = sentences.sort(() => Math.random() - 0.5).slice(0, 5);
-                        
                     } else {
-                        const targetRow = fullDatabase.find(row => 
-                            row.id === currentId && 
-                            row.tense === tense
-                        );
-
+                        const targetRow = fullDatabase.find(row => row.id === currentId && row.tense === tense);
                         if (targetRow) {
                             conjugationWord = targetRow.word;
                             for (let i = 1; i <= 5; i++) {
-                                const rawSentence = targetRow[`s${i}`];
-                                if (rawSentence) {
-                                    const parsed = parseSentenceRow(rawSentence);
-                                    if (parsed && parsed.en) {
-                                        sentences.push(parsed);
-                                    }
+                                const raw = targetRow[`s${i}`];
+                                if (raw) {
+                                    const parsed = parseSentenceRow(raw);
+                                    if (parsed && parsed.en) sentences.push(parsed);
                                 }
                             }
                         }
                     }
 
-                    return { 
-                        ...baseRow, 
-                        sentences, 
-                        conjugation: conjugationWord 
-                    };
+                    return { ...baseRow, sentences, conjugation: conjugationWord };
                 };
 
                 const displayData = getDisplayData();
 
-                // --- HANDLERY ---
-                const onTouchStart = (e) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); }
-                const onTouchMove = (e) => { setTouchEnd(e.targetTouches[0].clientX); }
-                const onTouchEnd = () => {
+                // --- HANDLERY (DOTYK + MYSZKA - POPRAWIONE) ---
+                const handleStart = (clientX) => {
+                    setTouchEnd(null);
+                    setTouchStart(clientX);
+                };
+
+                const handleMove = (clientX) => {
+                    setTouchEnd(clientX);
+                };
+
+                const handleEnd = () => {
                     if (!touchStart || !touchEnd) return;
                     const distance = touchStart - touchEnd;
                     if (distance > minSwipeDistance) handleNext();
                     else if (distance < -minSwipeDistance) handlePrev();
-                }
+                    setTouchStart(null);
+                    setTouchEnd(null);
+                };
+
+                // Touch events
+                const onTouchStart = (e) => handleStart(e.targetTouches[0].clientX);
+                const onTouchMove = (e) => handleMove(e.targetTouches[0].clientX);
+                const onTouchEnd = () => handleEnd();
+
+                // Mouse events (dla PC - NAPRAWIONE)
+                const onMouseDown = (e) => handleStart(e.clientX);
+                const onMouseMove = (e) => { if(touchStart) handleMove(e.clientX); };
+                // Zmieniona logika onMouseUp aby nie kolidowała z onClick
+                const onMouseUp = () => {
+                    if (touchStart && touchEnd && Math.abs(touchStart - touchEnd) > minSwipeDistance) {
+                        handleEnd(); // Wykonaj swipe
+                    }
+                    // Resetuj stan, ale nie wywołuj handleCardClick() ręcznie tutaj, 
+                    // bo systemowy onClick i tak się odpali jeśli ruch był mały.
+                    setTouchStart(null);
+                    setTouchEnd(null);
+                };
+                const onMouseLeave = () => { setTouchStart(null); setTouchEnd(null); };
+
 
                 const resetCard = () => {
-                    setNoTransition(true);
-                    setCardSide(1);
-                    setRotation(0);
-                    cancelSpeech();
+                    setNoTransition(true); setCardSide(1); setRotation(0); cancelSpeech();
                     setTimeout(() => setNoTransition(false), 50); 
                 };
 
                 const handleNext = () => {
-                    setNoTransition(true);
-                    setCardSide(1);
-                    setRotation(0);
+                    setNoTransition(true); setCardSide(1); setRotation(0);
                     setTimeout(() => {
                         setNoTransition(false);
                         setCurrentIndex((prev) => (prev + 1) % currentWordIds.length);
@@ -298,9 +315,7 @@
                 };
 
                 const handlePrev = () => {
-                    setNoTransition(true);
-                    setCardSide(1);
-                    setRotation(0);
+                    setNoTransition(true); setCardSide(1); setRotation(0);
                     setTimeout(() => {
                         setNoTransition(false);
                         setCurrentIndex((prev) => (prev - 1 + currentWordIds.length) % currentWordIds.length);
@@ -344,41 +359,19 @@
                 };
 
                 const theme = isDarkMode ? {
-                    bg: 'bg-gray-900',
-                    text: 'text-gray-100',
-                    headerText: 'text-indigo-400',
-                    cardFrontBg: 'bg-gray-800',
-                    cardFrontText: 'text-white',
-                    cardBorder: 'border-gray-700',
-                    cardBackBg: 'bg-indigo-900',
-                    controlsBg: 'bg-gray-800',
-                    controlsBorder: 'border-gray-700',
-                    selectText: 'text-indigo-300',
-                    subText: 'text-gray-400',
-                    counterBg: 'bg-gray-800',
-                    counterText: 'text-gray-300',
-                    buttonBg: 'bg-gray-800',
-                    buttonHover: 'hover:bg-gray-700',
-                    buttonText: 'text-gray-200',
-                    accent: 'bg-indigo-800 text-indigo-200'
+                    bg: 'bg-gray-900', text: 'text-gray-100', headerText: 'text-indigo-400',
+                    cardFrontBg: 'bg-gray-800', cardFrontText: 'text-white', cardBorder: 'border-gray-700',
+                    cardBackBg: 'bg-indigo-900', controlsBg: 'bg-gray-800', controlsBorder: 'border-gray-700',
+                    selectText: 'text-indigo-300', subText: 'text-gray-400', counterBg: 'bg-gray-800',
+                    counterText: 'text-gray-300', buttonBg: 'bg-gray-800', buttonHover: 'hover:bg-gray-700',
+                    buttonText: 'text-gray-200', accent: 'bg-indigo-800 text-indigo-200'
                 } : {
-                    bg: 'bg-gradient-to-br from-blue-50 to-indigo-100',
-                    text: 'text-gray-800',
-                    headerText: 'text-indigo-700',
-                    cardFrontBg: 'bg-white',
-                    cardFrontText: 'text-gray-800',
-                    cardBorder: 'border-indigo-200',
-                    cardBackBg: 'bg-indigo-600',
-                    controlsBg: 'bg-white',
-                    controlsBorder: 'border-indigo-200',
-                    selectText: 'text-indigo-700',
-                    subText: 'text-gray-500',
-                    counterBg: 'bg-white/50',
-                    counterText: 'text-indigo-800',
-                    buttonBg: 'bg-white',
-                    buttonHover: 'hover:bg-gray-50',
-                    buttonText: 'text-gray-700',
-                    accent: 'bg-indigo-100 text-indigo-500'
+                    bg: 'bg-gradient-to-br from-blue-50 to-indigo-100', text: 'text-gray-800', headerText: 'text-indigo-700',
+                    cardFrontBg: 'bg-white', cardFrontText: 'text-gray-800', cardBorder: 'border-indigo-200',
+                    cardBackBg: 'bg-indigo-600', controlsBg: 'bg-white', controlsBorder: 'border-indigo-200',
+                    selectText: 'text-indigo-700', subText: 'text-gray-500', counterBg: 'bg-white/50',
+                    counterText: 'text-indigo-800', buttonBg: 'bg-white', buttonHover: 'hover:bg-gray-50',
+                    buttonText: 'text-gray-700', accent: 'bg-indigo-100 text-indigo-500'
                 };
 
                 if (loading) {
@@ -389,13 +382,13 @@
                     return <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}>
                         <div className="text-4xl mb-4">⚠️</div>
                         <div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div>
-                        <pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre>
-                        <div className="text-xs opacity-70 bg-black/10 p-4 rounded text-left max-w-md mb-6">
-                            <strong>Diagnostyka:</strong><br/>
-                            1. Sprawdź nazwę pliku: <code>baza.txt</code> (małe litery!)<br/>
-                            2. Sprawdź czy nie masz nazwy <code>baza.txt.txt</code> (Windows)<br/>
-                            3. Wyczyść cache (Ctrl+F5)
+                        <div id="local-file-warning" className="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm max-w-md text-left">
+                            <strong>⚠️ Wykryto uruchomienie lokalne (file://)</strong><br/><br/>
+                            Przeglądarki blokują wczytywanie pliku <code>baza.txt</code>, gdy otwierasz stronę bezpośrednio z dysku.
+                            <br/><br/>
+                            <strong>Rozwiązanie:</strong> Wrzuć pliki na GitHub Pages (tak jak dla telefonu) i otwórz przez link internetowy.
                         </div>
+                        <pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre>
                         <button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button>
                     </div>;
                 }
@@ -405,7 +398,7 @@
                 }
 
                 return (
-                    <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-300 ${theme.bg} ${theme.text} relative overflow-hidden`}>
+                    <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-300 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
                         <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-50">
                             <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}>
                                 <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
@@ -461,6 +454,10 @@
                                 onTouchStart={onTouchStart}
                                 onTouchMove={onTouchMove}
                                 onTouchEnd={onTouchEnd}
+                                onMouseDown={onMouseDown}
+                                onMouseMove={onMouseMove}
+                                onMouseUp={onMouseUp}
+                                onMouseLeave={onMouseLeave}
                             >
                                 <div className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardFrontBg} ${isDarkMode ? 'border-gray-600' : 'border-indigo-200'} transition-colors-all duration-300`} style={{ transform: 'rotateY(0deg)' }}>
                                     {cardSide === 3 ? (
