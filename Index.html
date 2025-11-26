@@ -114,6 +114,22 @@
                 "Pytania": "Komunikacja", "Zwroty": "Komunikacja", "Inne": "Komunikacja", "Pojęcia": "Komunikacja", "Słowo": "Komunikacja", "Historia": "Komunikacja"
             };
 
+            // MAPA NIEREGULARNYCH CZASOWNIKÓW (Forma Przeszła -> Forma Podstawowa)
+            // Służy do naprawy błędnych wpisów, gdzie czas przeszły został użyty jako baza
+            const pastToPresentFix = {
+                "Ate": "Eat", "Began": "Begin", "Bought": "Buy", "Brought": "Bring", "Built": "Build",
+                "Burnt": "Burn", "Came": "Come", "Did": "Do", "Drank": "Drink", "Drove": "Drive",
+                "Felt": "Feel", "Flew": "Fly", "Forgot": "Forget", "Found": "Find", "Gave": "Give",
+                "Got": "Get", "Grew": "Grow", "Had": "Have", "Heard": "Hear", "Held": "Hold",
+                "Kept": "Keep", "Knew": "Know", "Left": "Leave", "Lost": "Lose", "Made": "Make",
+                "Meant": "Mean", "Met": "Meet", "Paid": "Pay", "Ran": "Run", "Rang": "Ring",
+                "Said": "Say", "Sang": "Sing", "Sat": "Sit", "Saw": "See", "Sent": "Send",
+                "Slept": "Sleep", "Sold": "Sell", "Spoke": "Speak", "Spent": "Spend", "Stood": "Stand",
+                "Taught": "Teach", "Told": "Tell", "Took": "Take", "Understood": "Understand",
+                "Woke": "Wake", "Won": "Win", "Wore": "Wear", "Wrote": "Write", "Went": "Go",
+                "Were": "Be", "Was": "Be"
+            };
+
             function FlashcardsApp() {
                 const [fullDatabase, setFullDatabase] = useState([]);
                 const [loading, setLoading] = useState(true);
@@ -158,18 +174,52 @@
                             }
 
                             if (results.data && results.data.length > 0) {
-                                const cleanedData = results.data.map(row => {
+                                // Najpierw wczytujemy dane
+                                const rawData = results.data.map(row => {
                                     const newRow = {};
                                     Object.keys(row).forEach(key => {
                                         newRow[key.trim()] = row[key] ? String(row[key]).trim() : "";
                                     });
-                                    // ZASTOSOWANIE MAPOWANIA KATEGORII
+                                    // Mapowanie kategorii
                                     if (newRow.category && categoryMapping[newRow.category]) {
                                         newRow.category = categoryMapping[newRow.category];
                                     }
                                     return newRow;
                                 });
-                                setFullDatabase(cleanedData);
+
+                                // --- NAPRAWA DANYCH ---
+                                // Znajdujemy poprawne wiersze bazowe (PresentSimple) dla czasowników podstawowych
+                                const baseVerbsData = {};
+                                rawData.forEach(row => {
+                                    if (row.tense === 'PresentSimple') {
+                                        baseVerbsData[row.word] = row;
+                                    }
+                                });
+
+                                // Iterujemy i naprawiamy błędne wpisy czasowników nieregularnych
+                                const fixedData = rawData.map(row => {
+                                    // Jeśli słowo jest na liście błędnych (np. "Sat") I jest to wiersz PresentSimple
+                                    if (pastToPresentFix[row.word] && row.tense === 'PresentSimple') {
+                                        const correctBaseWord = pastToPresentFix[row.word];
+                                        const correctData = baseVerbsData[correctBaseWord];
+                                        
+                                        // Jeśli mamy dane dla poprawnej formy (np. "Sit"), podmieniamy
+                                        if (correctData) {
+                                            return {
+                                                ...row,
+                                                word: correctBaseWord, // Zmieniamy "Sat" na "Sit"
+                                                s1: correctData.s1,
+                                                s2: correctData.s2,
+                                                s3: correctData.s3,
+                                                s4: correctData.s4,
+                                                s5: correctData.s5
+                                            };
+                                        }
+                                    }
+                                    return row;
+                                });
+
+                                setFullDatabase(fixedData);
                                 setLoading(false);
                             } else {
                                 setFileError("Plik wygląda na pusty.");
@@ -192,7 +242,7 @@
                 const downloadOptimizedDb = () => {
                     if (!fullDatabase.length) return;
                     const csv = Papa.unparse(fullDatabase, {
-                        quotes: false, // Unika cudzysłowów jeśli niepotrzebne
+                        quotes: false,
                         delimiter: ",",
                     });
                     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -238,12 +288,16 @@
                 useEffect(() => {
                     if (currentWordIds.length > 0 && fullDatabase.length > 0) {
                         const currentId = currentWordIds[currentIndex];
+                        // Logika wybierania domyślnego czasu dla słowa
+                        // Szukamy pierwszego wiersza, który pasuje do filtrów
                         const mainRow = fullDatabase.find(row => 
                             row.id === currentId && 
                             row.level === level && 
                             (category === 'all' ? true : row.category === category)
                         );
 
+                        // Jeśli słowo to np. "Sat" (ID 602), to domyślnie mainRow.tense może być PastSimple
+                        // Ale my chcemy, żeby po zmianie na PresentSimple pokazał "Sit".
                         if (mainRow && mainRow.tense) {
                             setTense(mainRow.tense);
                         } else {
@@ -273,8 +327,10 @@
                     if (!currentWordIds.length || !fullDatabase.length) return null;
                     const currentId = currentWordIds[currentIndex];
                     
+                    // Szukamy wiersza dla wybranego czasu
                     let baseRow = fullDatabase.find(row => row.id === currentId && row.tense === tense);
                     
+                    // Fallback
                     if (!baseRow) {
                          baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple');
                     }
