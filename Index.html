@@ -97,7 +97,8 @@
                 const [fileError, setFileError] = useState(null);
 
                 const [level, setLevel] = useState('A1');
-                const [category, setCategory] = useState('');
+                // Ustawiamy domyślną kategorię na 'all'
+                const [category, setCategory] = useState('all');
                 const [tense, setTense] = useState('PresentSimple');
                 
                 const [availableCategories, setAvailableCategories] = useState([]);
@@ -117,6 +118,7 @@
                 // --- 1. POBIERANIE I PARSOWANIE PLIKU BAZA.TXT ---
                 useEffect(() => {
                     setLoading(true);
+                    // Dodajemy timestamp, aby uniknąć cache'owania
                     const noCacheUrl = `baza.txt?t=${new Date().getTime()}`;
                     console.log("Pobieranie:", noCacheUrl);
 
@@ -171,29 +173,31 @@
                         return;
                     }
                     const levelData = fullDatabase.filter(row => row.level === level);
-                    const cats = [...new Set(levelData.map(row => row.category))];
+                    // Pobieramy unikalne kategorie i sortujemy je alfabetycznie
+                    const cats = [...new Set(levelData.map(row => row.category))].sort();
                     setAvailableCategories(cats);
                     
-                    if (cats.length > 0) {
-                        setCategory(cats[0]);
-                    } else {
-                        setCategory('');
-                    }
+                    // Domyślnie wybieramy 'all' (Wszystkie) po zmianie poziomu
+                    setCategory('all');
                 }, [level, fullDatabase]);
 
                 // --- 3. FILTROWANIE SŁÓW I RESETOWANIE INDEXU ---
                 useEffect(() => {
-                    if (!fullDatabase.length || !category) {
-                        setCurrentWordIds([]);
-                        return;
-                    }
+                    if (!fullDatabase.length) return;
                     
                     const uniqueIds = [...new Set(
                         fullDatabase
-                            .filter(row => row.level === level && row.category === category)
+                            .filter(row => {
+                                const levelMatch = row.level === level;
+                                // Jeśli kategoria to 'all', bierzemy wszystkie z tego poziomu.
+                                // Jeśli nie, sprawdzamy zgodność kategorii.
+                                const catMatch = category === 'all' ? true : row.category === category;
+                                return levelMatch && catMatch;
+                            })
                             .map(row => row.id)
                     )];
                     
+                    // Mieszamy słowa losowo
                     const shuffledIds = [...uniqueIds].sort(() => Math.random() - 0.5);
                     
                     setCurrentWordIds(shuffledIds);
@@ -201,25 +205,22 @@
                     resetCard();
                 }, [category, level, fullDatabase]);
 
-                // --- NOWOŚĆ: 3a. AUTOMATYCZNA ZMIANA CZASU ---
-                // Kiedy zmienia się karta (currentIndex), sprawdzamy "domyślny" czas dla tego słowa w bazie
+                // --- 3a. AUTOMATYCZNA ZMIANA CZASU ---
                 useEffect(() => {
                     if (currentWordIds.length > 0 && fullDatabase.length > 0) {
                         const currentId = currentWordIds[currentIndex];
                         
-                        // Szukamy pierwszego wiersza dla tego słowa w aktualnym poziomie i kategorii
-                        // Ten wiersz definiuje "słowo przewodnie"
+                        // Szukamy pierwszego wiersza dla tego słowa
+                        // Jeśli kategoria to 'all', szukamy w całym poziomie
                         const mainRow = fullDatabase.find(row => 
                             row.id === currentId && 
                             row.level === level && 
-                            row.category === category
+                            (category === 'all' ? true : row.category === category)
                         );
 
                         if (mainRow && mainRow.tense) {
-                            // Jeśli słowo ma zdefiniowany czas, ustaw go w selektorze
                             setTense(mainRow.tense);
                         } else {
-                            // Fallback jeśli coś pójdzie nie tak
                             setTense('PresentSimple');
                         }
                     }
@@ -241,21 +242,11 @@
                     if (!currentWordIds.length || !fullDatabase.length) return null;
                     const currentId = currentWordIds[currentIndex];
                     
-                    // 1. DANE BAZOWE (Strona 1 i 2):
-                    // Zmiana: Priorytet ma wiersz zgodny z AKTUALNYM CZASEM (tense).
-                    // Jeśli go nie ma, szukamy PresentSimple, a potem czegokolwiek.
                     let baseRow = fullDatabase.find(row => row.id === currentId && row.tense === tense);
-                    
-                    if (!baseRow) {
-                        baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple');
-                    }
-                    if (!baseRow) {
-                        baseRow = fullDatabase.find(row => row.id === currentId);
-                    }
-
+                    if (!baseRow) baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'PresentSimple');
+                    if (!baseRow) baseRow = fullDatabase.find(row => row.id === currentId);
                     if (!baseRow) return null;
 
-                    // 2. DANE DLA ZDAŃ (Strona 3):
                     let sentences = [];
                     let conjugationWord = baseRow.word; 
 
@@ -290,7 +281,7 @@
 
                 const displayData = getDisplayData();
 
-                // --- HANDLERY ---
+                // --- HANDLERY (DOTYK + MYSZKA) ---
                 const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
                 const handleMove = (clientX) => { setTouchEnd(clientX); };
                 const handleEnd = () => {
@@ -407,7 +398,7 @@
                 }
 
                 if (!displayData) {
-                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text} text-center`}><div className="text-xl font-bold mb-2">Brak słówek</div><p>Poziom: {level}, Kategoria: {category}</p></div>;
+                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text} text-center`}><div className="text-xl font-bold mb-2">Brak słówek</div><p>Poziom: {level}, Kategoria: {category === 'all' ? 'Wszystkie' : category}</p></div>;
                 }
 
                 return (
@@ -433,6 +424,7 @@
                                 <div className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md border-l-4 ${isDarkMode ? 'border-indigo-600' : 'border-indigo-400'} flex flex-col justify-center transition-colors-all duration-300`}>
                                     <label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 sm:mb-1 flex items-center gap-1 ${theme.subText}`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3"/> Temat</label>
                                     <select value={category} onChange={(e) => setCategory(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText}`}>
+                                        <option value="all">Wszystkie (Cały poziom)</option>
                                         {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                     </select>
                                 </div>
