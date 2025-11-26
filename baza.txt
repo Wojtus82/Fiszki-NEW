@@ -1,3 +1,4 @@
+id,level,category,word,translation,phonetic,tense,s1,s2,s3,s4,s5
 6,A1,Jedzenie,Apple,Jabłko,/ˈæp.l/,PresentSimple,I eat an apple every day (Jem jabłko każdego dnia),This apple is red (To jabłko jest czerwone),Do you like apples? (Czy lubisz jabłka?),An apple is a fruit (Jabłko to owoc),She buys green apples (Ona kupuje zielone jabłka)
 6,A1,Jedzenie,Apple,Jabłko,/ˈæp.l/,PresentContinuous,I am eating an apple (Jem teraz jabłko),She is peeling an apple (Ona obiera jabłko),Are you buying apples? (Czy kupujesz jabłka?),The apple is falling (Jabłko spada),We are picking apples (Zbieramy jabłka)
 6,A1,Jedzenie,Apple,Jabłko,/ˈæp.l/,PastSimple,I ate an apple yesterday (Zjadłem wczoraj jabłko),He gave me an apple (On dał mi jabłko),Did you see the apple? (Widziałeś to jabłko?),The apple fell down (Jabłko spadło),We bought fresh apples (Kupiliśmy świeże jabłka)
