@@ -91,13 +91,33 @@
                 sun: <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>
             };
 
+            // MAPA KATEGORII - Tutaj łączymy wiele małych kategorii w większe grupy
+            const categoryMapping = {
+                "Rodzina": "Ludzie", "Ludzie": "Ludzie", "Zawód": "Ludzie",
+                "Części ciała": "Zdrowie i Ciało", "Zdrowie": "Zdrowie i Ciało",
+                "Dom": "Dom i Otoczenie", "Mebel": "Dom i Otoczenie", "Budynki": "Dom i Otoczenie", "Miejsca": "Dom i Otoczenie",
+                "Jedzenie": "Jedzenie",
+                "Ubrania": "Rzeczy i Ubrania", "Przedmioty": "Rzeczy i Ubrania", "Rzeczowniki": "Rzeczy i Ubrania", "Technologia": "Rzeczy i Ubrania", "Zabawki": "Rzeczy i Ubrania",
+                "Podróże": "Podróże", "Transport": "Podróże",
+                "Natura": "Przyroda", "Pogoda": "Przyroda", "Zwierzęta": "Przyroda",
+                "Edukacja": "Szkoła i Praca", "Praca": "Szkoła i Praca",
+                "Czas": "Czas i Liczby", "Liczby": "Czas i Liczby", "Liczebniki": "Czas i Liczby", "Ilość": "Czas i Liczby",
+                "Czynności": "Czynności", "Myślenie": "Czynności", "Dźwięk": "Czynności",
+                "Przymiotniki": "Cechy", "Kolory": "Cechy", "Emocje": "Cechy",
+                "Sztuka": "Hobby", "Sport": "Hobby", "Muzyka": "Hobby",
+                "Gramatyka": "Gramatyka", "Spójniki": "Gramatyka", "Przedimki": "Gramatyka",
+                "Zaimki": "Zaimki",
+                "Przyimki": "Przyimki i Kierunki", "Kierunki": "Przyimki i Kierunki",
+                "Przysłówki": "Przysłówki",
+                "Pytania": "Komunikacja", "Zwroty": "Komunikacja", "Inne": "Komunikacja", "Pojęcia": "Komunikacja"
+            };
+
             function FlashcardsApp() {
                 const [fullDatabase, setFullDatabase] = useState([]);
                 const [loading, setLoading] = useState(true);
                 const [fileError, setFileError] = useState(null);
 
                 const [level, setLevel] = useState('A1');
-                // Ustawiamy domyślną kategorię na 'all'
                 const [category, setCategory] = useState('all');
                 const [tense, setTense] = useState('PresentSimple');
                 
@@ -115,10 +135,8 @@
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
 
-                // --- 1. POBIERANIE I PARSOWANIE PLIKU BAZA.TXT ---
                 useEffect(() => {
                     setLoading(true);
-                    // Dodajemy timestamp, aby uniknąć cache'owania
                     const noCacheUrl = `baza.txt?t=${new Date().getTime()}`;
                     console.log("Pobieranie:", noCacheUrl);
 
@@ -132,7 +150,7 @@
                             if (results.meta && results.meta.fields) {
                                 const fieldsStr = results.meta.fields.join("").toLowerCase();
                                 if (fieldsStr.includes("<!doctype") || fieldsStr.includes("<html")) {
-                                    setFileError("Błąd 404: Plik 'baza.txt' nie został znaleziony. Sprawdź nazwę pliku.");
+                                    setFileError("Błąd 404: Plik 'baza.txt' nie został znaleziony.");
                                     setLoading(false);
                                     return;
                                 }
@@ -144,12 +162,16 @@
                                     Object.keys(row).forEach(key => {
                                         newRow[key.trim()] = row[key] ? String(row[key]).trim() : "";
                                     });
+                                    // ZASTOSOWANIE MAPOWANIA KATEGORII
+                                    if (newRow.category && categoryMapping[newRow.category]) {
+                                        newRow.category = categoryMapping[newRow.category];
+                                    }
                                     return newRow;
                                 });
                                 setFullDatabase(cleanedData);
                                 setLoading(false);
                             } else {
-                                setFileError("Plik został pobrany, ale wygląda na pusty.");
+                                setFileError("Plik wygląda na pusty.");
                                 setLoading(false);
                             }
                         },
@@ -160,28 +182,23 @@
                                 document.getElementById('local-file-warning').style.display = 'block';
                                 msg = "Blokada CORS (uruchomienie lokalne).";
                             }
-                            setFileError(`Błąd pobierania pliku: ${msg}`);
+                            setFileError(`Błąd pobierania: ${msg}`);
                             setLoading(false);
                         }
                     });
                 }, []);
 
-                // --- 2. AKTUALIZACJA KATEGORII ---
                 useEffect(() => {
                     if (!fullDatabase.length) {
                         setAvailableCategories([]);
                         return;
                     }
                     const levelData = fullDatabase.filter(row => row.level === level);
-                    // Pobieramy unikalne kategorie i sortujemy je alfabetycznie
                     const cats = [...new Set(levelData.map(row => row.category))].sort();
                     setAvailableCategories(cats);
-                    
-                    // Domyślnie wybieramy 'all' (Wszystkie) po zmianie poziomu
                     setCategory('all');
                 }, [level, fullDatabase]);
 
-                // --- 3. FILTROWANIE SŁÓW I RESETOWANIE INDEXU ---
                 useEffect(() => {
                     if (!fullDatabase.length) return;
                     
@@ -189,15 +206,12 @@
                         fullDatabase
                             .filter(row => {
                                 const levelMatch = row.level === level;
-                                // Jeśli kategoria to 'all', bierzemy wszystkie z tego poziomu.
-                                // Jeśli nie, sprawdzamy zgodność kategorii.
                                 const catMatch = category === 'all' ? true : row.category === category;
                                 return levelMatch && catMatch;
                             })
                             .map(row => row.id)
                     )];
                     
-                    // Mieszamy słowa losowo
                     const shuffledIds = [...uniqueIds].sort(() => Math.random() - 0.5);
                     
                     setCurrentWordIds(shuffledIds);
@@ -205,13 +219,9 @@
                     resetCard();
                 }, [category, level, fullDatabase]);
 
-                // --- 3a. AUTOMATYCZNA ZMIANA CZASU ---
                 useEffect(() => {
                     if (currentWordIds.length > 0 && fullDatabase.length > 0) {
                         const currentId = currentWordIds[currentIndex];
-                        
-                        // Szukamy pierwszego wiersza dla tego słowa
-                        // Jeśli kategoria to 'all', szukamy w całym poziomie
                         const mainRow = fullDatabase.find(row => 
                             row.id === currentId && 
                             row.level === level && 
@@ -226,8 +236,6 @@
                     }
                 }, [currentIndex, currentWordIds, fullDatabase, level, category]);
 
-
-                // --- 4. PARSOWANIE ZDANIA ---
                 const parseSentenceRow = (text) => {
                     if (!text) return null;
                     const lastParenIndex = text.lastIndexOf('(');
@@ -237,7 +245,6 @@
                     return { en, pl };
                 };
 
-                // --- 5. LOGIKA WYŚWIETLANIA ---
                 const getDisplayData = () => {
                     if (!currentWordIds.length || !fullDatabase.length) return null;
                     const currentId = currentWordIds[currentIndex];
@@ -281,7 +288,6 @@
 
                 const displayData = getDisplayData();
 
-                // --- HANDLERY (DOTYK + MYSZKA) ---
                 const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
                 const handleMove = (clientX) => { setTouchEnd(clientX); };
                 const handleEnd = () => {
