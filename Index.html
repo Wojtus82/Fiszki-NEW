@@ -539,13 +539,13 @@
                                                         <select 
                                                             value={tense} 
                                                             onChange={(e) => setTense(e.target.value)} 
-                                                            className="bg-transparent text-xs font-bold outline-none w-[100px] sm:w-[120px]"
+                                                            className={`bg-transparent text-xs font-bold outline-none w-[100px] sm:w-[120px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
                                                         >
-                                                            <option value="Base">Podstawa</option>
+                                                            <option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Podstawa</option>
                                                             {availableTenses.map(t => (
-                                                                <option key={t} value={t}>{t}</option>
+                                                                <option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>
                                                             ))}
-                                                            <option value="mixed">Mix czasów</option>
+                                                            <option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option>
                                                         </select>
                                                     </div>
                                                     <button onClick={showTranslation} className="p-1 rounded-full hover:bg-gray-200/20" aria-label="Zamknij">
