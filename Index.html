@@ -126,7 +126,9 @@
                 let strContent = String(cellContent).trim();
                 if (!strContent) return [];
                 
-                strContent = strContent.replace(/(?:^|\s+)([1-5]\.)\s*/g, '\n');
+                // POPRAWKA: Wstawia nową linię PRZED numerem (np. "1.", "2."), ale zachowuje sam numer w tekście.
+                // $1 to dopasowana grupa (np. "1."), więc replace wstawia "\n1. "
+                strContent = strContent.replace(/(?:^|\s+)([1-5]\.)\s*/g, '\n$1 ');
                 strContent = strContent.replace(/\)/g, ')\n');
 
                 const lines = strContent.split(/\r?\n/).filter(line => line.trim() !== "");
@@ -520,8 +522,7 @@
                                                 {displayData.sentences.length > 0 ? displayData.sentences.map((s, i) => (
                                                     <li key={i} className="flex flex-col gap-1">
                                                         <div className="flex gap-2 leading-snug">
-                                                            {/* PRZYWRÓCONO NUMERACJĘ (i+1) */}
-                                                            <span className={`font-bold select-none mt-0.5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-300'}`}>{i+1}.</span>
+                                                            {/* USUNIĘTO AUTOMATYCZNĄ NUMERACJĘ */}
                                                             <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.word)}</span>
                                                         </div>
                                                         <div className={`pl-6 text-sm sm:text-base italic ${theme.subText}`}>({s.pl})</div>
