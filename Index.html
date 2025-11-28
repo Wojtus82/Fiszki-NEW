@@ -495,14 +495,17 @@
                                 <div className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md flex flex-col justify-center transition-colors-all duration-300`}>
                                     <label className={`text-[10px] sm:text-xs font-bold uppercase block mb-0.5 sm:mb-1 ${theme.subText}`}>Poziom</label>
                                     <select value={level} onChange={(e) => setLevel(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText}`}>
-                                        <option value="A1">A1</option><option value="A2">A2</option><option value="B1">B1</option><option value="B2">B2</option>
+                                        <option value="A1" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>A1</option>
+                                        <option value="A2" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>A2</option>
+                                        <option value="B1" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>B1</option>
+                                        <option value="B2" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>B2</option>
                                     </select>
                                 </div>
                                 <div className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md border-l-4 ${isDarkMode ? 'border-indigo-600' : 'border-indigo-400'} flex flex-col justify-center transition-colors-all duration-300`}>
                                     <label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 sm:mb-1 flex items-center gap-1 ${theme.subText}`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3"/> Temat</label>
                                     <select value={category} onChange={(e) => setCategory(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText}`}>
-                                        <option value="all">Wszystkie (Cały poziom)</option>
-                                        {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                        <option value="all" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>Wszystkie (Cały poziom)</option>
+                                        {availableCategories.map(cat => <option key={cat} value={cat} className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>{cat}</option>)}
                                     </select>
                                 </div>
                             </div>
