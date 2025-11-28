@@ -284,7 +284,13 @@
                         return;
                     }
                     const levelData = fullDatabase.filter(row => row.level === level);
-                    const cats = [...new Set(levelData.map(row => row.category))].sort();
+                    
+                    // ZMIANA: Zastosowanie sortowania naturalnego (numeric: true)
+                    // Dzięki temu "2" będzie przed "10", a "Temat 2" przed "Temat 10"
+                    const cats = [...new Set(levelData.map(row => row.category))].sort((a, b) => 
+                        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+                    );
+                    
                     setAvailableCategories(cats);
                     setCategory('all');
                 }, [level, fullDatabase]);
