@@ -3,20 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki Master 3D</title>
+    <title>Fiszki Master 3D (Excel)</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- PapaParse -->
-    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <style>
         .perspective-1000 { perspective: 1000px; }
@@ -44,10 +40,11 @@
 
     <div id="error-overlay">
         <h2 class="text-2xl font-bold mb-2">Wystąpił błąd</h2>
-        <p class="mb-4 text-gray-600">Nie udało się załadować bazy danych.</p>
+        <p class="mb-4 text-gray-600">Nie udało się załadować bazy danych Excel.</p>
         <div id="local-file-warning" class="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm max-w-md text-left">
             <strong>⚠️ Wykryto uruchomienie lokalne (file://)</strong><br/><br/>
-            Przeglądarki blokują wczytywanie pliku <code>baza.txt</code>, gdy otwierasz stronę bezpośrednio z dysku.
+            Przeglądarki mogą blokować wczytywanie pliku <code>bazaA1.xlsx</code> z dysku ze względów bezpieczeństwa (CORS).<br/>
+            Aby to działało lokalnie, najlepiej uruchomić prosty serwer (np. Live Server w VS Code) lub użyć flag przeglądarki.
         </div>
         <pre id="error-message" class="bg-red-100 p-4 rounded text-sm text-left overflow-auto max-w-full max-h-64 select-text"></pre>
         <button onclick="location.reload()" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-red-700 transition mt-4">Spróbuj ponownie</button>
@@ -118,7 +115,6 @@
                 const [level, setLevel] = useState('A1');
                 const [category, setCategory] = useState('all');
                 
-                // Domyślnie ustawiamy na 'Base', czyli podstawowy wiersz
                 const [tense, setTense] = useState('Base');
                 
                 const [availableCategories, setAvailableCategories] = useState([]);
@@ -135,41 +131,89 @@
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
 
+                // NOWA FUNKCJA WCZYTUJĄCA EXCEL
                 useEffect(() => {
                     setLoading(true);
-                    const noCacheUrl = `baza.txt?t=${new Date().getTime()}`;
+                    const excelUrl = `bazaA1.xlsx?t=${new Date().getTime()}`;
                     
-                    Papa.parse(noCacheUrl, {
-                        download: true,
-                        header: true,
-                        skipEmptyLines: true,
-                        encoding: "UTF-8",
-                        delimiter: ",",
-                        complete: (results) => {
-                            if (results.data && results.data.length > 0) {
-                                const cleanedData = results.data.map(row => {
-                                    const newRow = {};
-                                    Object.keys(row).forEach(key => {
-                                        newRow[key.trim()] = row[key] ? String(row[key]).trim() : "";
+                    fetch(excelUrl)
+                        .then(res => {
+                            if (!res.ok) throw new Error(`Błąd sieci: ${res.status} ${res.statusText}`);
+                            return res.arrayBuffer();
+                        })
+                        .then(ab => {
+                            // Parsowanie pliku Excel
+                            const workbook = XLSX.read(ab, { type: 'array' });
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                            if (jsonData && jsonData.length > 0) {
+                                // Transformacja danych z Excela ("Szeroki" format) na format aplikacji ("Długi" format)
+                                // Kolumny z czasami w Excelu:
+                                const tenseColumns = [
+                                    "Present Simple", "Present continuous", "Past Simple", 
+                                    "Future Simple", "Present Perfect", "Past Continuous", "Going To"
+                                ];
+
+                                const processedData = [];
+
+                                jsonData.forEach(row => {
+                                    // Pobranie i oczyszczenie podstawowych danych
+                                    const id = row.id;
+                                    const rawLevel = row.level ? String(row.level).trim() : "A1";
+                                    const rawCat = row.category ? String(row.category).trim() : "Inne";
+                                    const mappedCat = categoryMapping[rawCat] || rawCat;
+                                    const word = row.word ? String(row.word).trim() : "";
+                                    const translation = row.translation ? String(row.translation).trim() : "";
+                                    const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
+                                    const baseForm = row.base ? String(row.base).trim() : word;
+
+                                    // 1. Dodaj wpis BAZOWY (dla karty głównej)
+                                    processedData.push({
+                                        id: id,
+                                        level: rawLevel,
+                                        category: mappedCat,
+                                        word: word,
+                                        translation: translation,
+                                        phonetic: phonetic,
+                                        tense: 'Base'
                                     });
-                                    // Mapowanie kategorii
-                                    if (newRow.category && categoryMapping[newRow.category]) {
-                                        newRow.category = categoryMapping[newRow.category];
-                                    }
-                                    return newRow;
+
+                                    // 2. Dodaj wpisy dla CZASÓW (jeśli kolumna w Excelu nie jest pusta)
+                                    tenseColumns.forEach(tenseName => {
+                                        if (row[tenseName]) {
+                                            const content = String(row[tenseName]).trim();
+                                            if (content) {
+                                                processedData.push({
+                                                    id: id,
+                                                    level: rawLevel,
+                                                    category: mappedCat,
+                                                    word: word, // Główne słowo
+                                                    translation: translation,
+                                                    phonetic: phonetic,
+                                                    tense: tenseName,
+                                                    // Traktujemy zawartość komórki czasu jako pierwsze zdanie (s1)
+                                                    s1: content,
+                                                    conjugation: content // Opcjonalnie używane do podświetlania
+                                                });
+                                            }
+                                        }
+                                    });
                                 });
-                                setFullDatabase(cleanedData);
+
+                                setFullDatabase(processedData);
                                 setLoading(false);
                             } else {
-                                setFileError("Plik wygląda na pusty.");
+                                setFileError("Plik Excel wygląda na pusty.");
                                 setLoading(false);
                             }
-                        },
-                        error: (err) => {
-                            setFileError(`Błąd pobierania: ${err.message}`);
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            setFileError(`Błąd wczytywania Excela: ${err.message}. Upewnij się, że plik 'bazaA1.xlsx' jest w tym samym folderze.`);
                             setLoading(false);
-                        }
-                    });
+                        });
                 }, []);
 
                 useEffect(() => {
@@ -209,8 +253,10 @@
 
                 const parseSentenceRow = (text) => {
                     if (!text) return null;
+                    // Sprawdzamy czy jest nawias otwierający dla tłumaczenia
                     const lastParenIndex = text.lastIndexOf('(');
                     if (lastParenIndex === -1) return { en: text.trim(), pl: '' };
+                    
                     const en = text.substring(0, lastParenIndex).trim();
                     const pl = text.substring(lastParenIndex + 1, text.length - 1).trim(); 
                     return { en, pl };
@@ -218,12 +264,12 @@
 
                 // Sprawdź, jakie czasy są dostępne dla tego słowa (oprócz Base)
                 const availableTenses = useMemo(() => {
-                     if (!currentWordIds.length || !fullDatabase.length) return [];
-                     const currentId = currentWordIds[currentIndex];
-                     const rows = fullDatabase.filter(row => row.id === currentId);
-                     // Filtrujemy, żeby nie pokazywać pustych, ani 'Base' na liście wyboru (chyba że chcemy)
-                     const tenses = rows.map(r => r.tense).filter(t => t && t !== 'Base');
-                     return [...new Set(tenses)];
+                      if (!currentWordIds.length || !fullDatabase.length) return [];
+                      const currentId = currentWordIds[currentIndex];
+                      const rows = fullDatabase.filter(row => row.id === currentId);
+                      // Filtrujemy, żeby nie pokazywać pustych, ani 'Base' na liście wyboru
+                      const tenses = rows.map(r => r.tense).filter(t => t && t !== 'Base');
+                      return [...new Set(tenses)];
                 }, [currentWordIds, currentIndex, fullDatabase]);
 
                 const getDisplayData = () => {
@@ -240,7 +286,6 @@
                     if (!mainInfoRow) return null;
 
                     // 2. Znajdujemy wiersz AKTYWNY dla zdań i słowa na froncie
-                    // Jeśli tense == 'Base', używamy mainInfoRow. Jeśli inny, szukamy odpowiedniego.
                     let activeRow = mainInfoRow;
                     
                     if (tense !== 'Base' && tense !== 'mixed') {
@@ -249,24 +294,29 @@
                     }
 
                     let sentences = [];
-                    let conjugationWord = activeRow.word;
+                    // W nowym modelu z Excela, s1 zawiera treść komórki czasu
+                    let conjugationContent = activeRow.s1 || activeRow.word;
 
                     if (tense === 'mixed') {
                         // Mix zdań ze wszystkich dostępnych wierszy dla tego ID
-                        const allVariations = fullDatabase.filter(row => row.id === currentId);
+                        const allVariations = fullDatabase.filter(row => row.id === currentId && row.tense !== 'Base');
                         allVariations.forEach(row => {
-                            for (let i = 1; i <= 5; i++) {
-                                const raw = row[`s${i}`];
-                                if (raw) {
-                                    const parsed = parseSentenceRow(raw);
-                                    if (parsed && parsed.en) sentences.push(parsed);
-                                }
+                            // W nowym modelu mamy głównie s1
+                            if (row.s1) {
+                                const parsed = parseSentenceRow(row.s1);
+                                if (parsed && parsed.en) sentences.push(parsed);
                             }
                         });
                         sentences = sentences.sort(() => Math.random() - 0.5).slice(0, 5);
                     } else {
                         // Zdania z aktywnego wiersza (Base lub konkretny czas)
-                        for (let i = 1; i <= 5; i++) {
+                        // W Excelu mamy jedną kolumnę per czas, zmapowaliśmy ją do s1
+                        if (activeRow.s1) {
+                             const parsed = parseSentenceRow(activeRow.s1);
+                             if (parsed && parsed.en) sentences.push(parsed);
+                        }
+                        // Jeśli w przyszłości dodasz s2-s5 do logiki mapowania, tutaj zadziała
+                        for (let i = 2; i <= 5; i++) {
                             const raw = activeRow[`s${i}`];
                             if (raw) {
                                 const parsed = parseSentenceRow(raw);
@@ -276,11 +326,11 @@
                     }
 
                     return { 
-                        word: activeRow.word,          // Słowo z wybranego czasu (np. "Sat")
-                        translation: mainInfoRow.translation, // Tłumaczenie zawsze z bazy (np. "Siedzieć")
-                        phonetic: mainInfoRow.phonetic, // Fonetyka z bazy
+                        word: activeRow.word,          
+                        translation: mainInfoRow.translation, 
+                        phonetic: mainInfoRow.phonetic, 
                         sentences: sentences,
-                        conjugation: conjugationWord 
+                        conjugation: conjugationContent 
                     };
                 };
 
@@ -342,8 +392,23 @@
                 const handleSpeak = () => {
                     if (!displayData || !window.speechSynthesis) return;
                     window.speechSynthesis.cancel();
-                    const text = cardSide === 3 ? displayData.sentences.map(s => s.en).join('. ') : displayData.word;
-                    const utterance = new SpeechSynthesisUtterance(text);
+                    // Jeśli widok zdań, czytaj zdania, w przeciwnym razie czytaj słowo (lub zdanie z koniugacji jeśli wybrano czas)
+                    let textToSpeak = "";
+                    if (cardSide === 3) {
+                         textToSpeak = displayData.sentences.map(s => s.en).join('. ');
+                    } else {
+                         // Jeśli wybrano czas inny niż Base, czytamy treść z tego czasu (np. zdanie/koniugację)
+                         // Jeśli to tylko słowo, czytamy słowo
+                         if (tense !== 'Base' && tense !== 'mixed' && displayData.conjugation) {
+                             // Usuwamy polskie tłumaczenie z nawiasów do czytania, jeśli tam jest
+                             const parsed = parseSentenceRow(displayData.conjugation);
+                             textToSpeak = parsed ? parsed.en : displayData.conjugation;
+                         } else {
+                             textToSpeak = displayData.word;
+                         }
+                    }
+
+                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
                     utterance.lang = 'en-US';
                     utterance.rate = 0.85;
                     utterance.onstart = () => setIsSpeaking(true);
@@ -355,10 +420,23 @@
 
                 const highlightTargetWord = (sentence, targetWord) => {
                     if (!targetWord) return sentence;
-                    const cleanTarget = targetWord.replace(/[()]/g, '').trim();
+                    // Prosta heurystyka: bierzemy pierwsze słowo z 'targetWord' jeśli to całe zdanie
+                    // albo próbujemy dopasować całość.
+                    // Dla bezpieczeństwa, jeśli 'targetWord' zawiera spacje (jest zdaniem), nie podświetlamy wszystkiego na czerwono,
+                    // chyba że to jest dokładnie to.
+                    // Tutaj uproszczenie: nie podświetlamy w trybie zdań, jeśli targetWord jest długie.
+                    
+                    const cleanTarget = targetWord.split('(')[0].trim(); // Usuń tłumaczenie jeśli jest w targetWord
+                    // Jeśli targetWord to np. "I go", a w zdaniu mamy "I go to school", to można spróbować podświetlić "I go".
+                    
                     const escapedTarget = cleanTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     const regex = new RegExp(`(${escapedTarget})`, 'gi');
                     const parts = sentence.split(regex);
+                    
+                    // Jeśli nie znaleziono dopasowania całego zwrotu, spróbujmy chociaż główne słowo (jeśli dostępne w raw data)
+                    // Ale w obecnym kodzie displayData.word to zawsze główne słowo (np. Go), więc użyjmy tego.
+                    // Jednak displayData.conjugation może być "I go (Idę)".
+                    
                     return parts.map((part, index) => 
                         part.toLowerCase() === cleanTarget.toLowerCase() 
                         ? <span key={index} className={`${isDarkMode ? 'text-red-400' : 'text-red-600'} font-extrabold text-xl sm:text-2xl`}>{part}</span> 
@@ -383,7 +461,7 @@
                 };
 
                 if (loading) {
-                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text}`}><div className="text-4xl mb-4 animate-spin text-indigo-500"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold">Wczytywanie bazy...</div></div>;
+                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text}`}><div className="text-4xl mb-4 animate-spin text-indigo-500"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold">Wczytywanie bazy Excel...</div></div>;
                 }
                 
                 if (fileError) {
@@ -392,7 +470,7 @@
                         <div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div>
                         <div id="local-file-warning" className="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm max-w-md text-left">
                             <strong>⚠️ Wykryto uruchomienie lokalne (file://)</strong><br/><br/>
-                            Przeglądarki blokują wczytywanie pliku <code>baza.txt</code>, gdy otwierasz stronę bezpośrednio z dysku.
+                            Przeglądarki blokują wczytywanie pliku <code>bazaA1.xlsx</code>, gdy otwierasz stronę bezpośrednio z dysku.
                         </div>
                         <pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre>
                         <button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button>
@@ -479,15 +557,15 @@
                                                 </div>
                                             </div>
                                             <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1" onClick={(e) => e.stopPropagation()}>
-                                                {displayData.sentences.map((s, i) => (
+                                                {displayData.sentences.length > 0 ? displayData.sentences.map((s, i) => (
                                                     <li key={i} className="flex flex-col gap-1">
                                                         <div className="flex gap-2 leading-snug">
                                                             <span className={`font-bold select-none mt-0.5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-300'}`}>{i+1}.</span>
-                                                            <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.conjugation || displayData.word)}</span>
+                                                            <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.word)}</span>
                                                         </div>
                                                         <div className={`pl-6 text-sm sm:text-base italic ${theme.subText}`}>({s.pl})</div>
                                                     </li>
-                                                ))}
+                                                )) : <li className="text-center opacity-50 italic mt-4">Brak przykładowych zdań dla tego czasu</li>}
                                             </ul>
                                             <div className={`mt-2 text-[10px] text-center italic opacity-60 ${theme.subText}`}>Kliknij tło, aby wrócić</div>
                                         </div>
@@ -513,7 +591,8 @@
                                     <h2 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-3 text-center">{displayData.translation}</h2>
                                     <div className="bg-white/20 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full font-mono text-base sm:text-xl mb-6 sm:mb-8">{displayData.phonetic}</div>
                                     <button onClick={showSentences} className={`font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg active:scale-95 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}>
-                                        <Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> 5 zdań
+                                        <Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> 
+                                        {tense === 'Base' ? 'Zdania (Mix)' : `Zdania (${tense})`}
                                     </button>
                                 </div>
                             </div>
