@@ -126,8 +126,6 @@
                 let strContent = String(cellContent).trim();
                 if (!strContent) return [];
                 
-                // POPRAWKA: Wstawia nową linię PRZED numerem (np. "1.", "2."), ale zachowuje sam numer w tekście.
-                // $1 to dopasowana grupa (np. "1."), więc replace wstawia "\n1. "
                 strContent = strContent.replace(/(?:^|\s+)([1-5]\.)\s*/g, '\n$1 ');
                 strContent = strContent.replace(/\)/g, ')\n');
 
@@ -279,7 +277,19 @@
                 }, [currentWordIds, currentIndex, fullDatabase]);
 
                 const getDisplayData = () => {
-                    if (!currentWordIds.length || !fullDatabase.length) return null;
+                    if (!fullDatabase.length) return null;
+                    
+                    // ZMIANA: Obsługa braku słówek jako stan pusty, a nie null
+                    if (!currentWordIds.length) {
+                        return {
+                            isEmpty: true,
+                            word: "Brak słówek",
+                            translation: "Spróbuj zmienić kategorię lub poziom",
+                            phonetic: "---",
+                            sentences: []
+                        };
+                    }
+
                     const currentId = currentWordIds[currentIndex];
                     
                     const baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'Base');
@@ -346,6 +356,7 @@
                 };
 
                 const handleNext = () => {
+                    if (!currentWordIds.length) return; // Zabezpieczenie
                     setNoTransition(true); setCardSide(1); setRotation(0);
                     setTimeout(() => {
                         setNoTransition(false);
@@ -354,6 +365,7 @@
                 };
 
                 const handlePrev = () => {
+                    if (!currentWordIds.length) return; // Zabezpieczenie
                     setNoTransition(true); setCardSide(1); setRotation(0);
                     setTimeout(() => {
                         setNoTransition(false);
@@ -362,6 +374,7 @@
                 };
 
                 const handleCardClick = () => {
+                    if (displayData.isEmpty) return; // Blokada obracania jeśli brak danych
                     if (cardSide === 1) { setCardSide(2); setRotation(180); }
                     else if (cardSide === 2) { setCardSide(1); setRotation(0); }
                     else if (cardSide === 3) { showTranslation(); }
@@ -371,7 +384,7 @@
                 const showTranslation = (e) => { if(e) e.stopPropagation(); setCardSide(2); setRotation(180); };
 
                 const handleSpeak = () => {
-                    if (!displayData || !window.speechSynthesis) return;
+                    if (!displayData || !window.speechSynthesis || displayData.isEmpty) return;
                     window.speechSynthesis.cancel();
                     
                     let textToSpeak = "";
@@ -439,9 +452,8 @@
                     </div>;
                 }
 
-                if (!displayData) {
-                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text} text-center`}><div className="text-xl font-bold mb-2">Brak słówek</div><p>Poziom: {level}, Kategoria: {category === 'all' ? 'Wszystkie' : category}</p></div>;
-                }
+                // USUNIĘTO BLOK: if (!displayData) return ... 
+                // Zamiast tego aplikacja renderuje się normalnie, a displayData zawiera obiekt "Brak słówek"
 
                 return (
                     <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-300 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
@@ -473,7 +485,7 @@
                             </div>
 
                              <div className={`${theme.counterBg} px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm border border-white/10 font-semibold whitespace-nowrap ${theme.counterText} transition-colors-all duration-300 w-full sm:w-auto text-center mt-2`}>
-                                {currentIndex + 1} / {currentWordIds.length}
+                                {currentWordIds.length > 0 ? `${currentIndex + 1} / ${currentWordIds.length}` : '0 / 0'}
                             </div>
                         </header>
 
