@@ -111,10 +111,9 @@
                 "Pytania": "Komunikacja", "Zwroty": "Komunikacja", "Inne": "Komunikacja", "Pojęcia": "Komunikacja", "Słowo": "Komunikacja", "Historia": "Komunikacja"
             };
 
-            // Funkcja pomocnicza do parsowania wiersza zdania (wyciągnięta przed komponent)
+            // Funkcja pomocnicza do parsowania wiersza zdania
             const parseSentenceRow = (text) => {
                 if (!text) return null;
-                // Sprawdzamy czy jest nawias otwierający dla tłumaczenia
                 const lastParenIndex = text.lastIndexOf('(');
                 if (lastParenIndex === -1) return { en: text.trim(), pl: '' };
                 
@@ -123,23 +122,19 @@
                 return { en, pl };
             };
 
-            // ZAKTUALIZOWANA FUNKCJA: Obsługuje nową linię ORAZ numerację 1. 2. 3. 4. 5.
+            // ZAKTUALIZOWANA FUNKCJA
             const extractSentencesFromCell = (cellContent) => {
                 if (!cellContent) return [];
                 let strContent = String(cellContent).trim();
                 if (!strContent) return [];
                 
-                // Zmiana: Jeśli napotkamy "1.", "2." itd. (cyfry 1-5 + kropka),
-                // traktujemy to jako początek nowego zdania.
-                // Podmieniamy to na znak nowej linii, usuwając sam numer,
-                // ponieważ aplikacja dodaje własną numerację 1, 2, 3... w widoku listy.
-                // Regex: (początek linii lub biały znak) + (cyfra 1-5 i kropka) + (ewentualne spacje)
+                // 1. Zamiana "1.", "2." na nową linię
                 strContent = strContent.replace(/(?:^|\s+)([1-5]\.)\s*/g, '\n');
-
-                // Dzielimy po nowej linii (\n lub \r\n), aby każde zdanie było oddzielne
-                const lines = strContent.split(/\r?\n/).filter(line => line.trim() !== "");
                 
-                // Parsujemy każdą linię na EN/PL
+                // 2. NOWOŚĆ: Zamiana zamkniętego nawiasu ")" na ")\n", żeby wymusić podział
+                strContent = strContent.replace(/\)/g, ')\n');
+
+                const lines = strContent.split(/\r?\n/).filter(line => line.trim() !== "");
                 return lines.map(line => parseSentenceRow(line)).filter(s => s && s.en);
             };
 
@@ -199,10 +194,8 @@
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
                                     
-                                    // Pobranie zdań z kolumny BASE (z uwzględnieniem numeracji 1. 2. itd)
                                     const baseSentences = extractSentencesFromCell(row.base);
 
-                                    // 1. Dodaj wpis BAZOWY (dla karty głównej) + zdania z kolumny 'base'
                                     processedData.push({
                                         id: id,
                                         level: rawLevel,
@@ -211,10 +204,9 @@
                                         translation: translation,
                                         phonetic: phonetic,
                                         tense: 'Base',
-                                        sentencesList: baseSentences // Tutaj przechowujemy zdania z 'base'
+                                        sentencesList: baseSentences
                                     });
 
-                                    // 2. Dodaj wpisy dla CZASÓW
                                     tenseColumns.forEach(tenseName => {
                                         if (row[tenseName]) {
                                             const tenseSentences = extractSentencesFromCell(row[tenseName]);
@@ -227,7 +219,7 @@
                                                     translation: translation,
                                                     phonetic: phonetic,
                                                     tense: tenseName,
-                                                    sentencesList: tenseSentences // Lista zdań dla konkretnego czasu
+                                                    sentencesList: tenseSentences
                                                 });
                                             }
                                         }
@@ -293,7 +285,6 @@
                     if (!currentWordIds.length || !fullDatabase.length) return null;
                     const currentId = currentWordIds[currentIndex];
                     
-                    // Znajdujemy wiersz bazowy
                     const baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'Base');
                     const fallbackRow = fullDatabase.find(row => row.id === currentId);
                     const mainInfoRow = baseRow || fallbackRow;
@@ -303,7 +294,6 @@
                     let sentences = [];
 
                     if (tense === 'mixed') {
-                        // Mix zdań ze wszystkich dostępnych czasów (bez Base)
                         const allVariations = fullDatabase.filter(row => row.id === currentId && row.tense !== 'Base');
                         allVariations.forEach(row => {
                             if (row.sentencesList) {
@@ -312,12 +302,10 @@
                         });
                         sentences = sentences.sort(() => Math.random() - 0.5).slice(0, 5);
                     } else if (tense === 'Base') {
-                        // Jeśli wybrano Base, bierzemy zdania z wiersza Base (z kolumny base)
                         if (baseRow && baseRow.sentencesList) {
                             sentences = baseRow.sentencesList;
                         }
                     } else {
-                        // Konkretny czas
                         const activeRow = fullDatabase.find(row => row.id === currentId && row.tense === tense);
                         if (activeRow && activeRow.sentencesList) {
                             sentences = activeRow.sentencesList;
@@ -334,7 +322,6 @@
 
                 const displayData = getDisplayData();
 
-                // Obsługa gestów i myszy...
                 const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
                 const handleMove = (clientX) => { setTouchEnd(clientX); };
                 const handleEnd = () => {
@@ -393,12 +380,10 @@
                     let textToSpeak = "";
                     
                     if (cardSide === 3) {
-                         // Czytamy tylko angielskie części zdań, łącząc je kropkami
                          textToSpeak = displayData.sentences.map(s => s.en).join('. ');
                     } else {
-                         // Czytamy tylko słowo główne (lub pierwsze zdanie z listy jeśli chcemy kontekst, ale tu standardowo słowo)
                          if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
-                             textToSpeak = displayData.sentences[0].en; // Czytaj pierwsze zdanie z czasu
+                             textToSpeak = displayData.sentences[0].en; 
                          } else {
                              textToSpeak = displayData.word;
                          }
@@ -540,10 +525,10 @@
                                                 {displayData.sentences.length > 0 ? displayData.sentences.map((s, i) => (
                                                     <li key={i} className="flex flex-col gap-1">
                                                         <div className="flex gap-2 leading-snug">
-                                                            <span className={`font-bold select-none mt-0.5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-300'}`}>{i+1}.</span>
+                                                            {/* USUNIĘTO NUMERACJĘ (niebieska jedynka) */}
                                                             <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.word)}</span>
                                                         </div>
-                                                        <div className={`pl-6 text-sm sm:text-base italic ${theme.subText}`}>({s.pl})</div>
+                                                        <div className={`text-sm sm:text-base italic ${theme.subText}`}>({s.pl})</div>
                                                     </li>
                                                 )) : <li className="text-center opacity-50 italic mt-4">Brak przykładowych zdań dla tego czasu</li>}
                                             </ul>
