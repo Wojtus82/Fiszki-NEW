@@ -69,7 +69,7 @@
 
     <script type="text/babel">
         try {
-            const { useState, useEffect, useMemo } = React;
+            const { useState, useEffect, useMemo, useCallback } = React;
 
             const Icon = ({ path, size = 24, className="" }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
@@ -140,7 +140,6 @@
 
                 const [level, setLevel] = useState('A1');
                 const [category, setCategory] = useState('all');
-                
                 const [tense, setTense] = useState('Base');
                 
                 const [availableCategories, setAvailableCategories] = useState([]);
@@ -152,10 +151,54 @@
                 const [noTransition, setNoTransition] = useState(false);
                 const [isSpeaking, setIsSpeaking] = useState(false);
                 const [isDarkMode, setIsDarkMode] = useState(false);
+                
+                // Głosy
+                const [voices, setVoices] = useState([]);
+                const [selectedVoice, setSelectedVoice] = useState(null);
 
                 const [touchStart, setTouchStart] = useState(null);
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
+
+                // Ładowanie głosów
+                useEffect(() => {
+                    const loadVoices = () => {
+                        const availableVoices = window.speechSynthesis.getVoices();
+                        setVoices(availableVoices);
+                    };
+
+                    loadVoices();
+                    
+                    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                        window.speechSynthesis.onvoiceschanged = loadVoices;
+                    }
+                }, []);
+
+                // Inteligentny wybór najlepszego głosu
+                useEffect(() => {
+                    if (voices.length > 0) {
+                        // Priorytety wyboru głosu:
+                        // 1. Google US English (Bardzo naturalny na Android/Chrome)
+                        // 2. Microsoft Zira / David (Dobre na Windows)
+                        // 3. Samantha (Dobra na Mac)
+                        // 4. Jakikolwiek "English (United States)"
+                        // 5. Jakikolwiek angielski
+                        
+                        const bestVoice = 
+                            voices.find(v => v.name.includes("Google US English")) ||
+                            voices.find(v => v.name.includes("Google UK English Female")) ||
+                            voices.find(v => v.name.includes("Samantha")) || 
+                            voices.find(v => v.name.includes("Zira")) ||
+                            voices.find(v => v.lang === 'en-US' && v.name.includes("Natural")) || // Edge Natural voices
+                            voices.find(v => v.lang === 'en-US') ||
+                            voices.find(v => v.lang.startsWith('en'));
+
+                        if (bestVoice) {
+                            setSelectedVoice(bestVoice);
+                            console.log("Wybrano głos:", bestVoice.name);
+                        }
+                    }
+                }, [voices]);
 
                 useEffect(() => {
                     setLoading(true);
@@ -279,7 +322,6 @@
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
                     
-                    // ZMIANA: Obsługa braku słówek jako stan pusty, a nie null
                     if (!currentWordIds.length) {
                         return {
                             isEmpty: true,
@@ -356,7 +398,7 @@
                 };
 
                 const handleNext = () => {
-                    if (!currentWordIds.length) return; // Zabezpieczenie
+                    if (!currentWordIds.length) return;
                     setNoTransition(true); setCardSide(1); setRotation(0);
                     setTimeout(() => {
                         setNoTransition(false);
@@ -365,7 +407,7 @@
                 };
 
                 const handlePrev = () => {
-                    if (!currentWordIds.length) return; // Zabezpieczenie
+                    if (!currentWordIds.length) return;
                     setNoTransition(true); setCardSide(1); setRotation(0);
                     setTimeout(() => {
                         setNoTransition(false);
@@ -374,7 +416,7 @@
                 };
 
                 const handleCardClick = () => {
-                    if (displayData.isEmpty) return; // Blokada obracania jeśli brak danych
+                    if (displayData.isEmpty) return;
                     if (cardSide === 1) { setCardSide(2); setRotation(180); }
                     else if (cardSide === 2) { setCardSide(1); setRotation(0); }
                     else if (cardSide === 3) { showTranslation(); }
@@ -400,10 +442,23 @@
                     }
 
                     const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                    
+                    // Ustawienie najlepszego znalezionego głosu
+                    if (selectedVoice) {
+                        utterance.voice = selectedVoice;
+                    }
+                    
                     utterance.lang = 'en-US';
-                    utterance.rate = 0.85;
+                    utterance.rate = 0.9; // Nieco wolniej i wyraźniej
+                    utterance.pitch = 1;
+
                     utterance.onstart = () => setIsSpeaking(true);
                     utterance.onend = () => setIsSpeaking(false);
+                    utterance.onerror = (e) => {
+                        console.error("Speech error", e);
+                        setIsSpeaking(false);
+                    };
+
                     window.speechSynthesis.speak(utterance);
                 };
 
@@ -451,9 +506,6 @@
                         <button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button>
                     </div>;
                 }
-
-                // USUNIĘTO BLOK: if (!displayData) return ... 
-                // Zamiast tego aplikacja renderuje się normalnie, a displayData zawiera obiekt "Brak słówek"
 
                 return (
                     <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-300 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
@@ -534,7 +586,7 @@
                                                 {displayData.sentences.length > 0 ? displayData.sentences.map((s, i) => (
                                                     <li key={i} className="flex flex-col gap-1">
                                                         <div className="flex gap-2 leading-snug">
-                                                            {/* USUNIĘTO AUTOMATYCZNĄ NUMERACJĘ */}
+                                                            {/* PRZYWRÓCONO NUMERACJĘ */}
                                                             <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{highlightTargetWord(s.en, displayData.word)}</span>
                                                         </div>
                                                         <div className={`pl-6 text-sm sm:text-base italic ${theme.subText}`}>({s.pl})</div>
