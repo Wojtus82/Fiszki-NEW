@@ -69,7 +69,8 @@
 
     <script type="text/babel">
         try {
-            const { useState, useEffect, useMemo, useCallback } = React;
+            // USUNIĘTO: useCallback (nieużywane)
+            const { useState, useEffect, useMemo } = React;
 
             const Icon = ({ path, size = 24, className="" }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
@@ -85,31 +86,12 @@
                 volX: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></>,
                 tag: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>,
                 clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
-                hash: <><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></>,
                 moon: <><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></>,
                 sun: <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,
                 close: <><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>
             };
 
-            const categoryMapping = {
-                "Rodzina": "Ludzie", "Ludzie": "Ludzie", "Zawód": "Ludzie", "Mężczyźni": "Ludzie", "Kobiety": "Ludzie", "Osoba": "Ludzie",
-                "Części ciała": "Zdrowie i Ciało", "Zdrowie": "Zdrowie i Ciało",
-                "Dom": "Dom i Otoczenie", "Mebel": "Dom i Otoczenie", "Budynki": "Dom i Otoczenie", "Miejsca": "Dom i Otoczenie",
-                "Jedzenie": "Jedzenie",
-                "Ubrania": "Rzeczy", "Przedmioty": "Rzeczy", "Rzeczowniki": "Rzeczy", "Technologia": "Rzeczy", "Zabawki": "Rzeczy", "Pieniądze": "Rzeczy",
-                "Podróże": "Podróże i Transport", "Transport": "Podróże i Transport", "Kierunki": "Podróże i Transport",
-                "Natura": "Natura i Świat", "Pogoda": "Natura i Świat", "Zwierzęta": "Natura i Świat",
-                "Edukacja": "Edukacja i Praca", "Praca": "Edukacja i Praca",
-                "Czas": "Czas i Liczby", "Liczby": "Czas i Liczby", "Liczebniki": "Czas i Liczby", "Ilość": "Czas i Liczby",
-                "Czynności": "Czynności", "Myślenie": "Czynności", "Dźwięk": "Czynności",
-                "Przymiotniki": "Cechy i Opis", "Kolory": "Cechy i Opis", "Emocje": "Cechy i Opis",
-                "Sztuka": "Kultura i Hobby", "Sport": "Kultura i Hobby", "Muzyka": "Kultura i Hobby",
-                "Gramatyka": "Gramatyka", "Spójniki": "Gramatyka", "Przedimki": "Gramatyka", "Czasowniki": "Gramatyka",
-                "Zaimki": "Zaimki",
-                "Przyimki": "Przyimki",
-                "Przysłówki": "Przysłówki",
-                "Pytania": "Komunikacja", "Zwroty": "Komunikacja", "Inne": "Komunikacja", "Pojęcia": "Komunikacja", "Słowo": "Komunikacja", "Historia": "Komunikacja"
-            };
+            // USUNIĘTO: categoryMapping - teraz kategorie są brane bezpośrednio z pliku Excel
 
             const parseSentenceRow = (text) => {
                 if (!text) return null;
@@ -152,7 +134,6 @@
                 const [isSpeaking, setIsSpeaking] = useState(false);
                 const [isDarkMode, setIsDarkMode] = useState(false);
                 
-                // Głosy
                 const [voices, setVoices] = useState([]);
                 const [selectedVoice, setSelectedVoice] = useState(null);
 
@@ -160,7 +141,6 @@
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
 
-                // Ładowanie głosów
                 useEffect(() => {
                     const loadVoices = () => {
                         const availableVoices = window.speechSynthesis.getVoices();
@@ -174,28 +154,19 @@
                     }
                 }, []);
 
-                // Inteligentny wybór najlepszego głosu
                 useEffect(() => {
                     if (voices.length > 0) {
-                        // Priorytety wyboru głosu:
-                        // 1. Google US English (Bardzo naturalny na Android/Chrome)
-                        // 2. Microsoft Zira / David (Dobre na Windows)
-                        // 3. Samantha (Dobra na Mac)
-                        // 4. Jakikolwiek "English (United States)"
-                        // 5. Jakikolwiek angielski
-                        
                         const bestVoice = 
                             voices.find(v => v.name.includes("Google US English")) ||
                             voices.find(v => v.name.includes("Google UK English Female")) ||
                             voices.find(v => v.name.includes("Samantha")) || 
                             voices.find(v => v.name.includes("Zira")) ||
-                            voices.find(v => v.lang === 'en-US' && v.name.includes("Natural")) || // Edge Natural voices
+                            voices.find(v => v.lang === 'en-US' && v.name.includes("Natural")) ||
                             voices.find(v => v.lang === 'en-US') ||
                             voices.find(v => v.lang.startsWith('en'));
 
                         if (bestVoice) {
                             setSelectedVoice(bestVoice);
-                            console.log("Wybrano głos:", bestVoice.name);
                         }
                     }
                 }, [voices]);
@@ -226,8 +197,8 @@
                                 jsonData.forEach(row => {
                                     const id = row.id;
                                     const rawLevel = row.level ? String(row.level).trim() : "A1";
+                                    // Pobieramy kategorię bezpośrednio z Excela
                                     const rawCat = row.category ? String(row.category).trim() : "Inne";
-                                    const mappedCat = categoryMapping[rawCat] || rawCat;
                                     const word = row.word ? String(row.word).trim() : "";
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
@@ -237,7 +208,7 @@
                                     processedData.push({
                                         id: id,
                                         level: rawLevel,
-                                        category: mappedCat,
+                                        category: rawCat, // Używamy kategorii prosto z Excela
                                         word: word,
                                         translation: translation,
                                         phonetic: phonetic,
@@ -252,7 +223,7 @@
                                                 processedData.push({
                                                     id: id,
                                                     level: rawLevel,
-                                                    category: mappedCat,
+                                                    category: rawCat, // Używamy kategorii prosto z Excela
                                                     word: word,
                                                     translation: translation,
                                                     phonetic: phonetic,
@@ -284,13 +255,9 @@
                         return;
                     }
                     const levelData = fullDatabase.filter(row => row.level === level);
-                    
-                    // ZMIANA: Zastosowanie sortowania naturalnego (numeric: true)
-                    // Dzięki temu "2" będzie przed "10", a "Temat 2" przed "Temat 10"
                     const cats = [...new Set(levelData.map(row => row.category))].sort((a, b) => 
                         a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
                     );
-                    
                     setAvailableCategories(cats);
                     setCategory('all');
                 }, [level, fullDatabase]);
@@ -339,7 +306,6 @@
                     }
 
                     const currentId = currentWordIds[currentIndex];
-                    
                     const baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'Base');
                     const fallbackRow = fullDatabase.find(row => row.id === currentId);
                     const mainInfoRow = baseRow || fallbackRow;
@@ -449,13 +415,12 @@
 
                     const utterance = new SpeechSynthesisUtterance(textToSpeak);
                     
-                    // Ustawienie najlepszego znalezionego głosu
                     if (selectedVoice) {
                         utterance.voice = selectedVoice;
                     }
                     
                     utterance.lang = 'en-US';
-                    utterance.rate = 0.9; // Nieco wolniej i wyraźniej
+                    utterance.rate = 0.9;
                     utterance.pitch = 1;
 
                     utterance.onstart = () => setIsSpeaking(true);
@@ -624,7 +589,7 @@
                                     <div className="bg-white/20 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full font-mono text-base sm:text-xl mb-6 sm:mb-8">{displayData.phonetic}</div>
                                     <button onClick={showSentences} className={`font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg active:scale-95 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}>
                                         <Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> 
-                                        {tense === 'Base' ? 'Zdania ' : `Zdania (${tense})`}
+                                        {tense === 'Base' ? 'Zdania (Base)' : `Zdania (${tense})`}
                                     </button>
                                 </div>
                             </div>
