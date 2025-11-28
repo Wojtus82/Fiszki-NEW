@@ -123,12 +123,19 @@
                 return { en, pl };
             };
 
-            // Funkcja pomocnicza do rozbijania komórki na listę zdań (po nowych liniach)
+            // ZAKTUALIZOWANA FUNKCJA: Obsługuje nową linię ORAZ numerację 1. 2. 3. 4. 5.
             const extractSentencesFromCell = (cellContent) => {
                 if (!cellContent) return [];
-                const strContent = String(cellContent).trim();
+                let strContent = String(cellContent).trim();
                 if (!strContent) return [];
                 
+                // Zmiana: Jeśli napotkamy "1.", "2." itd. (cyfry 1-5 + kropka),
+                // traktujemy to jako początek nowego zdania.
+                // Podmieniamy to na znak nowej linii, usuwając sam numer,
+                // ponieważ aplikacja dodaje własną numerację 1, 2, 3... w widoku listy.
+                // Regex: (początek linii lub biały znak) + (cyfra 1-5 i kropka) + (ewentualne spacje)
+                strContent = strContent.replace(/(?:^|\s+)([1-5]\.)\s*/g, '\n');
+
                 // Dzielimy po nowej linii (\n lub \r\n), aby każde zdanie było oddzielne
                 const lines = strContent.split(/\r?\n/).filter(line => line.trim() !== "");
                 
@@ -192,7 +199,7 @@
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
                                     
-                                    // Pobranie zdań z kolumny BASE
+                                    // Pobranie zdań z kolumny BASE (z uwzględnieniem numeracji 1. 2. itd)
                                     const baseSentences = extractSentencesFromCell(row.base);
 
                                     // 1. Dodaj wpis BAZOWY (dla karty głównej) + zdania z kolumny 'base'
@@ -390,9 +397,6 @@
                          textToSpeak = displayData.sentences.map(s => s.en).join('. ');
                     } else {
                          // Czytamy tylko słowo główne (lub pierwsze zdanie z listy jeśli chcemy kontekst, ale tu standardowo słowo)
-                         // Jeśli jesteśmy w trybie konkretnego czasu i chcemy przeczytać przykład, można by wziąć pierwsze zdanie.
-                         // Ale domyślne zachowanie fiszek to czytanie słowa.
-                         // Jeśli jednak chcesz, żeby na froncie czytał przykład z czasu:
                          if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
                              textToSpeak = displayData.sentences[0].en; // Czytaj pierwsze zdanie z czasu
                          } else {
