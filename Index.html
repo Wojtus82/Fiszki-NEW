@@ -605,7 +605,7 @@
                                                                     onChange={(e) => setTense(e.target.value)} 
                                                                     className={`bg-transparent text-xs font-bold outline-none w-[100px] sm:w-[120px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
                                                                 >
-                                                                    <option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Słowo EN.</option>
+                                                                    <option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>
                                                                     {availableTenses.map(t => (
                                                                         <option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>
                                                                     ))}
@@ -632,7 +632,7 @@
                                             ) : (
                                                 <>
                                                     <div className={`absolute top-4 left-4 sm:top-6 sm:left-6 text-[10px] sm:text-xs font-bold uppercase flex flex-wrap items-center gap-1 sm:gap-2 max-w-full overflow-hidden ${theme.subText}`}>
-                                                        <span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Podstawa' : tense)}</span>
+                                                        <span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span>
                                                     </div>
                                                     <div className="flex-1 flex items-center justify-center w-full px-2">
                                                         {/* Użycie dynamicznej klasy dla słówka */}
