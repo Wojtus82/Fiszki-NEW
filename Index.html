@@ -115,6 +115,32 @@
                 return lines.map(line => parseSentenceRow(line)).filter(s => s && s.en);
             };
 
+            // NOWE FUNKCJE POMOCNICZE DO ROZMIARU TEKSTU
+            const getWordSizeClass = (text) => {
+                if (!text) return "text-5xl sm:text-7xl";
+                const len = text.length;
+                if (len < 12) return "text-5xl sm:text-7xl"; // Standard (Huge)
+                if (len < 20) return "text-4xl sm:text-6xl"; // Duże
+                if (len < 30) return "text-3xl sm:text-5xl"; // Średnie
+                return "text-xl sm:text-3xl"; // Długie frazy
+            };
+
+            const getTranslationSizeClass = (text) => {
+                if (!text) return "text-5xl sm:text-6xl";
+                const len = text.length;
+                if (len < 15) return "text-5xl sm:text-6xl"; // Żądanie użytkownika: +50% na mobile
+                if (len < 30) return "text-3xl sm:text-5xl"; // Zmniejsz trochę
+                if (len < 50) return "text-2xl sm:text-3xl"; // Zmniejsz bardziej
+                return "text-lg sm:text-xl"; // Bardzo długie definicje
+            };
+            
+            const getPhoneticSizeClass = (text) => {
+                if (!text) return "text-3xl sm:text-4xl";
+                const len = text.length;
+                if (len < 20) return "text-3xl sm:text-4xl";
+                return "text-xl sm:text-2xl";
+            };
+
             function FlashcardsApp() {
                 const [fullDatabase, setFullDatabase] = useState([]);
                 const [loading, setLoading] = useState(true);
@@ -439,7 +465,7 @@
                     }
                     
                     utterance.lang = 'en-US';
-                    utterance.rate = 0.5;
+                    utterance.rate = 0.9;
                     utterance.pitch = 1;
 
                     utterance.onstart = () => setIsSpeaking(true);
@@ -609,7 +635,8 @@
                                                         <span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Podstawa' : tense)}</span>
                                                     </div>
                                                     <div className="flex-1 flex items-center justify-center w-full px-2">
-                                                        <h2 className={`text-5xl sm:text-7xl font-black text-center break-words leading-tight ${theme.cardFrontText}`}>
+                                                        {/* Użycie dynamicznej klasy dla słówka */}
+                                                        <h2 className={`${getWordSizeClass(displayData.word)} font-black text-center break-words leading-tight ${theme.cardFrontText}`}>
                                                             {displayData.word}
                                                         </h2>
                                                     </div>
@@ -622,9 +649,16 @@
 
                                         <div className={`absolute inset-0 w-full h-full text-white rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardBackBg} ${isDarkMode ? 'border-indigo-950' : 'border-indigo-800'} transition-colors-all duration-300`} style={{ transform: 'rotateY(180deg)' }}>
                                             <div className="absolute top-4 right-4 sm:top-6 sm:right-6 text-[10px] sm:text-xs font-bold text-indigo-200 uppercase">Tłumaczenie</div>
-                                            {/* ZMIANA: Zwiększona czcionka dla tłumaczenia i wymowy na mobile (+50%) */}
-                                            <h2 className="text-5xl sm:text-6xl font-bold mb-3 sm:mb-4 text-center leading-tight break-words max-w-full">{displayData.translation}</h2>
-                                            <div className="bg-white/20 px-5 sm:px-7 py-2 sm:py-3 rounded-full font-mono text-3xl sm:text-4xl mb-8 sm:mb-10">{displayData.phonetic}</div>
+                                            
+                                            {/* Użycie dynamicznej klasy dla tłumaczenia */}
+                                            <h2 className={`${getTranslationSizeClass(displayData.translation)} font-bold mb-3 sm:mb-4 text-center leading-tight break-words max-w-full`}>
+                                                {displayData.translation}
+                                            </h2>
+                                            
+                                            {/* Użycie dynamicznej klasy dla fonetyki */}
+                                            <div className={`bg-white/20 px-5 sm:px-7 py-2 sm:py-3 rounded-full font-mono ${getPhoneticSizeClass(displayData.phonetic)} mb-8 sm:mb-10`}>
+                                                {displayData.phonetic}
+                                            </div>
                                             
                                             <button onClick={showSentences} className={`font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg active:scale-95 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}>
                                                 <Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> 
