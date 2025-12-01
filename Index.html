@@ -5,17 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Fiszki WOJTUKIEWICZ</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- SheetJS (XLSX) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -115,23 +111,22 @@
                 return lines.map(line => parseSentenceRow(line)).filter(s => s && s.en);
             };
 
-            // NOWE FUNKCJE POMOCNICZE DO ROZMIARU TEKSTU
             const getWordSizeClass = (text) => {
                 if (!text) return "text-5xl sm:text-7xl";
                 const len = text.length;
-                if (len < 12) return "text-5xl sm:text-7xl"; // Standard (Huge)
-                if (len < 20) return "text-4xl sm:text-6xl"; // Duże
-                if (len < 30) return "text-3xl sm:text-5xl"; // Średnie
-                return "text-xl sm:text-3xl"; // Długie frazy
+                if (len < 12) return "text-5xl sm:text-7xl"; 
+                if (len < 20) return "text-4xl sm:text-6xl"; 
+                if (len < 30) return "text-3xl sm:text-5xl"; 
+                return "text-xl sm:text-3xl"; 
             };
 
             const getTranslationSizeClass = (text) => {
                 if (!text) return "text-5xl sm:text-6xl";
                 const len = text.length;
-                if (len < 15) return "text-5xl sm:text-6xl"; // Żądanie użytkownika: +50% na mobile
-                if (len < 30) return "text-3xl sm:text-5xl"; // Zmniejsz trochę
-                if (len < 50) return "text-2xl sm:text-3xl"; // Zmniejsz bardziej
-                return "text-lg sm:text-xl"; // Bardzo długie definicje
+                if (len < 15) return "text-5xl sm:text-6xl"; 
+                if (len < 30) return "text-3xl sm:text-5xl"; 
+                if (len < 50) return "text-2xl sm:text-3xl"; 
+                return "text-lg sm:text-xl"; 
             };
             
             const getPhoneticSizeClass = (text) => {
@@ -307,9 +302,7 @@
                     resetCard();
                 }, [category, level, fullDatabase]);
 
-                useEffect(() => {
-                    setTense('Base');
-                }, [currentIndex, currentWordIds]);
+                // *** USUNIĘTO useEffect, KTÓRY RESETOWAŁ CZAS DO 'Base' PRZY ZMIANIE SŁOWA ***
 
                 const availableTenses = useMemo(() => {
                       if (!currentWordIds.length || !fullDatabase.length) return [];
@@ -465,7 +458,7 @@
                     }
                     
                     utterance.lang = 'en-US';
-                    utterance.rate = 0.7; // ZMIEJSZONE Z 0.9 NA 0.7 DLA TELEFONÓW
+                    utterance.rate = 0.7; 
                     utterance.pitch = 1;
 
                     utterance.onstart = () => setIsSpeaking(true);
