@@ -518,7 +518,6 @@
                     <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-300 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
                         
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-2 mb-2">
-                            {/* Zmodyfikowany nagłówek z przyciskiem w tej samej linii co tytuł */}
                             <div className="w-full relative flex items-center justify-center min-h-[48px]">
                                 <div className="absolute left-0">
                                     <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-all duration-300 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}>
@@ -662,14 +661,14 @@
 
                                 <div className="w-full max-w-md flex-none space-y-3 z-20 mb-2">
                                     <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-3 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-300 text-sm`}>
+                                        <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-4 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-300 text-sm`}>
                                             <Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia
                                         </button>
-                                        <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">
+                                        <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">
                                             Następna <Icon path={iconPaths.right} className="w-5 h-5" />
                                         </button>
                                     </div>
-                                    <button onClick={handleSpeak} disabled={isSpeaking} className={`w-full text-lg font-bold py-3 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}>
+                                    <button onClick={handleSpeak} disabled={isSpeaking} className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}>
                                         {isSpeaking ? <Icon path={iconPaths.volX} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.vol} size={24} className="sm:w-6 sm:h-6"/>}
                                         {isSpeaking ? "Odtwarzanie..." : (cardSide === 3 ? "Czytaj zdania" : "Czytaj wymowę")}
                                     </button>
@@ -689,4 +688,5 @@
     </script>
 </body>
 </html>
+
 
