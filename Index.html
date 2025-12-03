@@ -178,6 +178,7 @@
                 const minSwipeDistance = 50;
 
                 const wakeLockRef = useRef(null);
+                const itemRefs = useRef([]); // Refs dla elementów listy do scrollowania
 
                 useEffect(() => {
                     const loadVoices = () => {
@@ -326,8 +327,6 @@
                       return [...new Set(tenses)];
                 }, [currentWordIds, currentIndex, fullDatabase]);
 
-                // ZMIANA TUTAJ: Teraz używamy `currentWordIds` (które są już potasowane) 
-                // zamiast sortować od nowa z bazy danych.
                 const allCategorySentences = useMemo(() => {
                     if (!viewAllSentences) return [];
                     if (!fullDatabase.length) return [];
@@ -335,7 +334,6 @@
 
                     let sentences = [];
 
-                    // Iterujemy po POSORTOWANYCH LOSOWO id-kach z currentWordIds
                     currentWordIds.forEach(id => {
                         const wordRows = fullDatabase.filter(row => row.id === id);
                         
@@ -356,7 +354,12 @@
                     });
 
                     return sentences;
-                }, [viewAllSentences, currentWordIds, fullDatabase, tense]); // Dodano currentWordIds jako zależność
+                }, [viewAllSentences, currentWordIds, fullDatabase, tense]);
+
+                // Resetowanie refs przy zmianie listy zdań
+                useEffect(() => {
+                    itemRefs.current = [];
+                }, [allCategorySentences, viewAllSentences]);
 
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
@@ -534,26 +537,23 @@
                     if (cardSide === 3 && viewAllSentences) {
                         let lastWord = "";
                         
-                        sentencesListToRender.forEach((s) => {
+                        sentencesListToRender.forEach((s, index) => {
                             if (s.word !== lastWord) {
                                 if (lastWord !== "") {
-                                    // Długa pauza między grupami słów
                                     queue.push({ text: "...", isPause: true, duration: 'long' }); 
                                 }
                                 lastWord = s.word;
                                 queue.push({ text: lastWord, isWord: true });
-                                // Krótka pauza po słowie przewodnim
                                 queue.push({ text: ".", isPause: true, duration: 'short' }); 
                             }
-                            queue.push({ text: cleanSentence(s.en), isSentence: true });
-                            // Średnia pauza po każdym zdaniu, aby dać czas na zrozumienie
+                            // Dodajemy visualIndex, aby wiedzieć, które to zdanie na liście
+                            queue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index });
                             queue.push({ text: "...", isPause: true, duration: 'medium' });
                         });
 
                     } else if (cardSide === 3) {
-                        displayData.sentences.forEach(s => {
-                            queue.push({ text: cleanSentence(s.en), isSentence: true });
-                            // Pauza po zdaniu w trybie pojedynczym
+                        displayData.sentences.forEach((s, index) => {
+                            queue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index });
                             queue.push({ text: "...", isPause: true, duration: 'medium' });
                         });
 
@@ -577,6 +577,22 @@
                         if (selectedVoice) u.voice = selectedVoice;
                         u.lang = 'en-US';
                         u.rate = 0.7;
+
+                        // Ustawienie handlera onstart dla przewijania
+                        u.onstart = () => {
+                            if (index === 0) setIsSpeaking(true); // Upewnij się, że stan jest true
+                            
+                            // Logika scrollowania
+                            if (item.isSentence && item.visualIndex !== undefined) {
+                                const element = itemRefs.current[item.visualIndex];
+                                if (element) {
+                                    element.scrollIntoView({
+                                        behavior: 'smooth',
+                                        block: 'center'
+                                    });
+                                }
+                            }
+                        };
 
                         if (item.isPause) {
                             u.text = " . . . "; 
@@ -764,7 +780,7 @@
                                                     
                                                     <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1">
                                                         {sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (
-                                                            <li key={i} className="flex flex-col gap-1">
+                                                            <li key={i} ref={el => itemRefs.current[i] = el} className="flex flex-col gap-1">
                                                                 <div className="flex gap-2 leading-snug">
                                                                     <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>
                                                                         {highlightTargetWord(s.en, viewAllSentences ? s.word : displayData.word)}
