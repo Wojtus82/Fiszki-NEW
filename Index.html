@@ -78,7 +78,7 @@
 
     <script type="text/babel">
         try {
-            const { useState, useEffect, useMemo, useRef } = React; // Dodano useRef
+            const { useState, useEffect, useMemo, useRef } = React;
 
             const Icon = ({ path, size = 24, className="" }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
@@ -177,7 +177,6 @@
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
 
-                // REF DLA BLOKADY EKRANU (WAKE LOCK)
                 const wakeLockRef = useRef(null);
 
                 useEffect(() => {
@@ -327,34 +326,37 @@
                       return [...new Set(tenses)];
                 }, [currentWordIds, currentIndex, fullDatabase]);
 
+                // ZMIANA TUTAJ: Teraz używamy `currentWordIds` (które są już potasowane) 
+                // zamiast sortować od nowa z bazy danych.
                 const allCategorySentences = useMemo(() => {
                     if (!viewAllSentences) return [];
                     if (!fullDatabase.length) return [];
-
-                    const filteredRows = fullDatabase.filter(row => {
-                        const lvlMatch = row.level === level;
-                        const catMatch = category === 'all' ? true : row.category === category;
-                        return lvlMatch && catMatch;
-                    });
-
-                    let finalRows = [];
-                    if (tense === 'mixed') {
-                        finalRows = filteredRows.filter(r => r.tense !== 'Base');
-                    } else {
-                        finalRows = filteredRows.filter(r => r.tense === tense);
-                    }
+                    if (!currentWordIds.length) return [];
 
                     let sentences = [];
-                    finalRows.forEach(row => {
-                        if (row.sentencesList && row.sentencesList.length > 0) {
-                            row.sentencesList.forEach(s => {
-                                sentences.push({ ...s, word: row.word }); 
-                            });
+
+                    // Iterujemy po POSORTOWANYCH LOSOWO id-kach z currentWordIds
+                    currentWordIds.forEach(id => {
+                        const wordRows = fullDatabase.filter(row => row.id === id);
+                        
+                        let rowsToProcess = [];
+                        if (tense === 'mixed') {
+                            rowsToProcess = wordRows.filter(r => r.tense !== 'Base');
+                        } else {
+                            rowsToProcess = wordRows.filter(r => r.tense === tense);
                         }
+
+                        rowsToProcess.forEach(row => {
+                            if (row.sentencesList && row.sentencesList.length > 0) {
+                                row.sentencesList.forEach(s => {
+                                    sentences.push({ ...s, word: row.word }); 
+                                });
+                            }
+                        });
                     });
 
                     return sentences;
-                }, [viewAllSentences, fullDatabase, level, category, tense]);
+                }, [viewAllSentences, currentWordIds, fullDatabase, tense]); // Dodano currentWordIds jako zależność
 
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
@@ -521,7 +523,6 @@
                     
                     window.speechSynthesis.cancel();
                     
-                    // ZAMÓW BLOKADĘ EKRANU NA START
                     requestWakeLock();
                     
                     setIsSpeaking(true);
@@ -566,7 +567,7 @@
 
                     if (queue.length === 0) {
                         setIsSpeaking(false);
-                        releaseWakeLock(); // Zwolnij blokadę jeśli nic do gadania
+                        releaseWakeLock(); 
                         return;
                     }
 
@@ -581,10 +582,9 @@
                             u.text = " . . . "; 
                             u.volume = 0; 
                             
-                            // Sterowanie długością pauzy za pomocą prędkości (rate)
-                            if (item.duration === 'long') u.rate = 0.1;      // Bardzo długa pauza między grupami
-                            else if (item.duration === 'medium') u.rate = 0.3; // Wyraźna pauza po zdaniu (dla zrozumienia)
-                            else u.rate = 0.8;                                // Krótka pauza (np. po słowie przewodnim)
+                            if (item.duration === 'long') u.rate = 0.1;      
+                            else if (item.duration === 'medium') u.rate = 0.3; 
+                            else u.rate = 0.8;                                
                         }
                         
                         if (item.isWord) {
@@ -594,12 +594,12 @@
                         if (index === queue.length - 1) {
                             u.onend = () => {
                                 setIsSpeaking(false);
-                                releaseWakeLock(); // ZWOLNIJ BLOKADĘ PO ZAKOŃCZENIU
+                                releaseWakeLock(); 
                             };
                             u.onerror = (e) => {
                                 console.error("Speech error", e);
                                 setIsSpeaking(false);
-                                releaseWakeLock(); // ZWOLNIJ BLOKADĘ PRZY BŁĘDZIE
+                                releaseWakeLock(); 
                             };
                         }
 
@@ -610,7 +610,7 @@
                 const cancelSpeech = () => { 
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
-                    releaseWakeLock(); // ZWOLNIJ BLOKADĘ PRZY ANULOWANIU
+                    releaseWakeLock(); 
                 };
 
                 const highlightTargetWord = (sentence, targetWord) => {
