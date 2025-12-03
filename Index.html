@@ -506,17 +506,24 @@
                         sentencesListToRender.forEach((s) => {
                             if (s.word !== lastWord) {
                                 if (lastWord !== "") {
-                                    queue.push({ text: ".", isPause: true }); 
+                                    // Długa pauza między grupami słów
+                                    queue.push({ text: "...", isPause: true, duration: 'long' }); 
                                 }
                                 lastWord = s.word;
                                 queue.push({ text: lastWord, isWord: true });
+                                // Krótka pauza po słowie przewodnim
+                                queue.push({ text: ".", isPause: true, duration: 'short' }); 
                             }
                             queue.push({ text: cleanSentence(s.en), isSentence: true });
+                            // Średnia pauza po każdym zdaniu, aby dać czas na zrozumienie
+                            queue.push({ text: "...", isPause: true, duration: 'medium' });
                         });
 
                     } else if (cardSide === 3) {
                         displayData.sentences.forEach(s => {
                             queue.push({ text: cleanSentence(s.en), isSentence: true });
+                            // Pauza po zdaniu w trybie pojedynczym
+                            queue.push({ text: "...", isPause: true, duration: 'medium' });
                         });
 
                     } else {
@@ -540,14 +547,17 @@
                         u.rate = 0.7;
 
                         if (item.isPause) {
-                            u.text = "."; 
+                            u.text = " . . . "; 
                             u.volume = 0; 
-                            u.rate = 1;
+                            
+                            // Sterowanie długością pauzy za pomocą prędkości (rate)
+                            if (item.duration === 'long') u.rate = 0.1;      // Bardzo długa pauza między grupami
+                            else if (item.duration === 'medium') u.rate = 0.3; // Wyraźna pauza po zdaniu (dla zrozumienia)
+                            else u.rate = 0.8;                                // Krótka pauza (np. po słowie przewodnim)
                         }
                         
                         if (item.isWord) {
                             u.rate = 0.6; 
-                            // USUNIĘTO u.pitch = 1.1 dla naprawy jakości głosu
                         }
 
                         if (index === queue.length - 1) {
