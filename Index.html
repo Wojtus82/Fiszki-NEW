@@ -25,10 +25,10 @@
         @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .animate-popIn { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        /* ZMODYFIKOWANA ANIMACJA: 3 obroty (1080 stopni) w 3 sekundy */
+        /* Animacja: 3 obroty (1080 stopni) w 3 sekundy */
         @keyframes spinThreeTimes { 
             0% { transform: rotate(0deg); } 
-            100% { transform: rotate(1080deg); } /* 360 * 3 = 1080 */
+            100% { transform: rotate(1080deg); } 
         }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
@@ -168,7 +168,6 @@
                 const [isSpeaking, setIsSpeaking] = useState(false);
                 const [isDarkMode, setIsDarkMode] = useState(false);
 
-                // Nowy stan do obsługi widoku wszystkich zdań
                 const [viewAllSentences, setViewAllSentences] = useState(false);
                 
                 const [voices, setVoices] = useState([]);
@@ -325,7 +324,6 @@
                       return [...new Set(tenses)];
                 }, [currentWordIds, currentIndex, fullDatabase]);
 
-                // Funkcja do pobierania wszystkich zdań z kategorii
                 const allCategorySentences = useMemo(() => {
                     if (!viewAllSentences) return [];
                     if (!fullDatabase.length) return [];
@@ -347,7 +345,7 @@
                     finalRows.forEach(row => {
                         if (row.sentencesList && row.sentencesList.length > 0) {
                             row.sentencesList.forEach(s => {
-                                sentences.push({ ...s, word: row.word }); // Dodajemy słowo źródłowe do podświetlania
+                                sentences.push({ ...s, word: row.word }); 
                             });
                         }
                     });
@@ -406,7 +404,6 @@
 
                 const displayData = getDisplayData();
                 
-                // Dane do wyświetlenia na liście (albo obecne słowo, albo wszystkie z kategorii)
                 const sentencesListToRender = viewAllSentences ? allCategorySentences : (displayData ? displayData.sentences : []);
 
                 const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
@@ -439,7 +436,7 @@
                     if (!currentWordIds.length) return;
                     if (isFinished) return;
                     
-                    setViewAllSentences(false); // Reset widoku wszystkich zdań
+                    setViewAllSentences(false);
 
                     if (currentIndex >= currentWordIds.length - 1) {
                         setIsFinished(true);
@@ -458,7 +455,7 @@
                     if (!currentWordIds.length) return;
                     if (isFinished) return; 
 
-                    setViewAllSentences(false); // Reset widoku wszystkich zdań
+                    setViewAllSentences(false);
 
                     setNoTransition(true); setCardSide(1); setRotation(0);
                     setTimeout(() => {
@@ -486,7 +483,7 @@
                     if(e) e.stopPropagation(); 
                     setCardSide(2); 
                     setRotation(180); 
-                    setViewAllSentences(false); // Reset przy wyjściu
+                    setViewAllSentences(false); 
                 };
 
                 const handleSpeak = () => {
@@ -496,12 +493,37 @@
                     
                     let textToSpeak = "";
                     
+                    // Funkcja czyszcząca numerki (np. "1. ", "2.") z początku zdania
+                    const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
+
                     if (cardSide === 3) {
-                         // Czytamy te zdania, które są aktualnie widoczne
-                         textToSpeak = sentencesListToRender.map(s => s.en).join('. ');
+                        if (viewAllSentences) {
+                            // Tryb czytania WSZYSTKICH zdań z kategorii
+                            const parts = [];
+                            let lastWord = "";
+
+                            sentencesListToRender.forEach((s, index) => {
+                                // Jeśli zmieniło się słowo (lub to pierwsze słowo)
+                                if (s.word !== lastWord) {
+                                    if (lastWord !== "") {
+                                        // Dodaj wyraźną pauzę przed nowym słowem
+                                        parts.push(". . ."); 
+                                    }
+                                    lastWord = s.word;
+                                    // Przeczytaj słowo przewodnie
+                                    parts.push(lastWord);
+                                }
+                                // Dodaj oczyszczone zdanie (bez numerków)
+                                parts.push(cleanSentence(s.en));
+                            });
+                            textToSpeak = parts.join('. ');
+                        } else {
+                            // Tryb czytania zdań tylko dla JEDNEGO słowa
+                            textToSpeak = displayData.sentences.map(s => cleanSentence(s.en)).join('. ');
+                        }
                     } else {
                          if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
-                             textToSpeak = displayData.sentences[0].en; 
+                             textToSpeak = cleanSentence(displayData.sentences[0].en); 
                          } else {
                              textToSpeak = displayData.word;
                          }
@@ -649,7 +671,6 @@
                                                             <Icon path={iconPaths.book} size={16} className="sm:w-[18px] sm:h-[18px]"/> Zdania
                                                         </h3>
                                                         
-                                                        {/* ZMODYFIKOWANA IKONA: 3 obroty w 3 sekundy, działa jako przycisk (onClick) */}
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }}
                                                             className={`mx-auto animate-spin-three p-1 rounded-full hover:bg-black/5 active:scale-95 transition-transform ${viewAllSentences ? 'text-emerald-500 bg-emerald-100/50' : 'text-indigo-400'}`}
@@ -679,13 +700,11 @@
                                                         </div>
                                                     </div>
                                                     
-                                                    {/* Lista zdań renderowana dynamicznie w zależności od trybu (jedno słowo vs wszystkie) */}
                                                     <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1">
                                                         {sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (
                                                             <li key={i} className="flex flex-col gap-1">
                                                                 <div className="flex gap-2 leading-snug">
                                                                     <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>
-                                                                        {/* Podświetlamy słowo źródłowe (jeśli widok wszystkich, bierzemy s.word, jeśli jedno, bierzemy displayData.word) */}
                                                                         {highlightTargetWord(s.en, viewAllSentences ? s.word : displayData.word)}
                                                                     </span>
                                                                 </div>
