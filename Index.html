@@ -78,7 +78,7 @@
 
     <script type="text/babel">
         try {
-            const { useState, useEffect, useMemo } = React;
+            const { useState, useEffect, useMemo, useRef } = React; // Dodano useRef
 
             const Icon = ({ path, size = 24, className="" }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
@@ -176,6 +176,9 @@
                 const [touchStart, setTouchStart] = useState(null);
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
+
+                // REF DLA BLOKADY EKRANU (WAKE LOCK)
+                const wakeLockRef = useRef(null);
 
                 useEffect(() => {
                     const loadVoices = () => {
@@ -427,6 +430,29 @@
                 };
                 const onMouseLeave = () => { setTouchStart(null); setTouchEnd(null); };
 
+                // FUNKCJE WAKE LOCK (Blokada usypiania)
+                const requestWakeLock = async () => {
+                    if ('wakeLock' in navigator) {
+                        try {
+                            const lock = await navigator.wakeLock.request('screen');
+                            wakeLockRef.current = lock;
+                        } catch (err) {
+                            console.log("Wake Lock error:", err);
+                        }
+                    }
+                };
+
+                const releaseWakeLock = async () => {
+                    if (wakeLockRef.current) {
+                        try {
+                            await wakeLockRef.current.release();
+                            wakeLockRef.current = null;
+                        } catch(err) {
+                            console.log("Wake Lock release error:", err);
+                        }
+                    }
+                };
+
                 const resetCard = () => {
                     setNoTransition(true); setCardSide(1); setRotation(0); cancelSpeech(); setViewAllSentences(false);
                     setTimeout(() => setNoTransition(false), 50); 
@@ -494,6 +520,10 @@
                     if (!displayData || !window.speechSynthesis || displayData.isEmpty) return;
                     
                     window.speechSynthesis.cancel();
+                    
+                    // ZAMÓW BLOKADĘ EKRANU NA START
+                    requestWakeLock();
+                    
                     setIsSpeaking(true);
 
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
@@ -536,6 +566,7 @@
 
                     if (queue.length === 0) {
                         setIsSpeaking(false);
+                        releaseWakeLock(); // Zwolnij blokadę jeśli nic do gadania
                         return;
                     }
 
@@ -561,10 +592,14 @@
                         }
 
                         if (index === queue.length - 1) {
-                            u.onend = () => setIsSpeaking(false);
+                            u.onend = () => {
+                                setIsSpeaking(false);
+                                releaseWakeLock(); // ZWOLNIJ BLOKADĘ PO ZAKOŃCZENIU
+                            };
                             u.onerror = (e) => {
                                 console.error("Speech error", e);
                                 setIsSpeaking(false);
+                                releaseWakeLock(); // ZWOLNIJ BLOKADĘ PRZY BŁĘDZIE
                             };
                         }
 
@@ -572,7 +607,11 @@
                     });
                 };
 
-                const cancelSpeech = () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); setIsSpeaking(false); };
+                const cancelSpeech = () => { 
+                    if (window.speechSynthesis) window.speechSynthesis.cancel(); 
+                    setIsSpeaking(false);
+                    releaseWakeLock(); // ZWOLNIJ BLOKADĘ PRZY ANULOWANIU
+                };
 
                 const highlightTargetWord = (sentence, targetWord) => {
                     if (!targetWord) return sentence;
