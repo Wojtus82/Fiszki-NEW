@@ -169,6 +169,7 @@
                 const [isDarkMode, setIsDarkMode] = useState(false);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
+                const [activeSentenceIndex, setActiveSentenceIndex] = useState(null); // Nowy stan dla podświetlenia
                 
                 const [voices, setVoices] = useState([]);
                 const [selectedVoice, setSelectedVoice] = useState(null);
@@ -178,7 +179,7 @@
                 const minSwipeDistance = 50;
 
                 const wakeLockRef = useRef(null);
-                const itemRefs = useRef([]); // Refs dla elementów listy do scrollowania
+                const itemRefs = useRef([]); 
 
                 useEffect(() => {
                     const loadVoices = () => {
@@ -356,7 +357,6 @@
                     return sentences;
                 }, [viewAllSentences, currentWordIds, fullDatabase, tense]);
 
-                // Resetowanie refs przy zmianie listy zdań
                 useEffect(() => {
                     itemRefs.current = [];
                 }, [allCategorySentences, viewAllSentences]);
@@ -435,7 +435,6 @@
                 };
                 const onMouseLeave = () => { setTouchStart(null); setTouchEnd(null); };
 
-                // FUNKCJE WAKE LOCK (Blokada usypiania)
                 const requestWakeLock = async () => {
                     if ('wakeLock' in navigator) {
                         try {
@@ -546,7 +545,6 @@
                                 queue.push({ text: lastWord, isWord: true });
                                 queue.push({ text: ".", isPause: true, duration: 'short' }); 
                             }
-                            // Dodajemy visualIndex, aby wiedzieć, które to zdanie na liście
                             queue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index });
                             queue.push({ text: "...", isPause: true, duration: 'medium' });
                         });
@@ -578,12 +576,12 @@
                         u.lang = 'en-US';
                         u.rate = 0.7;
 
-                        // Ustawienie handlera onstart dla przewijania
                         u.onstart = () => {
-                            if (index === 0) setIsSpeaking(true); // Upewnij się, że stan jest true
+                            if (index === 0) setIsSpeaking(true); 
                             
-                            // Logika scrollowania
+                            // Logika podświetlania i scrollowania
                             if (item.isSentence && item.visualIndex !== undefined) {
+                                setActiveSentenceIndex(item.visualIndex); // Ustaw aktywne zdanie
                                 const element = itemRefs.current[item.visualIndex];
                                 if (element) {
                                     element.scrollIntoView({
@@ -591,6 +589,8 @@
                                         block: 'center'
                                     });
                                 }
+                            } else if (item.isWord) {
+                                setActiveSentenceIndex(null); // Reset przy nowym słowie
                             }
                         };
 
@@ -610,11 +610,13 @@
                         if (index === queue.length - 1) {
                             u.onend = () => {
                                 setIsSpeaking(false);
+                                setActiveSentenceIndex(null); // Reset na koniec
                                 releaseWakeLock(); 
                             };
                             u.onerror = (e) => {
                                 console.error("Speech error", e);
                                 setIsSpeaking(false);
+                                setActiveSentenceIndex(null); // Reset przy błędzie
                                 releaseWakeLock(); 
                             };
                         }
@@ -626,6 +628,7 @@
                 const cancelSpeech = () => { 
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
+                    setActiveSentenceIndex(null); // Reset przy anulowaniu
                     releaseWakeLock(); 
                 };
 
@@ -778,9 +781,13 @@
                                                         </div>
                                                     </div>
                                                     
-                                                    <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1">
+                                                    <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1 pb-20">
                                                         {sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (
-                                                            <li key={i} ref={el => itemRefs.current[i] = el} className="flex flex-col gap-1">
+                                                            <li 
+                                                                key={i} 
+                                                                ref={el => itemRefs.current[i] = el} 
+                                                                className={`flex flex-col gap-1 transition-transform duration-300 origin-center ${activeSentenceIndex === i ? 'scale-105' : 'scale-100'}`}
+                                                            >
                                                                 <div className="flex gap-2 leading-snug">
                                                                     <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>
                                                                         {highlightTargetWord(s.en, viewAllSentences ? s.word : displayData.word)}
