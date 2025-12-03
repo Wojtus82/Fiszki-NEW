@@ -486,12 +486,11 @@
                     setViewAllSentences(false); 
                 };
 
-                // ---- NOWA LOGIKA CZYTANIA ----
+                // ---- ZAKTUALIZOWANA LOGIKA CZYTANIA (FIX DLA "DOT DOT DOT") ----
                 const handleSpeak = () => {
                     if (isFinished) return;
                     if (!displayData || !window.speechSynthesis || displayData.isEmpty) return;
                     
-                    // Anuluj poprzednie
                     window.speechSynthesis.cancel();
                     setIsSpeaking(true);
 
@@ -508,8 +507,8 @@
                         sentencesListToRender.forEach((s) => {
                             if (s.word !== lastWord) {
                                 if (lastWord !== "") {
-                                    // Pauza między grupami
-                                    queue.push({ text: "...", isPause: true }); 
+                                    // Pauza między grupami - "cicha" kropka
+                                    queue.push({ text: ".", isPause: true }); 
                                 }
                                 lastWord = s.word;
                                 // Słowo przewodnie
@@ -548,9 +547,10 @@
                         u.rate = 0.7;
 
                         if (item.isPause) {
-                            u.text = " . . . "; 
-                            u.rate = 0.1; 
-                            u.volume = 0.1;
+                            // Trick: kropka z zerową głośnością wymusza pauzę intonacyjną, ale nie jest słyszana.
+                            u.text = "."; 
+                            u.volume = 0; 
+                            u.rate = 1; // Normalna prędkość, żeby nie przeciągać pauzy
                         }
                         
                         if (item.isWord) {
