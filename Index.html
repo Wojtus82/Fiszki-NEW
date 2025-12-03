@@ -486,67 +486,89 @@
                     setViewAllSentences(false); 
                 };
 
+                // ---- NOWA LOGIKA CZYTANIA ----
                 const handleSpeak = () => {
                     if (isFinished) return;
                     if (!displayData || !window.speechSynthesis || displayData.isEmpty) return;
+                    
+                    // Anuluj poprzednie
                     window.speechSynthesis.cancel();
-                    
-                    let textToSpeak = "";
-                    
-                    // Funkcja czyszcząca numerki (np. "1. ", "2.") z początku zdania
+                    setIsSpeaking(true);
+
+                    // Funkcja czyszcząca numerki (np. "1. ")
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
 
-                    if (cardSide === 3) {
-                        if (viewAllSentences) {
-                            // Tryb czytania WSZYSTKICH zdań z kategorii
-                            const parts = [];
-                            let lastWord = "";
+                    // Zbieramy teksty do kolejki
+                    let queue = [];
 
-                            sentencesListToRender.forEach((s, index) => {
-                                // Jeśli zmieniło się słowo (lub to pierwsze słowo)
-                                if (s.word !== lastWord) {
-                                    if (lastWord !== "") {
-                                        // Dodaj wyraźną pauzę przed nowym słowem
-                                        parts.push(". . ."); 
-                                    }
-                                    lastWord = s.word;
-                                    // Przeczytaj słowo przewodnie
-                                    parts.push(lastWord);
+                    if (cardSide === 3 && viewAllSentences) {
+                        // TRYB WSZYSTKICH ZDAŃ
+                        let lastWord = "";
+                        
+                        sentencesListToRender.forEach((s) => {
+                            if (s.word !== lastWord) {
+                                if (lastWord !== "") {
+                                    // Pauza między grupami
+                                    queue.push({ text: "...", isPause: true }); 
                                 }
-                                // Dodaj oczyszczone zdanie (bez numerków)
-                                parts.push(cleanSentence(s.en));
-                            });
-                            textToSpeak = parts.join('. ');
-                        } else {
-                            // Tryb czytania zdań tylko dla JEDNEGO słowa
-                            textToSpeak = displayData.sentences.map(s => cleanSentence(s.en)).join('. ');
-                        }
+                                lastWord = s.word;
+                                // Słowo przewodnie
+                                queue.push({ text: lastWord, isWord: true });
+                            }
+                            // Zdanie
+                            queue.push({ text: cleanSentence(s.en), isSentence: true });
+                        });
+
+                    } else if (cardSide === 3) {
+                        // TRYB POJEDYNCZEGO SŁOWA
+                        displayData.sentences.forEach(s => {
+                            queue.push({ text: cleanSentence(s.en), isSentence: true });
+                        });
+
                     } else {
+                        // STRONA PRZEDNIA/TYLNA
                          if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
-                             textToSpeak = cleanSentence(displayData.sentences[0].en); 
+                             queue.push({ text: cleanSentence(displayData.sentences[0].en) });
                          } else {
-                             textToSpeak = displayData.word;
+                             queue.push({ text: displayData.word });
                          }
                     }
 
-                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                    
-                    if (selectedVoice) {
-                        utterance.voice = selectedVoice;
-                    }
-                    
-                    utterance.lang = 'en-US';
-                    utterance.rate = 0.7; 
-                    utterance.pitch = 1;
-
-                    utterance.onstart = () => setIsSpeaking(true);
-                    utterance.onend = () => setIsSpeaking(false);
-                    utterance.onerror = (e) => {
-                        console.error("Speech error", e);
+                    if (queue.length === 0) {
                         setIsSpeaking(false);
-                    };
+                        return;
+                    }
 
-                    window.speechSynthesis.speak(utterance);
+                    // Wypowiadamy kolejkę
+                    queue.forEach((item, index) => {
+                        const u = new SpeechSynthesisUtterance(item.text);
+                        
+                        if (selectedVoice) u.voice = selectedVoice;
+                        u.lang = 'en-US';
+                        u.rate = 0.7;
+
+                        if (item.isPause) {
+                            u.text = " . . . "; 
+                            u.rate = 0.1; 
+                            u.volume = 0.1;
+                        }
+                        
+                        if (item.isWord) {
+                            u.rate = 0.6; 
+                            u.pitch = 1.1;
+                        }
+
+                        // Koniec czytania przy ostatnim elemencie
+                        if (index === queue.length - 1) {
+                            u.onend = () => setIsSpeaking(false);
+                            u.onerror = (e) => {
+                                console.error("Speech error", e);
+                                setIsSpeaking(false);
+                            };
+                        }
+
+                        window.speechSynthesis.speak(u);
+                    });
                 };
 
                 const cancelSpeech = () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); setIsSpeaking(false); };
@@ -781,4 +803,5 @@
     </script>
 </body>
 </html>
+
 
