@@ -169,7 +169,7 @@
                 const [isDarkMode, setIsDarkMode] = useState(false);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
-                const [activeSentenceIndex, setActiveSentenceIndex] = useState(null); // Nowy stan dla podświetlenia
+                const [activeSentenceIndex, setActiveSentenceIndex] = useState(null); 
                 
                 const [voices, setVoices] = useState([]);
                 const [selectedVoice, setSelectedVoice] = useState(null);
@@ -579,9 +579,8 @@
                         u.onstart = () => {
                             if (index === 0) setIsSpeaking(true); 
                             
-                            // Logika podświetlania i scrollowania
                             if (item.isSentence && item.visualIndex !== undefined) {
-                                setActiveSentenceIndex(item.visualIndex); // Ustaw aktywne zdanie
+                                setActiveSentenceIndex(item.visualIndex); 
                                 const element = itemRefs.current[item.visualIndex];
                                 if (element) {
                                     element.scrollIntoView({
@@ -590,7 +589,7 @@
                                     });
                                 }
                             } else if (item.isWord) {
-                                setActiveSentenceIndex(null); // Reset przy nowym słowie
+                                setActiveSentenceIndex(null); 
                             }
                         };
 
@@ -610,13 +609,13 @@
                         if (index === queue.length - 1) {
                             u.onend = () => {
                                 setIsSpeaking(false);
-                                setActiveSentenceIndex(null); // Reset na koniec
+                                setActiveSentenceIndex(null); 
                                 releaseWakeLock(); 
                             };
                             u.onerror = (e) => {
                                 console.error("Speech error", e);
                                 setIsSpeaking(false);
-                                setActiveSentenceIndex(null); // Reset przy błędzie
+                                setActiveSentenceIndex(null); 
                                 releaseWakeLock(); 
                             };
                         }
@@ -628,7 +627,7 @@
                 const cancelSpeech = () => { 
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
-                    setActiveSentenceIndex(null); // Reset przy anulowaniu
+                    setActiveSentenceIndex(null); 
                     releaseWakeLock(); 
                 };
 
@@ -786,7 +785,7 @@
                                                             <li 
                                                                 key={i} 
                                                                 ref={el => itemRefs.current[i] = el} 
-                                                                className={`flex flex-col gap-1 transition-transform duration-300 origin-center ${activeSentenceIndex === i ? 'scale-105' : 'scale-100'}`}
+                                                                className={`flex flex-col gap-1 transition-transform duration-300 origin-left pl-1 ${activeSentenceIndex === i ? 'scale-110 z-10' : 'scale-100 z-0'}`}
                                                             >
                                                                 <div className="flex gap-2 leading-snug">
                                                                     <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>
