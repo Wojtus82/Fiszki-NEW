@@ -25,7 +25,6 @@
         @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .animate-popIn { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        /* Animacja: 3 obroty (1080 stopni) w 3 sekundy */
         @keyframes spinThreeTimes { 
             0% { transform: rotate(0deg); } 
             100% { transform: rotate(1080deg); } 
@@ -173,8 +172,11 @@
                 const [activeSentenceIndex, setActiveSentenceIndex] = useState(null); 
                 
                 const [voices, setVoices] = useState([]);
-                const [selectedVoice, setSelectedVoice] = useState(null);
-                const [voiceOptions, setVoiceOptions] = useState([]);
+                
+                // Nowe stany dla uproszczonego wyboru płci
+                const [voiceGender, setVoiceGender] = useState('female'); // 'female' lub 'male'
+                const [bestFemaleVoice, setBestFemaleVoice] = useState(null);
+                const [bestMaleVoice, setBestMaleVoice] = useState(null);
 
                 const [touchStart, setTouchStart] = useState(null);
                 const [touchEnd, setTouchEnd] = useState(null);
@@ -196,26 +198,42 @@
                     }
                 }, []);
 
+                // Logika wyboru najlepszego męskiego i damskiego głosu
                 useEffect(() => {
                     if (voices.length > 0) {
-                        // Filtrujemy tylko angielskie głosy
                         const enVoices = voices.filter(v => v.lang.startsWith('en'));
-                        setVoiceOptions(enVoices);
-
-                        if (!selectedVoice) {
-                            const bestVoice = 
-                                voices.find(v => v.name.includes("Google US English")) ||
-                                voices.find(v => v.name.includes("Google UK English Female")) ||
-                                voices.find(v => v.name.includes("Samantha")) || 
-                                voices.find(v => v.name.includes("Zira")) ||
-                                voices.find(v => v.lang === 'en-US' && v.name.includes("Natural")) ||
-                                voices.find(v => v.lang === 'en-US') ||
-                                voices.find(v => v.lang.startsWith('en'));
-
-                            if (bestVoice) {
-                                setSelectedVoice(bestVoice);
-                            }
+                        
+                        // 1. Znajdź głos męski (Szukanie po nazwach typowych dla systemów)
+                        let male = enVoices.find(v => 
+                            v.name.includes("David") || // Windows
+                            v.name.includes("Daniel") || // Apple
+                            v.name.includes("Male") || 
+                            v.name.includes("Google UK English Male")
+                        );
+                        // Fallback: Jeśli nie znaleziono po nazwie, weź dowolny, który nie jest "Female" ani "Zira"
+                        if (!male && enVoices.length > 0) {
+                             male = enVoices.find(v => !v.name.includes("Female") && !v.name.includes("Zira") && !v.name.includes("Samantha"));
                         }
+
+                        // 2. Znajdź głos żeński
+                        let female = enVoices.find(v => 
+                            v.name.includes("Zira") || // Windows
+                            v.name.includes("Samantha") || // Apple
+                            v.name.includes("Female") || 
+                            v.name.includes("Google US English") || // Chrome Default (zazwyczaj kobieta)
+                            v.name.includes("Google UK English Female")
+                        );
+                        // Fallback
+                        if (!female && enVoices.length > 0) {
+                             female = enVoices.find(v => v !== male);
+                        }
+
+                        // Jeśli system ma tylko jeden głos, przypisz go do obu (żeby aplikacja działała)
+                        if (!male) male = enVoices[0];
+                        if (!female) female = enVoices[0];
+
+                        setBestMaleVoice(male);
+                        setBestFemaleVoice(female);
                     }
                 }, [voices]);
 
@@ -537,6 +555,9 @@
                     
                     setIsSpeaking(true);
 
+                    // Wybierz odpowiedni głos na podstawie wyboru płci
+                    const selectedVoice = voiceGender === 'male' ? bestMaleVoice : bestFemaleVoice;
+
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
 
                     let queue = [];
@@ -772,18 +793,12 @@
                                                             <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-100 border-gray-300"}`}>
                                                                 <Icon path={iconPaths.mic} size={12} className={isDarkMode ? "text-gray-400" : "text-indigo-500"}/>
                                                                 <select 
-                                                                    value={selectedVoice ? selectedVoice.name : ""} 
-                                                                    onChange={(e) => {
-                                                                        const v = voices.find(vo => vo.name === e.target.value);
-                                                                        setSelectedVoice(v);
-                                                                    }} 
-                                                                    className={`bg-transparent text-xs font-bold outline-none w-[70px] sm:w-[90px] truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
+                                                                    value={voiceGender} 
+                                                                    onChange={(e) => setVoiceGender(e.target.value)} 
+                                                                    className={`bg-transparent text-xs font-bold outline-none w-[90px] sm:w-[100px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
                                                                 >
-                                                                    {voiceOptions.map(v => (
-                                                                        <option key={v.name} value={v.name} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>
-                                                                            {v.name.replace(/Microsoft |Google /g, '').substring(0, 15)}
-                                                                        </option>
-                                                                    ))}
+                                                                    <option value="female" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Kobieta (Eng)</option>
+                                                                    <option value="male" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mężczyzna (Eng)</option>
                                                                 </select>
                                                             </div>
 
