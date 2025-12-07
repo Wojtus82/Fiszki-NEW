@@ -211,10 +211,9 @@
                 const wakeLockRef = useRef(null);
                 const itemRefs = useRef([]); 
                 
-                // --- NOWE REFS DO OBSŁUGI PAUZY ---
-                const queueRef = useRef([]);        // Przechowuje całą kolejkę do przeczytania
-                const queueIndexRef = useRef(0);    // Aktualny indeks w tej kolejce
-                const pausedIntentionally = useRef(false); // Flaga: czy pauza była celowa (żeby onend nie czyścił stanu)
+                const queueRef = useRef([]);
+                const queueIndexRef = useRef(0);
+                const pausedIntentionally = useRef(false);
 
                 useEffect(() => {
                     localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
@@ -468,18 +467,23 @@
 
                 const handleCardClick = () => {
                     if (isFinished || displayData.isEmpty) return;
+                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
                     if (cardSide === 1) { setCardSide(2); setRotation(180); }
                     else if (cardSide === 2) { setCardSide(1); setRotation(0); }
                     else if (cardSide === 3) { showTranslation(); }
                 };
 
-                const showSentences = (e) => { if(e) e.stopPropagation(); setCardSide(3); setRotation(360); };
+                const showSentences = (e) => { 
+                    if(e) e.stopPropagation(); 
+                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
+                    setCardSide(3); setRotation(360); 
+                };
                 const showTranslation = (e) => { 
-                    if(e) e.stopPropagation(); cancelSpeech();
+                    if(e) e.stopPropagation(); 
+                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
                     setCardSide(2); setRotation(180); setViewAllSentences(false); 
                 };
 
-                // --- NOWA, NIEZAWODNA LOGIKA CZYTANIA Z WZNAVIANIEM ---
                 const handleSpeak = (resume = false) => {
                     if (isFinished || !displayData || displayData.isEmpty) return;
                     
@@ -488,20 +492,16 @@
                     
                     setIsSpeaking(true);
                     setIsPaused(false);
-                    pausedIntentionally.current = false; // Reset flagi
+                    pausedIntentionally.current = false;
                     
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
 
-                    // 1. Zbuduj lub pobierz kolejkę
                     let queue = [];
                     
                     if (resume && queueRef.current.length > 0) {
-                        // Jeśli wznawiamy, bierzemy kolejkę od zapamiętanego indeksu
                         queue = queueRef.current.slice(queueIndexRef.current);
                     } else {
-                        // Jeśli startujemy od nowa, budujemy nową kolejkę
                         if (viewAllSentences) setSpeakingSentenceIndex(0);
-                        
                         let tempQueue = [];
                         if (cardSide === 3 && viewAllSentences) {
                             let lastWord = "";
@@ -527,10 +527,9 @@
                                  tempQueue.push({ text: displayData.word });
                              }
                         }
-                        
                         queue = tempQueue;
-                        queueRef.current = tempQueue; // Zapisz pełną kolejkę
-                        queueIndexRef.current = 0;    // Reset indeksu
+                        queueRef.current = tempQueue;
+                        queueIndexRef.current = 0;
                     }
 
                     if (queue.length === 0) {
@@ -539,7 +538,6 @@
                         return;
                     }
 
-                    // 2. Iteruj po (potencjalnie skróconej) kolejce
                     queue.forEach((item, indexInSlice) => {
                         const u = new SpeechSynthesisUtterance(item.text);
                         if (selectedVoice) u.voice = selectedVoice;
@@ -556,14 +554,7 @@
                         if (item.isWord) u.rate = 0.6; 
 
                         u.onstart = () => {
-                            // Aktualizuj globalny indeks w queueRef
-                            // Jeśli resume=true, przesuwamy o indexInSlice.
-                            // Ale queueRef się nie zmienia. 
-                            // Musimy znaleźć ten element w oryginalnej kolejce.
-                            // Najprościej: skoro resume ucina, to queueIndexRef.current + indexInSlice to nowy indeks.
                             const actualIndex = resume ? (queueIndexRef.current + indexInSlice) : indexInSlice;
-                            
-                            // Zapisz aktualny indeks na wypadek pauzy
                             queueIndexRef.current = actualIndex; 
 
                             if (indexInSlice === 0) setIsSpeaking(true); 
@@ -580,10 +571,8 @@
                             }
                         };
 
-                        // Logika końca ostatniego elementu
                         if (indexInSlice === queue.length - 1) {
                             u.onend = () => {
-                                // Jeśli pauza była celowa, nie czyść stanu!
                                 if (!pausedIntentionally.current) {
                                     setIsSpeaking(false);
                                     setIsPaused(false);
@@ -606,7 +595,7 @@
                 };
 
                 const cancelSpeech = () => { 
-                    pausedIntentionally.current = false; // Reset
+                    pausedIntentionally.current = false;
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
                     setIsPaused(false);
@@ -615,19 +604,23 @@
                 };
 
                 const togglePlayPause = (e) => {
-                    e.stopPropagation();
-                    
+                    if(e) e.stopPropagation();
                     if (isSpeaking && !isPaused) {
-                        // PAUZA
-                        pausedIntentionally.current = true; // Zabezpiecz przed onend
-                        window.speechSynthesis.cancel();    // Twarde zatrzymanie
-                        setIsPaused(true);                  // UI na Play
+                        pausedIntentionally.current = true;
+                        window.speechSynthesis.cancel();
+                        setIsPaused(true);
                     } else if (isPaused) {
-                        // WZNOWIENIE (RESUME)
-                        // Uruchom handleSpeak z flagą resume=true
                         handleSpeak(true);
                     } else {
-                        // START (od zera)
+                        handleSpeak(false);
+                    }
+                };
+
+                // OBSŁUGA DOLNEGO PRZYCISKU
+                const handleBottomBtnClick = () => {
+                    if (cardSide === 3) {
+                        togglePlayPause();
+                    } else {
                         handleSpeak(false);
                     }
                 };
@@ -740,7 +733,26 @@
                                         <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-4 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-700 text-sm`}><Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia</button>
                                         <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">Następna <Icon path={iconPaths.right} className="w-5 h-5" /></button>
                                     </div>
-                                    <button onClick={handleSpeak} disabled={isSpeaking} className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}>{isSpeaking ? <Icon path={iconPaths.volX} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.vol} size={24} className="sm:w-6 sm:h-6"/>}{isSpeaking ? "Odtwarzanie..." : (cardSide === 3 ? "Czytaj zdania" : "Czytaj wymowę")}</button>
+                                    {/* ZMODYFIKOWANY DOLNY PRZYCISK */}
+                                    <button 
+                                        onClick={handleBottomBtnClick} 
+                                        className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking && !isPaused ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}
+                                    >
+                                        {cardSide === 3 
+                                            ? (
+                                                <>
+                                                    {isSpeaking && !isPaused ? <Icon path={iconPaths.pause} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.play} size={24} className="sm:w-6 sm:h-6"/>}
+                                                    {isSpeaking && !isPaused ? "Pauza" : (isPaused ? "Wznów" : "Czytaj zdania")}
+                                                </>
+                                            ) 
+                                            : (
+                                                <>
+                                                    {isSpeaking ? <Icon path={iconPaths.volX} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.vol} size={24} className="sm:w-6 sm:h-6"/>}
+                                                    {isSpeaking ? "Odtwarzanie..." : "Czytaj wymowę"}
+                                                </>
+                                            )
+                                        }
+                                    </button>
                                 </div>
                             </>
                         )}
