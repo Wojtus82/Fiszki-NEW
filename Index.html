@@ -31,23 +31,14 @@
         }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
-        /* NOWA ANIMACJA: POWIĘKSZENIE + DRŻENIE */
+        /* DEFINICJA ANIMACJI PULSE SHAKE */
         @keyframes pulseShake {
             0% { transform: scale(1) rotate(0deg); }
             15% { transform: scale(1.5) rotate(-15deg); }
-            30% { transform: scale(2.0) rotate(15deg); } /* Powiekszenie 100% */
+            30% { transform: scale(2.0) rotate(15deg); }
             45% { transform: scale(1.5) rotate(-15deg); }
-            60% { transform: scale(1) rotate(0deg); } /* Powrót */
+            60% { transform: scale(1) rotate(0deg); }
             100% { transform: scale(1) rotate(0deg); }
-        }
-        
-        /* 3 powtórzenia, każde trwa 0.6s = 1.8s łącznie */
-        .animate-pulse-shake { 
-            animation: pulseShake 0.6s ease-in-out 3; 
-            transform-origin: center center;
-            display: inline-block; /* Ważne dla transformacji */
-            z-index: 50; /* Żeby powiększona ikona była nad innymi */
-            position: relative;
         }
 
         /* PŁYNNE PRZEJŚCIE KOLORÓW */
@@ -744,7 +735,11 @@
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-2 mb-2">
                             <div className="w-full relative flex items-center justify-center min-h-[48px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'} ${animateThemeIcon ? 'animate-pulse-shake' : ''}`}>
+                                    <button 
+                                        onClick={() => setIsDarkMode(!isDarkMode)} 
+                                        className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}
+                                        style={animateThemeIcon ? { animation: 'pulseShake 0.6s ease-in-out 3', transformOrigin: 'center center', display: 'inline-block', position: 'relative', zIndex: 50 } : {}}
+                                    >
                                         <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
                                     </button>
                                 </div>
