@@ -31,26 +31,30 @@
         }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
-        /* POPRAWIONE DRŻENIE IKONY */
-        @keyframes shakeMode {
-            0% { transform: rotate(0deg); }
-            20% { transform: rotate(-30deg); }
-            40% { transform: rotate(30deg); }
-            60% { transform: rotate(-15deg); }
-            80% { transform: rotate(15deg); }
-            100% { transform: rotate(0deg); }
+        /* NOWA ANIMACJA: POWIĘKSZENIE + DRŻENIE */
+        @keyframes pulseShake {
+            0% { transform: scale(1) rotate(0deg); }
+            15% { transform: scale(1.5) rotate(-15deg); }
+            30% { transform: scale(2.0) rotate(15deg); } /* Powiekszenie 100% */
+            45% { transform: scale(1.5) rotate(-15deg); }
+            60% { transform: scale(1) rotate(0deg); } /* Powrót */
+            100% { transform: scale(1) rotate(0deg); }
         }
-        /* 3 powtórzenia, każde trwa 0.5s = 1.5s łącznie */
-        .animate-shake-mode { 
-            animation: shakeMode 0.5s ease-in-out 3; 
+        
+        /* 3 powtórzenia, każde trwa 0.6s = 1.8s łącznie */
+        .animate-pulse-shake { 
+            animation: pulseShake 0.6s ease-in-out 3; 
             transform-origin: center center;
+            display: inline-block; /* Ważne dla transformacji */
+            z-index: 50; /* Żeby powiększona ikona była nad innymi */
+            position: relative;
         }
 
-        /* POPRAWIONE PŁYNNE PRZEJŚCIE KOLORÓW */
+        /* PŁYNNE PRZEJŚCIE KOLORÓW */
         .transition-colors-all { 
             transition-property: background-color, border-color, color, fill, stroke, background-image; 
-            transition-duration: 700ms; /* Zwolnione do 0.7s */
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); /* Płynny easing */
+            transition-duration: 700ms; 
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); 
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -188,13 +192,11 @@
                 const [noTransition, setNoTransition] = useState(false);
                 const [isSpeaking, setIsSpeaking] = useState(false);
 
-                // Inicjalizacja z localStorage
                 const [isDarkMode, setIsDarkMode] = useState(() => {
                     const savedTheme = localStorage.getItem('flashcards-theme');
                     return savedTheme === 'dark';
                 });
                 
-                // Stan animacji startowej - false na początku
                 const [animateThemeIcon, setAnimateThemeIcon] = useState(false);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
@@ -212,22 +214,18 @@
                 const wakeLockRef = useRef(null);
                 const itemRefs = useRef([]); 
 
-                // Zapisywanie motywu
                 useEffect(() => {
                     localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
                 }, [isDarkMode]);
 
-                // Opóźniona animacja ikony, żeby była widoczna po renderze
                 useEffect(() => {
-                    // Czekamy 100ms aż się wyrenderuje
+                    // Start animacji po 100ms
                     const startTimer = setTimeout(() => {
                         setAnimateThemeIcon(true);
-                        
-                        // Po 2 sekundach (czas animacji) wyłączamy klasę
+                        // Koniec animacji po 1.8s (3 * 0.6s)
                         const endTimer = setTimeout(() => {
                             setAnimateThemeIcon(false);
-                        }, 2000);
-                        
+                        }, 1800);
                         return () => clearTimeout(endTimer);
                     }, 100);
 
@@ -746,7 +744,7 @@
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-2 mb-2">
                             <div className="w-full relative flex items-center justify-center min-h-[48px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'} ${animateThemeIcon ? 'animate-shake-mode' : ''}`}>
+                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'} ${animateThemeIcon ? 'animate-pulse-shake' : ''}`}>
                                         <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
                                     </button>
                                 </div>
@@ -826,10 +824,13 @@
                                                         
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }}
-                                                            className={`mx-auto animate-spin-three p-1 rounded-full hover:bg-black/5 active:scale-95 transition-transform ${viewAllSentences ? 'text-emerald-500 bg-emerald-100/50' : 'text-indigo-400'}`}
+                                                            className={`mx-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-black/5 active:scale-95 transition-all ${viewAllSentences ? 'text-emerald-500 bg-emerald-100/50' : 'text-indigo-400'}`}
                                                             title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}
                                                         >
-                                                            <Icon path={iconPaths.reloadCustom} size={20} className="sm:w-6 sm:h-6" />
+                                                            <div className={viewAllSentences ? "" : "animate-spin-three"}>
+                                                                <Icon path={iconPaths.reloadCustom} size={20} className="sm:w-6 sm:h-6" />
+                                                            </div>
+                                                            <span className="text-xs sm:text-sm font-bold uppercase">All word</span>
                                                         </button>
 
                                                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
