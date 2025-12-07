@@ -31,7 +31,6 @@
         }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
-        /* ANIMACJA STARTOWA */
         @keyframes startUpShake {
             0% { transform: scale(1) rotate(0deg); }
             15% { transform: scale(1.6) rotate(-25deg); }
@@ -48,7 +47,6 @@
             animation: startUpShake 1.5s ease-in-out 2;
         }
 
-        /* PŁYNNE PRZEJŚCIE KOLORÓW */
         .transition-colors-all { 
             transition-property: background-color, border-color, color, fill, stroke, background-image; 
             transition-duration: 700ms; 
@@ -122,7 +120,6 @@
                 close: <><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>,
                 trophy: <><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10"/><path d="M17 4v8a5 5 0 0 1-10 0V4"/><path d="M5 9v1a2 2 0 0 0 2 2"/><path d="M19 9v1a2 2 0 0 1-2 2"/></>,
                 reloadCustom: <><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></>,
-                // NOWE IKONY PLAY I PAUSE
                 play: <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>,
                 pause: <><rect x="6" y="4" width="4" height="16" fill="currentColor" /><rect x="14" y="4" width="4" height="16" fill="currentColor" /></>
             };
@@ -131,7 +128,6 @@
                 if (!text) return null;
                 const lastParenIndex = text.lastIndexOf('(');
                 if (lastParenIndex === -1) return { en: text.trim(), pl: '' };
-                
                 const en = text.substring(0, lastParenIndex).trim();
                 const pl = text.substring(lastParenIndex + 1, text.length - 1).trim(); 
                 return { en, pl };
@@ -141,10 +137,8 @@
                 if (!cellContent) return [];
                 let strContent = String(cellContent).trim();
                 if (!strContent) return [];
-                
                 strContent = strContent.replace(/(?:^|\s+)([1-5]\.)\s*/g, '\n$1 ');
                 strContent = strContent.replace(/\)/g, ')\n');
-
                 const lines = strContent.split(/\r?\n/).filter(line => line.trim() !== "");
                 return lines.map(line => parseSentenceRow(line)).filter(s => s && s.en);
             };
@@ -193,7 +187,6 @@
                 const [noTransition, setNoTransition] = useState(false);
                 
                 const [isSpeaking, setIsSpeaking] = useState(false);
-                // NOWY STAN: PAUZA
                 const [isPaused, setIsPaused] = useState(false);
 
                 const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -217,6 +210,11 @@
 
                 const wakeLockRef = useRef(null);
                 const itemRefs = useRef([]); 
+                
+                // --- NOWE REFS DO OBSŁUGI PAUZY ---
+                const queueRef = useRef([]);        // Przechowuje całą kolejkę do przeczytania
+                const queueIndexRef = useRef(0);    // Aktualny indeks w tej kolejce
+                const pausedIntentionally = useRef(false); // Flaga: czy pauza była celowa (żeby onend nie czyścił stanu)
 
                 useEffect(() => {
                     localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
@@ -239,9 +237,7 @@
                         const availableVoices = window.speechSynthesis.getVoices();
                         setVoices(availableVoices);
                     };
-
                     loadVoices();
-                    
                     if (window.speechSynthesis.onvoiceschanged !== undefined) {
                         window.speechSynthesis.onvoiceschanged = loadVoices;
                     }
@@ -284,9 +280,7 @@
                                     "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To"
                                 ];
-
                                 const processedData = [];
-
                                 jsonData.forEach(row => {
                                     const id = row.id;
                                     const rawLevel = row.level ? String(row.level).trim() : "A1";
@@ -296,16 +290,9 @@
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
                                     
                                     const baseSentences = extractSentencesFromCell(row.base);
-
                                     processedData.push({
-                                        id: id,
-                                        level: rawLevel,
-                                        category: rawCat,
-                                        word: word,
-                                        translation: translation,
-                                        phonetic: phonetic,
-                                        tense: 'Base',
-                                        sentencesList: baseSentences
+                                        id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
+                                        phonetic: phonetic, tense: 'Base', sentencesList: baseSentences
                                     });
 
                                     tenseColumns.forEach(tenseName => {
@@ -313,20 +300,13 @@
                                             const tenseSentences = extractSentencesFromCell(row[tenseName]);
                                             if (tenseSentences.length > 0) {
                                                 processedData.push({
-                                                    id: id,
-                                                    level: rawLevel,
-                                                    category: rawCat,
-                                                    word: word,
-                                                    translation: translation,
-                                                    phonetic: phonetic,
-                                                    tense: tenseName,
-                                                    sentencesList: tenseSentences
+                                                    id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
+                                                    phonetic: phonetic, tense: tenseName, sentencesList: tenseSentences
                                                 });
                                             }
                                         }
                                     });
                                 });
-
                                 setFullDatabase(processedData);
                                 setLoading(false);
                             } else {
@@ -342,29 +322,20 @@
                 }, []);
 
                 useEffect(() => {
-                    if (!fullDatabase.length) {
-                        setAvailableCategories([]);
-                        return;
-                    }
+                    if (!fullDatabase.length) { setAvailableCategories([]); return; }
                     const levelData = fullDatabase.filter(row => row.level === level);
-                    const cats = [...new Set(levelData.map(row => row.category))].sort((a, b) => 
-                        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-                    );
+                    const cats = [...new Set(levelData.map(row => row.category))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
                     setAvailableCategories(cats);
                     setCategory('all');
                 }, [level, fullDatabase]);
 
                 useEffect(() => {
                     if (!fullDatabase.length) return;
-                    const uniqueIds = [...new Set(
-                        fullDatabase
-                            .filter(row => {
-                                const levelMatch = row.level === level;
-                                const catMatch = category === 'all' ? true : row.category === category;
-                                return levelMatch && catMatch;
-                            })
-                            .map(row => row.id)
-                    )];
+                    const uniqueIds = [...new Set(fullDatabase.filter(row => {
+                        const levelMatch = row.level === level;
+                        const catMatch = category === 'all' ? true : row.category === category;
+                        return levelMatch && catMatch;
+                    }).map(row => row.id))];
                     
                     const shuffledIds = [...uniqueIds].sort(() => Math.random() - 0.5);
                     setCurrentWordIds(shuffledIds);
@@ -385,18 +356,12 @@
                     if (!viewAllSentences) return [];
                     if (!fullDatabase.length) return [];
                     if (!currentWordIds.length) return [];
-
                     let sentences = [];
-
                     currentWordIds.forEach((id, idx) => {
                         const wordRows = fullDatabase.filter(row => row.id === id);
-                        
                         let rowsToProcess = [];
-                        if (tense === 'mixed') {
-                            rowsToProcess = wordRows.filter(r => r.tense !== 'Base');
-                        } else {
-                            rowsToProcess = wordRows.filter(r => r.tense === tense);
-                        }
+                        if (tense === 'mixed') rowsToProcess = wordRows.filter(r => r.tense !== 'Base');
+                        else rowsToProcess = wordRows.filter(r => r.tense === tense);
 
                         rowsToProcess.forEach(row => {
                             if (row.sentencesList && row.sentencesList.length > 0) {
@@ -406,7 +371,6 @@
                             }
                         });
                     });
-
                     return sentences;
                 }, [viewAllSentences, currentWordIds, fullDatabase, tense]);
 
@@ -417,55 +381,29 @@
 
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
-                    
-                    if (!currentWordIds.length) {
-                        return {
-                            isEmpty: true,
-                            word: "Brak słówek",
-                            translation: "Spróbuj zmienić kategorię lub poziom",
-                            phonetic: "---",
-                            sentences: []
-                        };
-                    }
+                    if (!currentWordIds.length) return { isEmpty: true, word: "Brak słówek", translation: "Spróbuj zmienić kategorię lub poziom", phonetic: "---", sentences: [] };
 
                     const currentId = currentWordIds[currentIndex];
                     const baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'Base');
                     const fallbackRow = fullDatabase.find(row => row.id === currentId);
                     const mainInfoRow = baseRow || fallbackRow;
-                    
                     if (!mainInfoRow) return null;
 
                     let sentences = [];
-
                     if (tense === 'mixed') {
                         const allVariations = fullDatabase.filter(row => row.id === currentId && row.tense !== 'Base');
-                        allVariations.forEach(row => {
-                            if (row.sentencesList) {
-                                sentences.push(...row.sentencesList);
-                            }
-                        });
+                        allVariations.forEach(row => { if (row.sentencesList) sentences.push(...row.sentencesList); });
                         sentences = sentences.sort(() => Math.random() - 0.5).slice(0, 5);
                     } else if (tense === 'Base') {
-                        if (baseRow && baseRow.sentencesList) {
-                            sentences = baseRow.sentencesList;
-                        }
+                        if (baseRow && baseRow.sentencesList) sentences = baseRow.sentencesList;
                     } else {
                         const activeRow = fullDatabase.find(row => row.id === currentId && row.tense === tense);
-                        if (activeRow && activeRow.sentencesList) {
-                            sentences = activeRow.sentencesList;
-                        }
+                        if (activeRow && activeRow.sentencesList) sentences = activeRow.sentencesList;
                     }
-
-                    return { 
-                        word: mainInfoRow.word,          
-                        translation: mainInfoRow.translation, 
-                        phonetic: mainInfoRow.phonetic, 
-                        sentences: sentences
-                    };
+                    return { word: mainInfoRow.word, translation: mainInfoRow.translation, phonetic: mainInfoRow.phonetic, sentences: sentences };
                 };
 
                 const displayData = getDisplayData();
-                
                 const sentencesListToRender = viewAllSentences ? allCategorySentences : (displayData ? displayData.sentences : []);
 
                 const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
@@ -494,20 +432,13 @@
                         try {
                             const lock = await navigator.wakeLock.request('screen');
                             wakeLockRef.current = lock;
-                        } catch (err) {
-                            console.log("Wake Lock error:", err);
-                        }
+                        } catch (err) { console.log("Wake Lock error:", err); }
                     }
                 };
 
                 const releaseWakeLock = async () => {
                     if (wakeLockRef.current) {
-                        try {
-                            await wakeLockRef.current.release();
-                            wakeLockRef.current = null;
-                        } catch(err) {
-                            console.log("Wake Lock release error:", err);
-                        }
+                        try { await wakeLockRef.current.release(); wakeLockRef.current = null; } catch(err) {}
                     }
                 };
 
@@ -517,48 +448,26 @@
                 };
 
                 const handleNext = () => {
-                    if (!currentWordIds.length) return;
-                    if (isFinished) return;
-                    
-                    setViewAllSentences(false);
-                    cancelSpeech();
-
+                    if (!currentWordIds.length || isFinished) return;
+                    setViewAllSentences(false); cancelSpeech();
                     if (currentIndex >= currentWordIds.length - 1) {
-                        setIsFinished(true);
-                        setNoTransition(true); setCardSide(1); setRotation(0);
-                        return;
+                        setIsFinished(true); setNoTransition(true); setCardSide(1); setRotation(0); return;
                     }
-
                     setNoTransition(true); setCardSide(1); setRotation(0);
-                    setTimeout(() => {
-                        setNoTransition(false);
-                        setCurrentIndex((prev) => prev + 1);
-                    }, 50);
+                    setTimeout(() => { setNoTransition(false); setCurrentIndex((prev) => prev + 1); }, 50);
                 };
 
                 const handlePrev = () => {
-                    if (!currentWordIds.length) return;
-                    if (isFinished) return; 
-
-                    setViewAllSentences(false);
-                    cancelSpeech();
-
+                    if (!currentWordIds.length || isFinished) return; 
+                    setViewAllSentences(false); cancelSpeech();
                     setNoTransition(true); setCardSide(1); setRotation(0);
-                    setTimeout(() => {
-                        setNoTransition(false);
-                        setCurrentIndex((prev) => (prev - 1 + currentWordIds.length) % currentWordIds.length);
-                    }, 50);
+                    setTimeout(() => { setNoTransition(false); setCurrentIndex((prev) => (prev - 1 + currentWordIds.length) % currentWordIds.length); }, 50);
                 };
 
-                const handleReset = () => {
-                    setIsFinished(false);
-                    setCurrentIndex(0);
-                    resetCard();
-                };
+                const handleReset = () => { setIsFinished(false); setCurrentIndex(0); resetCard(); };
 
                 const handleCardClick = () => {
-                    if (isFinished) return;
-                    if (displayData.isEmpty) return;
+                    if (isFinished || displayData.isEmpty) return;
                     if (cardSide === 1) { setCardSide(2); setRotation(180); }
                     else if (cardSide === 2) { setCardSide(1); setRotation(0); }
                     else if (cardSide === 3) { showTranslation(); }
@@ -566,63 +475,62 @@
 
                 const showSentences = (e) => { if(e) e.stopPropagation(); setCardSide(3); setRotation(360); };
                 const showTranslation = (e) => { 
-                    if(e) e.stopPropagation(); 
-                    cancelSpeech();
-                    setCardSide(2); 
-                    setRotation(180); 
-                    setViewAllSentences(false); 
+                    if(e) e.stopPropagation(); cancelSpeech();
+                    setCardSide(2); setRotation(180); setViewAllSentences(false); 
                 };
 
-                const handleSpeak = () => {
-                    if (isFinished) return;
-                    if (!displayData || !window.speechSynthesis || displayData.isEmpty) return;
+                // --- NOWA, NIEZAWODNA LOGIKA CZYTANIA Z WZNAVIANIEM ---
+                const handleSpeak = (resume = false) => {
+                    if (isFinished || !displayData || displayData.isEmpty) return;
                     
                     window.speechSynthesis.cancel();
-                    
                     requestWakeLock();
                     
                     setIsSpeaking(true);
-                    setIsPaused(false); // Resetuj pauzę przy nowym czytaniu
+                    setIsPaused(false);
+                    pausedIntentionally.current = false; // Reset flagi
                     
-                    if (viewAllSentences) setSpeakingSentenceIndex(0);
-
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
 
+                    // 1. Zbuduj lub pobierz kolejkę
                     let queue = [];
-
-                    if (cardSide === 3 && viewAllSentences) {
-                        let lastWord = "";
-                        
-                        sentencesListToRender.forEach((s, index) => {
-                            if (s.word !== lastWord) {
-                                if (lastWord !== "") {
-                                    queue.push({ text: "...", isPause: true, duration: 'long' }); 
-                                }
-                                lastWord = s.word;
-                                queue.push({ text: lastWord, isWord: true });
-                                queue.push({ text: ".", isPause: true, duration: 'short' }); 
-                            }
-                            queue.push({ 
-                                text: cleanSentence(s.en), 
-                                isSentence: true, 
-                                visualIndex: index,
-                                globalIndex: index
-                            });
-                            queue.push({ text: "...", isPause: true, duration: 'medium' });
-                        });
-
-                    } else if (cardSide === 3) {
-                        displayData.sentences.forEach((s, index) => {
-                            queue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index });
-                            queue.push({ text: "...", isPause: true, duration: 'medium' });
-                        });
-
+                    
+                    if (resume && queueRef.current.length > 0) {
+                        // Jeśli wznawiamy, bierzemy kolejkę od zapamiętanego indeksu
+                        queue = queueRef.current.slice(queueIndexRef.current);
                     } else {
-                         if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
-                             queue.push({ text: cleanSentence(displayData.sentences[0].en) });
-                         } else {
-                             queue.push({ text: displayData.word });
-                         }
+                        // Jeśli startujemy od nowa, budujemy nową kolejkę
+                        if (viewAllSentences) setSpeakingSentenceIndex(0);
+                        
+                        let tempQueue = [];
+                        if (cardSide === 3 && viewAllSentences) {
+                            let lastWord = "";
+                            sentencesListToRender.forEach((s, index) => {
+                                if (s.word !== lastWord) {
+                                    if (lastWord !== "") tempQueue.push({ text: "...", isPause: true, duration: 'long' }); 
+                                    lastWord = s.word;
+                                    tempQueue.push({ text: lastWord, isWord: true });
+                                    tempQueue.push({ text: ".", isPause: true, duration: 'short' }); 
+                                }
+                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index, globalIndex: index });
+                                tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
+                            });
+                        } else if (cardSide === 3) {
+                            displayData.sentences.forEach((s, index) => {
+                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index });
+                                tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
+                            });
+                        } else {
+                             if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
+                                 tempQueue.push({ text: cleanSentence(displayData.sentences[0].en) });
+                             } else {
+                                 tempQueue.push({ text: displayData.word });
+                             }
+                        }
+                        
+                        queue = tempQueue;
+                        queueRef.current = tempQueue; // Zapisz pełną kolejkę
+                        queueIndexRef.current = 0;    // Reset indeksu
                     }
 
                     if (queue.length === 0) {
@@ -631,61 +539,65 @@
                         return;
                     }
 
-                    queue.forEach((item, index) => {
+                    // 2. Iteruj po (potencjalnie skróconej) kolejce
+                    queue.forEach((item, indexInSlice) => {
                         const u = new SpeechSynthesisUtterance(item.text);
-                        
                         if (selectedVoice) u.voice = selectedVoice;
                         u.lang = 'en-US';
                         u.rate = 0.7;
 
+                        if (item.isPause) {
+                            u.text = " . . . "; 
+                            u.volume = 0; 
+                            if (item.duration === 'long') u.rate = 0.1;      
+                            else if (item.duration === 'medium') u.rate = 0.3; 
+                            else u.rate = 0.8;                                
+                        }
+                        if (item.isWord) u.rate = 0.6; 
+
                         u.onstart = () => {
-                            if (index === 0) setIsSpeaking(true); 
+                            // Aktualizuj globalny indeks w queueRef
+                            // Jeśli resume=true, przesuwamy o indexInSlice.
+                            // Ale queueRef się nie zmienia. 
+                            // Musimy znaleźć ten element w oryginalnej kolejce.
+                            // Najprościej: skoro resume ucina, to queueIndexRef.current + indexInSlice to nowy indeks.
+                            const actualIndex = resume ? (queueIndexRef.current + indexInSlice) : indexInSlice;
+                            
+                            // Zapisz aktualny indeks na wypadek pauzy
+                            queueIndexRef.current = actualIndex; 
+
+                            if (indexInSlice === 0) setIsSpeaking(true); 
                             
                             if (item.isSentence && item.visualIndex !== undefined) {
                                 setActiveSentenceIndex(item.visualIndex); 
-                                
                                 if (viewAllSentences && item.globalIndex !== undefined) {
                                     setSpeakingSentenceIndex(item.globalIndex);
                                 }
-
                                 const element = itemRefs.current[item.visualIndex];
-                                if (element) {
-                                    element.scrollIntoView({
-                                        behavior: 'smooth',
-                                        block: 'center'
-                                    });
-                                }
+                                if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             } else if (item.isWord) {
                                 setActiveSentenceIndex(null); 
                             }
                         };
 
-                        if (item.isPause) {
-                            u.text = " . . . "; 
-                            u.volume = 0; 
-                            
-                            if (item.duration === 'long') u.rate = 0.1;      
-                            else if (item.duration === 'medium') u.rate = 0.3; 
-                            else u.rate = 0.8;                                
-                        }
-                        
-                        if (item.isWord) {
-                            u.rate = 0.6; 
-                        }
-
-                        if (index === queue.length - 1) {
+                        // Logika końca ostatniego elementu
+                        if (indexInSlice === queue.length - 1) {
                             u.onend = () => {
-                                setIsSpeaking(false);
-                                setIsPaused(false);
-                                setActiveSentenceIndex(null); 
-                                releaseWakeLock(); 
+                                // Jeśli pauza była celowa, nie czyść stanu!
+                                if (!pausedIntentionally.current) {
+                                    setIsSpeaking(false);
+                                    setIsPaused(false);
+                                    setActiveSentenceIndex(null); 
+                                    releaseWakeLock();
+                                }
                             };
                             u.onerror = (e) => {
-                                console.error("Speech error", e);
-                                setIsSpeaking(false);
-                                setIsPaused(false);
-                                setActiveSentenceIndex(null); 
-                                releaseWakeLock(); 
+                                if (!pausedIntentionally.current) {
+                                    console.error("Speech error", e);
+                                    setIsSpeaking(false);
+                                    setIsPaused(false);
+                                    releaseWakeLock(); 
+                                }
                             };
                         }
 
@@ -694,6 +606,7 @@
                 };
 
                 const cancelSpeech = () => { 
+                    pausedIntentionally.current = false; // Reset
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
                     setIsPaused(false);
@@ -701,19 +614,21 @@
                     releaseWakeLock(); 
                 };
 
-                // NOWA FUNKCJA DO OBSŁUGI PLAY/PAUSE
                 const togglePlayPause = (e) => {
                     e.stopPropagation();
-                    if (isSpeaking) {
-                        if (isPaused) {
-                            window.speechSynthesis.resume();
-                            setIsPaused(false);
-                        } else {
-                            window.speechSynthesis.pause();
-                            setIsPaused(true);
-                        }
+                    
+                    if (isSpeaking && !isPaused) {
+                        // PAUZA
+                        pausedIntentionally.current = true; // Zabezpiecz przed onend
+                        window.speechSynthesis.cancel();    // Twarde zatrzymanie
+                        setIsPaused(true);                  // UI na Play
+                    } else if (isPaused) {
+                        // WZNOWIENIE (RESUME)
+                        // Uruchom handleSpeak z flagą resume=true
+                        handleSpeak(true);
                     } else {
-                        handleSpeak();
+                        // START (od zera)
+                        handleSpeak(false);
                     }
                 };
 
@@ -723,7 +638,6 @@
                     const escapedTarget = cleanTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     const regex = new RegExp(`(${escapedTarget})`, 'gi');
                     const parts = sentence.split(regex);
-                    
                     return parts.map((part, index) => 
                         part.toLowerCase() === cleanTarget.toLowerCase() 
                         ? <span key={index} className={`${isDarkMode ? 'text-red-400' : 'text-red-600'} font-extrabold text-xl sm:text-2xl`}>{part}</span> 
@@ -747,231 +661,95 @@
                     buttonText: 'text-gray-700', accent: 'bg-indigo-100 text-indigo-500'
                 };
 
-                if (loading) {
-                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text}`}><div className="text-4xl mb-4 animate-spin text-indigo-500"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold">Wczytywanie bazy słów...</div></div>;
-                }
-                
-                if (fileError) {
-                    return <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}>
-                        <div className="text-4xl mb-4">⚠️</div>
-                        <div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div>
-                        <pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre>
-                        <button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button>
-                    </div>;
-                }
+                if (loading) return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text}`}><div className="text-4xl mb-4 animate-spin text-indigo-500"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold">Wczytywanie bazy słów...</div></div>;
+                if (fileError) return <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}><div className="text-4xl mb-4">⚠️</div><div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div><pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre><button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button></div>;
 
                 return (
                     <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-700 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
-                        
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-2 mb-2">
                             <div className="w-full relative flex items-center justify-center min-h-[48px]">
                                 <div className="absolute left-0">
-                                    <button 
-                                        onClick={() => setIsDarkMode(!isDarkMode)} 
-                                        className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}
-                                    >
-                                        <div className={isStartAnimating ? "startup-anim" : ""}>
-                                            <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
-                                        </div>
-                                    </button>
+                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" /></div></button>
                                 </div>
-                                
-                                <h1 className={`text-xl sm:text-3xl font-extrabold flex items-center gap-2 ${theme.headerText} text-center transition-colors-all duration-700`}>
-                                    <Icon path={iconPaths.layers} size={24} className="sm:w-8 sm:h-8" /> Fiszki WOJTUKIEWICZ
-                                </h1>
+                                <h1 className={`text-xl sm:text-3xl font-extrabold flex items-center gap-2 ${theme.headerText} text-center transition-colors-all duration-700`}><Icon path={iconPaths.layers} size={24} className="sm:w-8 sm:h-8" /> Fiszki WOJTUKIEWICZ</h1>
                             </div>
-                            
                             <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
                                 <div className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md flex flex-col justify-center transition-colors-all duration-700`}>
                                     <label className={`text-[10px] sm:text-xs font-bold uppercase block mb-0.5 sm:mb-1 ${theme.subText} transition-colors-all duration-700`}>Poziom</label>
-                                    <select value={level} onChange={(e) => setLevel(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText} transition-colors-all duration-700`}>
-                                        <option value="A1" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>A1</option>
-                                        <option value="A2" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>A2</option>
-                                        <option value="B1" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>B1</option>
-                                        <option value="B2" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>B2</option>
-                                    </select>
+                                    <select value={level} onChange={(e) => setLevel(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText} transition-colors-all duration-700`}><option value="A1" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>A1</option><option value="A2" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>A2</option><option value="B1" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>B1</option><option value="B2" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>B2</option></select>
                                 </div>
                                 <div className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md border-l-4 ${isDarkMode ? 'border-indigo-600' : 'border-indigo-400'} flex flex-col justify-center transition-colors-all duration-700`}>
                                     <label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 sm:mb-1 flex items-center gap-1 ${theme.subText} transition-colors-all duration-700`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3"/> Temat</label>
-                                    <select value={category} onChange={(e) => setCategory(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText} transition-colors-all duration-700`}>
-                                        <option value="all" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>Wszystkie (Cały poziom)</option>
-                                        {availableCategories.map(cat => <option key={cat} value={cat} className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>{cat}</option>)}
-                                    </select>
+                                    <select value={category} onChange={(e) => setCategory(e.target.value)} className={`w-full bg-transparent font-bold text-sm sm:text-base outline-none ${theme.selectText} transition-colors-all duration-700`}><option value="all" className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>Wszystkie (Cały poziom)</option>{availableCategories.map(cat => <option key={cat} value={cat} className={isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}>{cat}</option>)}</select>
                                 </div>
                             </div>
-
                             <div className={`${theme.counterBg} px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm border border-white/10 font-semibold whitespace-nowrap ${theme.counterText} transition-colors-all duration-700 w-full sm:w-auto text-center mt-2`}>
-                                {viewAllSentences && sentencesListToRender.length > 0 
-                                    ? (() => {
-                                        const currentS = sentencesListToRender[speakingSentenceIndex];
-                                        const currentWordNum = currentS ? currentS.wordIndex + 1 : 1;
-                                        return `Słowo: ${currentWordNum} / ${currentWordIds.length}`;
-                                      })()
-                                    : (currentWordIds.length > 0 ? `${isFinished ? currentWordIds.length : currentIndex + 1} / ${currentWordIds.length}` : '0 / 0')
-                                }
+                                {viewAllSentences && sentencesListToRender.length > 0 ? (() => { const currentS = sentencesListToRender[speakingSentenceIndex]; const currentWordNum = currentS ? currentS.wordIndex + 1 : 1; return `Słowo: ${currentWordNum} / ${currentWordIds.length}`; })() : (currentWordIds.length > 0 ? `${isFinished ? currentWordIds.length : currentIndex + 1} / ${currentWordIds.length}` : '0 / 0')}
                             </div>
                         </header>
 
                         {isFinished ? (
                              <div className="w-full max-w-md flex-1 min-h-[250px] mb-4 z-10 flex flex-col items-center justify-center animate-popIn">
                                 <div className={`w-full p-8 rounded-3xl shadow-2xl flex flex-col items-center justify-center text-center ${theme.cardFrontBg} ${isDarkMode ? 'border border-gray-700' : ''} transition-colors-all duration-700`}>
-                                    <div className={`mb-6 p-6 rounded-full ${isDarkMode ? 'bg-yellow-500/20' : 'bg-yellow-100'} transition-colors-all duration-700`}>
-                                        <Icon path={iconPaths.trophy} size={64} className="text-yellow-500" />
-                                    </div>
+                                    <div className={`mb-6 p-6 rounded-full ${isDarkMode ? 'bg-yellow-500/20' : 'bg-yellow-100'} transition-colors-all duration-700`}><Icon path={iconPaths.trophy} size={64} className="text-yellow-500" /></div>
                                     <h2 className={`text-3xl font-black mb-2 ${theme.cardFrontText} transition-colors-all duration-700`}>Gratulacje!</h2>
                                     <p className={`text-lg mb-8 ${theme.subText} transition-colors-all duration-700`}>Brawo, skończyłeś całą kategorię!</p>
-                                    
-                                    <button onClick={handleReset} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg active:scale-95 transition-all text-lg flex items-center gap-2">
-                                        <Icon path={iconPaths.rotate} size={24} /> Zacznij od nowa
-                                    </button>
+                                    <button onClick={handleReset} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg active:scale-95 transition-all text-lg flex items-center gap-2"><Icon path={iconPaths.rotate} size={24} /> Zacznij od nowa</button>
                                 </div>
                              </div>
                         ) : (
                             <>
                                 <div className="relative w-full max-w-md flex-1 min-h-[250px] mb-4 z-10 perspective-1000">
-                                    <div 
-                                        className={`relative w-full h-full shadow-2xl rounded-2xl cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-700 ease-in-out'}`}
-                                        style={{ transform: `rotateY(${rotation}deg)` }}
-                                        onClick={handleCardClick}
-                                        onTouchStart={onTouchStart}
-                                        onTouchMove={onTouchMove}
-                                        onTouchEnd={onTouchEnd}
-                                        onMouseDown={onMouseDown}
-                                        onMouseMove={onMouseMove}
-                                        onMouseUp={onMouseUp}
-                                        onMouseLeave={onMouseLeave}
-                                    >
+                                    <div className={`relative w-full h-full shadow-2xl rounded-2xl cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-700 ease-in-out'}`} style={{ transform: `rotateY(${rotation}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
                                         <div className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardFrontBg} ${isDarkMode ? 'border-gray-600' : 'border-indigo-200'} transition-colors-all duration-700`} style={{ transform: 'rotateY(0deg)' }}>
                                             {cardSide === 3 ? (
                                                 <div className="w-full h-full flex flex-col animate-fadeIn">
                                                     <div className="flex justify-between items-center mb-2 sm:mb-3 border-b pb-2 border-gray-200/20 flex-none relative">
-                                                        <h3 className={`font-bold flex items-center gap-2 text-sm sm:text-base ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'} transition-colors-all duration-700`}>
-                                                            <Icon path={iconPaths.book} size={16} className="sm:w-[18px] sm:h-[18px]"/> Zdania
-                                                        </h3>
-                                                        
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }}
-                                                            className={`mx-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-black/5 active:scale-95 transition-all ${viewAllSentences ? 'text-emerald-500 bg-emerald-100/50' : 'text-indigo-400'}`}
-                                                            title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}
-                                                        >
-                                                            <div className={viewAllSentences ? "" : "animate-spin-three"}>
-                                                                <Icon path={iconPaths.reloadCustom} size={20} className="sm:w-6 sm:h-6" />
-                                                            </div>
-                                                            <span className="text-xs sm:text-sm font-bold uppercase">All words</span>
+                                                        <h3 className={`font-bold flex items-center gap-2 text-sm sm:text-base ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'} transition-colors-all duration-700`}><Icon path={iconPaths.book} size={16} className="sm:w-[18px] sm:h-[18px]"/> Zdania</h3>
+                                                        <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`mx-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-black/5 active:scale-95 transition-all ${viewAllSentences ? 'text-emerald-500 bg-emerald-100/50' : 'text-indigo-400'}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
+                                                            <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={20} className="sm:w-6 sm:h-6" /></div><span className="text-xs sm:text-sm font-bold uppercase">All words</span>
                                                         </button>
-
                                                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                                            {/* Tense Selector Only */}
                                                             <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-100 border-gray-300"} transition-colors-all duration-700`}>
-                                                                <Icon path={iconPaths.clock} size={12} className={`${isDarkMode ? "text-gray-400" : "text-indigo-500"} transition-colors-all duration-700`}/>
-                                                                <select 
-                                                                    value={tense} 
-                                                                    onChange={(e) => setTense(e.target.value)} 
-                                                                    className={`bg-transparent text-xs font-bold outline-none w-[80px] sm:w-[100px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} transition-colors-all duration-700`}
-                                                                >
-                                                                    <option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>
-                                                                    {availableTenses.map(t => (
-                                                                        <option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>
-                                                                    ))}
-                                                                    <option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option>
-                                                                </select>
+                                                                <Icon path={iconPaths.clock} size={12} className={`${isDarkMode ? "text-gray-400" : "text-indigo-500"} transition-colors-all duration-700`}/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[80px] sm:w-[100px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} transition-colors-all duration-700`}><option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>))}<option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option></select>
                                                             </div>
-                                                            {/* PLAY/PAUSE BUTTON ZAMIAST CLOSE */}
-                                                            <button 
-                                                                onClick={togglePlayPause} 
-                                                                className={`p-1.5 rounded-full shadow-sm active:scale-90 transition-all ${isDarkMode ? "bg-gray-700 text-green-400 hover:bg-gray-600" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"}`}
-                                                                aria-label={isSpeaking && !isPaused ? "Pauza" : "Odtwórz"}
-                                                            >
-                                                                <Icon 
-                                                                    path={isSpeaking && !isPaused ? iconPaths.pause : iconPaths.play} 
-                                                                    size={20} 
-                                                                />
-                                                            </button>
+                                                            <button onClick={togglePlayPause} className={`p-1.5 rounded-full shadow-sm active:scale-90 transition-all ${isDarkMode ? "bg-gray-700 text-green-400 hover:bg-gray-600" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"}`} aria-label={isSpeaking && !isPaused ? "Pauza" : "Odtwórz"}><Icon path={isSpeaking && !isPaused ? iconPaths.pause : iconPaths.play} size={20} /></button>
                                                         </div>
                                                     </div>
-                                                    
-                                                    <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1 pb-20">
-                                                        {sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (
-                                                            <li 
-                                                                key={i} 
-                                                                ref={el => itemRefs.current[i] = el} 
-                                                                className={`flex flex-col gap-1 transition-transform duration-300 origin-left pl-1 ${activeSentenceIndex === i ? 'scale-110 z-10' : 'scale-100 z-0'}`}
-                                                            >
-                                                                <div className="flex gap-2 leading-snug">
-                                                                    <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-700'} transition-colors-all duration-700`}>
-                                                                        {highlightTargetWord(s.en, viewAllSentences ? s.word : displayData.word)}
-                                                                    </span>
-                                                                </div>
-                                                                <div className={`pl-6 text-sm sm:text-base italic ${theme.subText} transition-colors-all duration-700`}>({s.pl})</div>
-                                                            </li>
-                                                        )) : <li className="text-center opacity-50 italic mt-4">Brak przykładowych zdań dla tego czasu</li>}
-                                                    </ul>
-                                                    <div className={`mt-2 text-[10px] text-center italic opacity-60 ${theme.subText} transition-colors-all duration-700`}>
-                                                        {viewAllSentences ? "Widok wszystkich zdań z kategorii" : "Kliknij tło, aby wrócić"}
-                                                    </div>
+                                                    <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1 pb-20">{sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (<li key={i} ref={el => itemRefs.current[i] = el} className={`flex flex-col gap-1 transition-transform duration-300 origin-left pl-1 ${activeSentenceIndex === i ? 'scale-110 z-10' : 'scale-100 z-0'}`}><div className="flex gap-2 leading-snug"><span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-700'} transition-colors-all duration-700`}>{highlightTargetWord(s.en, viewAllSentences ? s.word : displayData.word)}</span></div><div className={`pl-6 text-sm sm:text-base italic ${theme.subText} transition-colors-all duration-700`}>({s.pl})</div></li>)) : <li className="text-center opacity-50 italic mt-4">Brak przykładowych zdań dla tego czasu</li>}</ul>
+                                                    <div className={`mt-2 text-[10px] text-center italic opacity-60 ${theme.subText} transition-colors-all duration-700`}>{viewAllSentences ? "Widok wszystkich zdań z kategorii" : "Kliknij tło, aby wrócić"}</div>
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className={`absolute top-4 left-4 sm:top-6 sm:left-6 text-[10px] sm:text-xs font-bold uppercase flex flex-wrap items-center gap-1 sm:gap-2 max-w-full overflow-hidden ${theme.subText} transition-colors-all duration-700`}>
-                                                        <span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span>
-                                                    </div>
-                                                    <div className="flex-1 flex items-center justify-center w-full px-2">
-                                                        <h2 className={`${getWordSizeClass(displayData.word)} font-black text-center break-words leading-tight ${theme.cardFrontText} transition-colors-all duration-700`}>
-                                                            {displayData.word}
-                                                        </h2>
-                                                    </div>
-                                                    <div className={`absolute bottom-4 sm:bottom-6 text-[10px] sm:text-xs flex items-center gap-1 sm:gap-2 font-medium ${theme.subText} transition-colors-all duration-700`}>
-                                                        <Icon path={iconPaths.rotate} size={12} className="sm:w-[14px] sm:h-[14px]"/> Kliknij, aby obrócić
-                                                    </div>
+                                                    <div className={`absolute top-4 left-4 sm:top-6 sm:left-6 text-[10px] sm:text-xs font-bold uppercase flex flex-wrap items-center gap-1 sm:gap-2 max-w-full overflow-hidden ${theme.subText} transition-colors-all duration-700`}><span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span></div>
+                                                    <div className="flex-1 flex items-center justify-center w-full px-2"><h2 className={`${getWordSizeClass(displayData.word)} font-black text-center break-words leading-tight ${theme.cardFrontText} transition-colors-all duration-700`}>{displayData.word}</h2></div>
+                                                    <div className={`absolute bottom-4 sm:bottom-6 text-[10px] sm:text-xs flex items-center gap-1 sm:gap-2 font-medium ${theme.subText} transition-colors-all duration-700`}><Icon path={iconPaths.rotate} size={12} className="sm:w-[14px] sm:h-[14px]"/> Kliknij, aby obrócić</div>
                                                 </>
                                             )}
                                         </div>
-
                                         <div className={`absolute inset-0 w-full h-full text-white rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardBackBg} ${isDarkMode ? 'border-indigo-950' : 'border-indigo-800'} transition-colors-all duration-700`} style={{ transform: 'rotateY(180deg)' }}>
                                             <div className="absolute top-4 right-4 sm:top-6 sm:right-6 text-[10px] sm:text-xs font-bold text-indigo-200 uppercase">Tłumaczenie</div>
-                                            
-                                            <h2 className={`${getTranslationSizeClass(displayData.translation)} font-bold mb-3 sm:mb-4 text-center leading-tight break-words max-w-full`}>
-                                                {displayData.translation}
-                                            </h2>
-                                            
-                                            <div className={`bg-white/20 px-5 sm:px-7 py-2 sm:py-3 rounded-full font-mono ${getPhoneticSizeClass(displayData.phonetic)} mb-8 sm:mb-10`}>
-                                                {displayData.phonetic}
-                                            </div>
-                                            
-                                            <button onClick={showSentences} className={`font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg active:scale-95 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}>
-                                                <Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> 
-                                                {tense === 'Base' ? 'Zdania (Base)' : `Zdania (${tense})`}
-                                            </button>
+                                            <h2 className={`${getTranslationSizeClass(displayData.translation)} font-bold mb-3 sm:mb-4 text-center leading-tight break-words max-w-full`}>{displayData.translation}</h2>
+                                            <div className={`bg-white/20 px-5 sm:px-7 py-2 sm:py-3 rounded-full font-mono ${getPhoneticSizeClass(displayData.phonetic)} mb-8 sm:mb-10`}>{displayData.phonetic}</div>
+                                            <button onClick={showSentences} className={`font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg active:scale-95 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}><Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> {tense === 'Base' ? 'Zdania (Base)' : `Zdania (${tense})`}</button>
                                         </div>
                                     </div>
                                 </div>
-
                                 <div className="w-full max-w-md flex-none space-y-3 z-20 mb-2">
                                     <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-4 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-700 text-sm`}>
-                                            <Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia
-                                        </button>
-                                        <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">
-                                            Następna <Icon path={iconPaths.right} className="w-5 h-5" />
-                                        </button>
+                                        <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-4 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-700 text-sm`}><Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia</button>
+                                        <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">Następna <Icon path={iconPaths.right} className="w-5 h-5" /></button>
                                     </div>
-                                    <button onClick={handleSpeak} disabled={isSpeaking} className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}>
-                                        {isSpeaking ? <Icon path={iconPaths.volX} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.vol} size={24} className="sm:w-6 sm:h-6"/>}
-                                        {isSpeaking ? "Odtwarzanie..." : (cardSide === 3 ? "Czytaj zdania" : "Czytaj wymowę")}
-                                    </button>
+                                    <button onClick={handleSpeak} disabled={isSpeaking} className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}>{isSpeaking ? <Icon path={iconPaths.volX} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.vol} size={24} className="sm:w-6 sm:h-6"/>}{isSpeaking ? "Odtwarzanie..." : (cardSide === 3 ? "Czytaj zdania" : "Czytaj wymowę")}</button>
                                 </div>
                             </>
                         )}
                     </div>
                 );
             }
-
             const root = ReactDOM.createRoot(document.getElementById('root'));
             root.render(<FlashcardsApp />);
-        } catch (err) {
-            document.getElementById('error-overlay').style.display = 'flex';
-            document.getElementById('error-message').textContent = err.toString();
-        }
+        } catch (err) { document.getElementById('error-overlay').style.display = 'flex'; document.getElementById('error-message').textContent = err.toString(); }
     </script>
 </body>
 </html>
