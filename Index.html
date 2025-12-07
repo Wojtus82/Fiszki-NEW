@@ -31,8 +31,7 @@
         }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
-        /* --- NAPRAWIONA ANIMACJA STARTOWA --- */
-        /* Używamy transformacji, która jest niezależna od Tailwindowych klas na rodzicu */
+        /* --- ANIMACJA STARTOWA --- */
         @keyframes startUpShake {
             0% { transform: scale(1) rotate(0deg); }
             15% { transform: scale(1.6) rotate(-25deg); }
@@ -46,8 +45,8 @@
         .startup-anim {
             display: inline-block;
             transform-origin: center center;
-            /* Animation trwa 1.5 sekundy */
-            animation: startUpShake 1.5s ease-in-out forwards;
+            /* 1.5s (czas jednej pętli) * 2 powtórzenia = 3 sekundy łącznie */
+            animation: startUpShake 1.5s ease-in-out 2;
         }
 
         /* PŁYNNE PRZEJŚCIE KOLORÓW (700ms) */
@@ -199,7 +198,7 @@
                 });
                 
                 // --- STAN ANIMACJI STARTOWEJ ---
-                const [isStartAnimating, setIsStartAnimating] = useState(true);
+                const [isStartAnimating, setIsStartAnimating] = useState(false); // Domyślnie NIE animuje
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
                 const [activeSentenceIndex, setActiveSentenceIndex] = useState(null);
@@ -220,12 +219,21 @@
                     localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
                 }, [isDarkMode]);
 
-                // Wyłącz klasę animacji po 2s, żeby nie przeszkadzała później
+                // --- ZMIANA: OPÓŹNIONY START I DWA POWTÓRZENIA ---
                 useEffect(() => {
-                    const timer = setTimeout(() => {
-                        setIsStartAnimating(false);
-                    }, 2000);
-                    return () => clearTimeout(timer);
+                    // Czekaj 3 sekundy
+                    const startTimer = setTimeout(() => {
+                        setIsStartAnimating(true);
+                        
+                        // Wyłącz po zakończeniu animacji (2 powtórzenia * 1.5s = 3s)
+                        const endTimer = setTimeout(() => {
+                            setIsStartAnimating(false);
+                        }, 3000); 
+                        
+                        return () => clearTimeout(endTimer);
+                    }, 3000);
+
+                    return () => clearTimeout(startTimer);
                 }, []);
 
                 useEffect(() => {
