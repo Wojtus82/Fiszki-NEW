@@ -338,7 +338,8 @@
 
                     let sentences = [];
 
-                    currentWordIds.forEach(id => {
+                    // TUTAJ ZMIANA: Przekazujemy index słowa (idx) do obiektu zdania
+                    currentWordIds.forEach((id, idx) => {
                         const wordRows = fullDatabase.filter(row => row.id === id);
                         
                         let rowsToProcess = [];
@@ -351,7 +352,8 @@
                         rowsToProcess.forEach(row => {
                             if (row.sentencesList && row.sentencesList.length > 0) {
                                 row.sentencesList.forEach(s => {
-                                    sentences.push({ ...s, word: row.word }); 
+                                    // Dodajemy wordIndex, aby wiedzieć, do którego słowa (1, 2, 3...) należy to zdanie
+                                    sentences.push({ ...s, word: row.word, wordIndex: idx }); 
                                 });
                             }
                         });
@@ -730,7 +732,11 @@
 
                             <div className={`${theme.counterBg} px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm border border-white/10 font-semibold whitespace-nowrap ${theme.counterText} transition-colors-all duration-300 w-full sm:w-auto text-center mt-2`}>
                                 {viewAllSentences && sentencesListToRender.length > 0 
-                                    ? `Zdanie: ${speakingSentenceIndex + 1} / ${sentencesListToRender.length}`
+                                    ? (() => {
+                                        const currentS = sentencesListToRender[speakingSentenceIndex];
+                                        const currentWordNum = currentS ? currentS.wordIndex + 1 : 1;
+                                        return `Słowo: ${currentWordNum} / ${currentWordIds.length}`;
+                                      })()
                                     : (currentWordIds.length > 0 ? `${isFinished ? currentWordIds.length : currentIndex + 1} / ${currentWordIds.length}` : '0 / 0')
                                 }
                             </div>
