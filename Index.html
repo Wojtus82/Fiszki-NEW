@@ -31,27 +31,26 @@
         }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
-        /* --- POPRAWIONA ANIMACJA STARTOWA (Powiększenie + Drżenie) --- */
-        @keyframes introShakeKeyframes {
+        /* --- NAPRAWIONA ANIMACJA STARTOWA --- */
+        /* Używamy transformacji, która jest niezależna od Tailwindowych klas na rodzicu */
+        @keyframes startUpShake {
             0% { transform: scale(1) rotate(0deg); }
-            10% { transform: scale(1.8) rotate(-15deg); } /* Szybki start */
-            20% { transform: scale(1.8) rotate(15deg); }
-            30% { transform: scale(1.8) rotate(-15deg); }
-            40% { transform: scale(1.8) rotate(15deg); }
-            50% { transform: scale(1.8) rotate(-15deg); }
-            60% { transform: scale(1.8) rotate(15deg); }
-            70% { transform: scale(1.8) rotate(0deg); }
-            100% { transform: scale(1) rotate(0deg); } /* Powrót do normy */
+            15% { transform: scale(1.6) rotate(-25deg); }
+            30% { transform: scale(2.2) rotate(25deg); }
+            45% { transform: scale(1.6) rotate(-25deg); }
+            60% { transform: scale(1.2) rotate(25deg); }
+            75% { transform: scale(1.1) rotate(-10deg); }
+            100% { transform: scale(1) rotate(0deg); }
         }
 
-        .intro-shake {
-            /* Animacja trwa 1.5s, wykonuje się raz (sekwencja w keyframes załatwia drżenie) */
-            animation: introShakeKeyframes 1.5s ease-in-out forwards;
-            transform-origin: center center;
+        .startup-anim {
             display: inline-block;
+            transform-origin: center center;
+            /* Animation trwa 1.5 sekundy */
+            animation: startUpShake 1.5s ease-in-out forwards;
         }
 
-        /* PŁYNNE PRZEJŚCIE TRYBÓW (Zwolnione do 0.7s) */
+        /* PŁYNNE PRZEJŚCIE KOLORÓW (700ms) */
         .transition-colors-all { 
             transition-property: background-color, border-color, color, fill, stroke, background-image; 
             transition-duration: 700ms; 
@@ -199,8 +198,8 @@
                     return savedTheme === 'dark';
                 });
                 
-                // --- STAN ANIMACJI ---
-                const [animateThemeIcon, setAnimateThemeIcon] = useState(true);
+                // --- STAN ANIMACJI STARTOWEJ ---
+                const [isStartAnimating, setIsStartAnimating] = useState(true);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
                 const [activeSentenceIndex, setActiveSentenceIndex] = useState(null);
@@ -221,10 +220,10 @@
                     localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
                 }, [isDarkMode]);
 
-                // Wyłącz animację po 2 sekundach
+                // Wyłącz klasę animacji po 2s, żeby nie przeszkadzała później
                 useEffect(() => {
                     const timer = setTimeout(() => {
-                        setAnimateThemeIcon(false);
+                        setIsStartAnimating(false);
                     }, 2000);
                     return () => clearTimeout(timer);
                 }, []);
@@ -745,7 +744,7 @@
                                         onClick={() => setIsDarkMode(!isDarkMode)} 
                                         className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}
                                     >
-                                        <div className={animateThemeIcon ? "intro-shake" : ""}>
+                                        <div className={isStartAnimating ? "startup-anim" : ""}>
                                             <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
                                         </div>
                                     </button>
