@@ -31,6 +31,15 @@
         }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
+        /* Nowa animacja drżenia ikony trybu */
+        @keyframes shakeMode {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-25deg); }
+            75% { transform: rotate(25deg); }
+        }
+        /* 0.5s trwa jedno drgnięcie, powtarzamy 3 razy = 1.5s */
+        .animate-shake-mode { animation: shakeMode 0.5s ease-in-out 3; }
+
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
@@ -165,12 +174,19 @@
                 const [rotation, setRotation] = useState(0);
                 const [noTransition, setNoTransition] = useState(false);
                 const [isSpeaking, setIsSpeaking] = useState(false);
-                const [isDarkMode, setIsDarkMode] = useState(false);
+
+                // --- ZMIANA: Inicjalizacja z localStorage ---
+                const [isDarkMode, setIsDarkMode] = useState(() => {
+                    const savedTheme = localStorage.getItem('flashcards-theme');
+                    return savedTheme === 'dark';
+                });
+                
+                // --- ZMIANA: Stan animacji startowej ---
+                const [animateThemeIcon, setAnimateThemeIcon] = useState(true);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
                 const [activeSentenceIndex, setActiveSentenceIndex] = useState(null);
                 
-                // Nowy stan do liczenia zdań podczas czytania
                 const [speakingSentenceIndex, setSpeakingSentenceIndex] = useState(0);
                 
                 const [voices, setVoices] = useState([]);
@@ -182,6 +198,19 @@
 
                 const wakeLockRef = useRef(null);
                 const itemRefs = useRef([]); 
+
+                // --- ZMIANA: Zapisywanie motywu do localStorage ---
+                useEffect(() => {
+                    localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
+                }, [isDarkMode]);
+
+                // --- ZMIANA: Wyłączenie animacji po czasie (3 cykle * 0.5s = 1.5s) ---
+                useEffect(() => {
+                    const timer = setTimeout(() => {
+                        setAnimateThemeIcon(false);
+                    }, 1500); 
+                    return () => clearTimeout(timer);
+                }, []);
 
                 useEffect(() => {
                     const loadVoices = () => {
@@ -196,7 +225,6 @@
                     }
                 }, []);
 
-                // Powrót do oryginalnej logiki wyboru głosu (automatycznie)
                 useEffect(() => {
                     if (voices.length > 0) {
                         const bestVoice = 
@@ -338,7 +366,6 @@
 
                     let sentences = [];
 
-                    // TUTAJ ZMIANA: Przekazujemy index słowa (idx) do obiektu zdania
                     currentWordIds.forEach((id, idx) => {
                         const wordRows = fullDatabase.filter(row => row.id === id);
                         
@@ -352,7 +379,6 @@
                         rowsToProcess.forEach(row => {
                             if (row.sentencesList && row.sentencesList.length > 0) {
                                 row.sentencesList.forEach(s => {
-                                    // Dodajemy wordIndex, aby wiedzieć, do którego słowa (1, 2, 3...) należy to zdanie
                                     sentences.push({ ...s, word: row.word, wordIndex: idx }); 
                                 });
                             }
@@ -364,7 +390,6 @@
 
                 useEffect(() => {
                     itemRefs.current = [];
-                    // Reset licznika zdań przy zmianie widoku
                     setSpeakingSentenceIndex(0);
                 }, [allCategorySentences, viewAllSentences]);
 
@@ -536,7 +561,6 @@
                     
                     setIsSpeaking(true);
                     
-                    // Resetuj licznik zdań przy rozpoczęciu czytania
                     if (viewAllSentences) setSpeakingSentenceIndex(0);
 
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
@@ -559,7 +583,7 @@
                                 text: cleanSentence(s.en), 
                                 isSentence: true, 
                                 visualIndex: index,
-                                globalIndex: index // Dodajemy index globalny dla licznika
+                                globalIndex: index
                             });
                             queue.push({ text: "...", isPause: true, duration: 'medium' });
                         });
@@ -597,7 +621,6 @@
                             if (item.isSentence && item.visualIndex !== undefined) {
                                 setActiveSentenceIndex(item.visualIndex); 
                                 
-                                // Jeśli jesteśmy w trybie ViewAll, aktualizujemy licznik zdań
                                 if (viewAllSentences && item.globalIndex !== undefined) {
                                     setSpeakingSentenceIndex(item.globalIndex);
                                 }
@@ -701,7 +724,7 @@
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-2 mb-2">
                             <div className="w-full relative flex items-center justify-center min-h-[48px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-all duration-300 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}>
+                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-all duration-300 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'} ${animateThemeIcon ? 'animate-shake-mode' : ''}`}>
                                         <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
                                     </button>
                                 </div>
