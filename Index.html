@@ -31,17 +31,27 @@
         }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
-        /* DEFINICJA ANIMACJI PULSE SHAKE */
-        @keyframes pulseShake {
+        /* --- POPRAWIONA ANIMACJA STARTOWA (Powiększenie + Drżenie) --- */
+        @keyframes introShakeKeyframes {
             0% { transform: scale(1) rotate(0deg); }
-            15% { transform: scale(1.5) rotate(-15deg); }
-            30% { transform: scale(2.0) rotate(15deg); }
-            45% { transform: scale(1.5) rotate(-15deg); }
-            60% { transform: scale(1) rotate(0deg); }
-            100% { transform: scale(1) rotate(0deg); }
+            10% { transform: scale(1.8) rotate(-15deg); } /* Szybki start */
+            20% { transform: scale(1.8) rotate(15deg); }
+            30% { transform: scale(1.8) rotate(-15deg); }
+            40% { transform: scale(1.8) rotate(15deg); }
+            50% { transform: scale(1.8) rotate(-15deg); }
+            60% { transform: scale(1.8) rotate(15deg); }
+            70% { transform: scale(1.8) rotate(0deg); }
+            100% { transform: scale(1) rotate(0deg); } /* Powrót do normy */
         }
 
-        /* PŁYNNE PRZEJŚCIE KOLORÓW */
+        .intro-shake {
+            /* Animacja trwa 1.5s, wykonuje się raz (sekwencja w keyframes załatwia drżenie) */
+            animation: introShakeKeyframes 1.5s ease-in-out forwards;
+            transform-origin: center center;
+            display: inline-block;
+        }
+
+        /* PŁYNNE PRZEJŚCIE TRYBÓW (Zwolnione do 0.7s) */
         .transition-colors-all { 
             transition-property: background-color, border-color, color, fill, stroke, background-image; 
             transition-duration: 700ms; 
@@ -183,12 +193,14 @@
                 const [noTransition, setNoTransition] = useState(false);
                 const [isSpeaking, setIsSpeaking] = useState(false);
 
+                // --- PAMIĘĆ TRYBU ---
                 const [isDarkMode, setIsDarkMode] = useState(() => {
                     const savedTheme = localStorage.getItem('flashcards-theme');
                     return savedTheme === 'dark';
                 });
                 
-                const [animateThemeIcon, setAnimateThemeIcon] = useState(false);
+                // --- STAN ANIMACJI ---
+                const [animateThemeIcon, setAnimateThemeIcon] = useState(true);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
                 const [activeSentenceIndex, setActiveSentenceIndex] = useState(null);
@@ -209,18 +221,12 @@
                     localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
                 }, [isDarkMode]);
 
+                // Wyłącz animację po 2 sekundach
                 useEffect(() => {
-                    // Start animacji po 100ms
-                    const startTimer = setTimeout(() => {
-                        setAnimateThemeIcon(true);
-                        // Koniec animacji po 1.8s (3 * 0.6s)
-                        const endTimer = setTimeout(() => {
-                            setAnimateThemeIcon(false);
-                        }, 1800);
-                        return () => clearTimeout(endTimer);
-                    }, 100);
-
-                    return () => clearTimeout(startTimer);
+                    const timer = setTimeout(() => {
+                        setAnimateThemeIcon(false);
+                    }, 2000);
+                    return () => clearTimeout(timer);
                 }, []);
 
                 useEffect(() => {
@@ -738,9 +744,10 @@
                                     <button 
                                         onClick={() => setIsDarkMode(!isDarkMode)} 
                                         className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}
-                                        style={animateThemeIcon ? { animation: 'pulseShake 0.6s ease-in-out 3', transformOrigin: 'center center', display: 'inline-block', position: 'relative', zIndex: 50 } : {}}
                                     >
-                                        <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
+                                        <div className={animateThemeIcon ? "intro-shake" : ""}>
+                                            <Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" />
+                                        </div>
                                     </button>
                                 </div>
                                 
