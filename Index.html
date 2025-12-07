@@ -188,6 +188,8 @@
                 useEffect(() => {
                     const loadVoices = () => {
                         const availableVoices = window.speechSynthesis.getVoices();
+                        // Wyświetl głosy w konsoli dla celów diagnostycznych
+                        console.log("Dostępne głosy:", availableVoices.map(v => `${v.name} (${v.lang})`));
                         setVoices(availableVoices);
                     };
 
@@ -198,42 +200,62 @@
                     }
                 }, []);
 
-                // Logika wyboru najlepszego męskiego i damskiego głosu
+                // ZAAWANSOWANA LOGIKA WYBORU GŁOSÓW
                 useEffect(() => {
                     if (voices.length > 0) {
                         const enVoices = voices.filter(v => v.lang.startsWith('en'));
                         
-                        // 1. Znajdź głos męski (Szukanie po nazwach typowych dla systemów)
-                        let male = enVoices.find(v => 
-                            v.name.includes("David") || // Windows
-                            v.name.includes("Daniel") || // Apple
+                        // 1. Definicja idealnych kandydatów (po nazwach)
+                        let female = enVoices.find(v => 
+                            v.name.includes("Zira") || 
+                            v.name.includes("Samantha") || 
+                            v.name.includes("Female") || 
+                            v.name.includes("Google US English") || 
+                            v.name.includes("Google UK English Female")
+                        );
+
+                        // Fallback dla kobiety: Pierwszy dostępny głos (zazwyczaj domyślny)
+                        if (!female && enVoices.length > 0) {
+                             female = enVoices[0];
+                        }
+
+                        // 2. Szukanie mężczyzny - strategia progresywna
+                        let male = null;
+
+                        // A. Szukaj explicit "Male/David/Daniel"
+                        male = enVoices.find(v => 
+                            v.name.includes("David") || 
+                            v.name.includes("Daniel") || 
                             v.name.includes("Male") || 
                             v.name.includes("Google UK English Male")
                         );
-                        // Fallback: Jeśli nie znaleziono po nazwie, weź dowolny, który nie jest "Female" ani "Zira"
+
+                        // B. Jeśli brak, szukaj głosu, który NIE jest "kobietą" i NIE jest wybranym głosem żeńskim
                         if (!male && enVoices.length > 0) {
-                             male = enVoices.find(v => !v.name.includes("Female") && !v.name.includes("Zira") && !v.name.includes("Samantha"));
+                             male = enVoices.find(v => 
+                                !v.name.includes("Female") && 
+                                !v.name.includes("Zira") && 
+                                !v.name.includes("Samantha") &&
+                                (!female || v.name !== female.name) // Musi być inny niż wybrana kobieta
+                             );
                         }
 
-                        // 2. Znajdź głos żeński
-                        let female = enVoices.find(v => 
-                            v.name.includes("Zira") || // Windows
-                            v.name.includes("Samantha") || // Apple
-                            v.name.includes("Female") || 
-                            v.name.includes("Google US English") || // Chrome Default (zazwyczaj kobieta)
-                            v.name.includes("Google UK English Female")
-                        );
-                        // Fallback
-                        if (!female && enVoices.length > 0) {
-                             female = enVoices.find(v => v !== male);
+                        // C. Jeśli nadal brak, po prostu weź jakikolwiek inny głos niż wybrana kobieta (jeśli istnieje)
+                        if (!male && enVoices.length > 1 && female) {
+                            male = enVoices.find(v => v.name !== female.name);
                         }
 
-                        // Jeśli system ma tylko jeden głos, przypisz go do obu (żeby aplikacja działała)
-                        if (!male) male = enVoices[0];
-                        if (!female) female = enVoices[0];
-
+                        // D. Ostateczność: Jeśli system ma tylko 1 głos, musi być on i męski i żeński
+                        if (!male && enVoices.length > 0) {
+                            male = enVoices[0];
+                        }
+                        
                         setBestMaleVoice(male);
                         setBestFemaleVoice(female);
+                        
+                        // Debugowanie w konsoli
+                        console.log("Wybrano Male:", male ? male.name : "Brak");
+                        console.log("Wybrano Female:", female ? female.name : "Brak");
                     }
                 }, [voices]);
 
