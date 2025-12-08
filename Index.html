@@ -477,7 +477,7 @@
 
                 const handleCardClick = () => {
                     if (isFinished || displayData.isEmpty) return;
-                    cancelSpeech(); // Zatrzymaj czytanie
+                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
                     if (cardSide === 1) { setCardSide(2); setRotation(180); }
                     else if (cardSide === 2) { setCardSide(1); setRotation(0); }
                     else if (cardSide === 3) { showTranslation(); }
@@ -485,16 +485,15 @@
 
                 const showSentences = (e) => { 
                     if(e) e.stopPropagation(); 
-                    cancelSpeech(); // Zatrzymaj czytanie
+                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
                     setCardSide(3); setRotation(360); 
                 };
                 const showTranslation = (e) => { 
                     if(e) e.stopPropagation(); 
-                    cancelSpeech(); // Zatrzymaj czytanie
+                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
                     setCardSide(2); setRotation(180); setViewAllSentences(false); 
                 };
 
-                // --- STABILNE CZYTANIE Z WZNAVIANIEM ---
                 const handleSpeak = (resume = false) => {
                     if (isFinished || !displayData || displayData.isEmpty) return;
                     
@@ -550,7 +549,6 @@
                     }
 
                     // 2. PRZYGOTUJ KOLEJKĘ DO ODTWORZENIA (od aktualnego indeksu)
-                    // Jeśli wznawiamy, ucinamy to co już było.
                     const startIndex = resume ? queueIndexRef.current : 0;
                     const queueToSpeak = fullQueue.slice(startIndex);
 
@@ -576,10 +574,9 @@
                         if (item.isWord) u.rate = 0.6; 
 
                         u.onstart = () => {
-                            // STRAŻNIK: Jeśli jest pauza (kliknięto w międzyczasie), ignoruj
+                            // STRAŻNIK: Jeśli jest pauza, ignoruj
                             if (isPausedRef.current) return;
 
-                            // Aktualizuj globalny indeks w pełnej kolejce
                             const actualGlobalIndex = startIndex + i;
                             queueIndexRef.current = actualGlobalIndex;
 
@@ -621,7 +618,7 @@
                 };
 
                 const cancelSpeech = () => { 
-                    isPausedRef.current = false; // Reset strażnika
+                    isPausedRef.current = false;
                     pausedIntentionally.current = false;
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
@@ -633,17 +630,14 @@
                 const togglePlayPause = (e) => {
                     if(e) e.stopPropagation();
                     if (isSpeaking && !isPaused) {
-                        // PAUZA
-                        isPausedRef.current = true; // Włącz strażnika (blokuje onstart)
+                        isPausedRef.current = true;
                         pausedIntentionally.current = true;
                         window.speechSynthesis.cancel();
                         setIsPaused(true);
                     } else if (isPaused) {
-                        // WZNOWIENIE
-                        isPausedRef.current = false; // Wyłącz strażnika
+                        isPausedRef.current = false;
                         handleSpeak(true);
                     } else {
-                        // START
                         isPausedRef.current = false;
                         handleSpeak(false);
                     }
@@ -735,11 +729,10 @@
                                                         <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`mx-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-black/5 active:scale-95 transition-all ${viewAllSentences ? 'text-emerald-500 bg-emerald-100/50' : 'text-indigo-400'}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
                                                             <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={20} className="sm:w-6 sm:h-6" /></div><span className="text-xs sm:text-sm font-bold uppercase">All words</span>
                                                         </button>
-                                                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                                                             <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-100 border-gray-300"} transition-colors-all duration-700`}>
-                                                                <Icon path={iconPaths.clock} size={12} className={`${isDarkMode ? "text-gray-400" : "text-indigo-500"} transition-colors-all duration-700`}/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[80px] sm:w-[100px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} transition-colors-all duration-700`}><option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>))}<option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option></select>
+                                                                <Icon path={iconPaths.clock} size={12} className={`${isDarkMode ? "text-gray-400" : "text-indigo-500"} transition-colors-all duration-700`}/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[130px] sm:w-[160px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} transition-colors-all duration-700`}><option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>))}<option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option></select>
                                                             </div>
-                                                            <button onClick={showTranslation} className="p-1 rounded-full hover:bg-gray-200/20" aria-label="Zamknij"><Icon path={iconPaths.close} size={18} className={`${isDarkMode ? "text-gray-400" : "text-gray-500"} transition-colors-all duration-700`} /></button>
                                                         </div>
                                                     </div>
                                                     <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1 pb-20">{sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (<li key={i} ref={el => itemRefs.current[i] = el} className={`flex flex-col gap-1 transition-transform duration-300 origin-left pl-1 ${activeSentenceIndex === i ? 'scale-110 z-10' : 'scale-100 z-0'}`}><div className="flex gap-2 leading-snug"><span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-700'} transition-colors-all duration-700`}>{highlightTargetWord(s.en, viewAllSentences ? s.word : displayData.word)}</span></div><div className={`pl-6 text-sm sm:text-base italic ${theme.subText} transition-colors-all duration-700`}>({s.pl})</div></li>)) : <li className="text-center opacity-50 italic mt-4">Brak przykładowych zdań dla tego czasu</li>}</ul>
