@@ -678,9 +678,9 @@
                 if (fileError) return <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}><div className="text-4xl mb-4">⚠️</div><div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div><pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre><button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button></div>;
 
                 return (
-                    <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-700 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
+                    <div className={`h-[100dvh] flex flex-col items-center pt-1 pb-[5dvh] px-4 font-sans transition-colors-all duration-700 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
                         {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
-                        <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-2 mb-2">
+                        <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-0 mb-2">
                             <div className="w-full relative flex items-center justify-center min-h-[48px]">
                                 <div className="absolute left-0">
                                     <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" /></div></button>
