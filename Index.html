@@ -195,7 +195,7 @@
                 });
                 
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
-                const [oledMode, setOledMode] = useState(false); // NOWY STAN DLA OLED
+                const [oledMode, setOledMode] = useState(false);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
                 const [activeSentenceIndex, setActiveSentenceIndex] = useState(null);
@@ -212,9 +212,11 @@
                 const wakeLockRef = useRef(null);
                 const itemRefs = useRef([]); 
                 
-                const queueRef = useRef([]);
-                const queueIndexRef = useRef(0);
-                const pausedIntentionally = useRef(false);
+                // --- STABILIZACJA PAUZY ---
+                const queueRef = useRef([]);        // Przechowuje listę obiektów do przeczytania
+                const queueIndexRef = useRef(0);    // Aktualny indeks w tej liście
+                const pausedIntentionally = useRef(false); // Czy pauza była celowa
+                const isPausedRef = useRef(false);  // Strażnik (Ref jest szybszy niż state)
                 
                 // Refs do obsługi potrójnego kliknięcia
                 const lastTapRef = useRef(0);
@@ -431,38 +433,22 @@
                 };
                 const onMouseLeave = () => { setTouchStart(null); setTouchEnd(null); };
 
-                // --- OBSŁUGA POTRÓJNEGO KLIKNIĘCIA (OLED) ---
                 const handleTripleTap = (callback) => {
                     const now = new Date().getTime();
                     const timeDiff = now - lastTapRef.current;
-
-                    if (timeDiff < 400 && timeDiff > 0) {
-                        tapCountRef.current++;
-                    } else {
-                        tapCountRef.current = 1;
-                    }
-
+                    if (timeDiff < 400 && timeDiff > 0) { tapCountRef.current++; } else { tapCountRef.current = 1; }
                     lastTapRef.current = now;
-
-                    if (tapCountRef.current === 3) {
-                        callback();
-                        tapCountRef.current = 0;
-                    }
+                    if (tapCountRef.current === 3) { callback(); tapCountRef.current = 0; }
                 };
 
                 const requestWakeLock = async () => {
                     if ('wakeLock' in navigator) {
-                        try {
-                            const lock = await navigator.wakeLock.request('screen');
-                            wakeLockRef.current = lock;
-                        } catch (err) { console.log("Wake Lock error:", err); }
+                        try { const lock = await navigator.wakeLock.request('screen'); wakeLockRef.current = lock; } catch (err) { console.log("Wake Lock error:", err); }
                     }
                 };
 
                 const releaseWakeLock = async () => {
-                    if (wakeLockRef.current) {
-                        try { await wakeLockRef.current.release(); wakeLockRef.current = null; } catch(err) {}
-                    }
+                    if (wakeLockRef.current) { try { await wakeLockRef.current.release(); wakeLockRef.current = null; } catch(err) {} }
                 };
 
                 const resetCard = () => {
@@ -491,7 +477,7 @@
 
                 const handleCardClick = () => {
                     if (isFinished || displayData.isEmpty) return;
-                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
+                    cancelSpeech(); // Zatrzymaj czytanie
                     if (cardSide === 1) { setCardSide(2); setRotation(180); }
                     else if (cardSide === 2) { setCardSide(1); setRotation(0); }
                     else if (cardSide === 3) { showTranslation(); }
@@ -499,15 +485,16 @@
 
                 const showSentences = (e) => { 
                     if(e) e.stopPropagation(); 
-                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
+                    cancelSpeech(); // Zatrzymaj czytanie
                     setCardSide(3); setRotation(360); 
                 };
                 const showTranslation = (e) => { 
                     if(e) e.stopPropagation(); 
-                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
+                    cancelSpeech(); // Zatrzymaj czytanie
                     setCardSide(2); setRotation(180); setViewAllSentences(false); 
                 };
 
+                // --- STABILNE CZYTANIE Z WZNAVIANIEM ---
                 const handleSpeak = (resume = false) => {
                     if (isFinished || !displayData || displayData.isEmpty) return;
                     
@@ -520,10 +507,10 @@
                     
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
 
-                    let queue = [];
-                    
+                    // 1. ZBUDUJ LUB POBIERZ PEŁNĄ KOLEJKĘ
+                    let fullQueue = [];
                     if (resume && queueRef.current.length > 0) {
-                        queue = queueRef.current.slice(queueIndexRef.current);
+                        fullQueue = queueRef.current; // Użyj istniejącej kolejki
                     } else {
                         if (viewAllSentences) setSpeakingSentenceIndex(0);
                         let tempQueue = [];
@@ -551,18 +538,29 @@
                                  tempQueue.push({ text: displayData.word });
                              }
                         }
-                        queue = tempQueue;
+                        fullQueue = tempQueue;
                         queueRef.current = tempQueue;
-                        queueIndexRef.current = 0;
+                        queueIndexRef.current = 0; // Reset na start
                     }
 
-                    if (queue.length === 0) {
+                    if (fullQueue.length === 0) {
                         setIsSpeaking(false);
                         releaseWakeLock(); 
                         return;
                     }
 
-                    queue.forEach((item, indexInSlice) => {
+                    // 2. PRZYGOTUJ KOLEJKĘ DO ODTWORZENIA (od aktualnego indeksu)
+                    // Jeśli wznawiamy, ucinamy to co już było.
+                    const startIndex = resume ? queueIndexRef.current : 0;
+                    const queueToSpeak = fullQueue.slice(startIndex);
+
+                    if (queueToSpeak.length === 0) {
+                        setIsSpeaking(false);
+                        return;
+                    }
+
+                    // 3. ZLEĆ CZYTANIE
+                    queueToSpeak.forEach((item, i) => {
                         const u = new SpeechSynthesisUtterance(item.text);
                         if (selectedVoice) u.voice = selectedVoice;
                         u.lang = 'en-US';
@@ -578,10 +576,14 @@
                         if (item.isWord) u.rate = 0.6; 
 
                         u.onstart = () => {
-                            const actualIndex = resume ? (queueIndexRef.current + indexInSlice) : indexInSlice;
-                            queueIndexRef.current = actualIndex; 
+                            // STRAŻNIK: Jeśli jest pauza (kliknięto w międzyczasie), ignoruj
+                            if (isPausedRef.current) return;
 
-                            if (indexInSlice === 0) setIsSpeaking(true); 
+                            // Aktualizuj globalny indeks w pełnej kolejce
+                            const actualGlobalIndex = startIndex + i;
+                            queueIndexRef.current = actualGlobalIndex;
+
+                            if (i === 0) setIsSpeaking(true);
                             
                             if (item.isSentence && item.visualIndex !== undefined) {
                                 setActiveSentenceIndex(item.visualIndex); 
@@ -595,7 +597,7 @@
                             }
                         };
 
-                        if (indexInSlice === queue.length - 1) {
+                        if (i === queueToSpeak.length - 1) {
                             u.onend = () => {
                                 if (!pausedIntentionally.current) {
                                     setIsSpeaking(false);
@@ -619,6 +621,7 @@
                 };
 
                 const cancelSpeech = () => { 
+                    isPausedRef.current = false; // Reset strażnika
                     pausedIntentionally.current = false;
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
@@ -630,17 +633,22 @@
                 const togglePlayPause = (e) => {
                     if(e) e.stopPropagation();
                     if (isSpeaking && !isPaused) {
+                        // PAUZA
+                        isPausedRef.current = true; // Włącz strażnika (blokuje onstart)
                         pausedIntentionally.current = true;
                         window.speechSynthesis.cancel();
                         setIsPaused(true);
                     } else if (isPaused) {
+                        // WZNOWIENIE
+                        isPausedRef.current = false; // Wyłącz strażnika
                         handleSpeak(true);
                     } else {
+                        // START
+                        isPausedRef.current = false;
                         handleSpeak(false);
                     }
                 };
 
-                // OBSŁUGA DOLNEGO PRZYCISKU
                 const handleBottomBtnClick = () => {
                     if (cardSide === 3) {
                         togglePlayPause();
@@ -683,26 +691,13 @@
 
                 return (
                     <div className={`h-[100dvh] flex flex-col items-center pt-4 pb-[5dvh] px-4 font-sans transition-colors-all duration-700 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
-                        {/* CZARNA ZASŁONA OLED */}
-                        {oledMode && (
-                            <div 
-                                className="fixed inset-0 bg-black z-[99999] cursor-pointer"
-                                onClick={() => handleTripleTap(() => setOledMode(false))}
-                            ></div>
-                        )}
-
+                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-2 mb-2">
                             <div className="w-full relative flex items-center justify-center min-h-[48px]">
                                 <div className="absolute left-0">
                                     <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" /></div></button>
                                 </div>
-                                {/* INTERAKTYWNY NAGŁÓWEK DO TRYBU OLED */}
-                                <h1 
-                                    onClick={() => handleTripleTap(() => setOledMode(true))}
-                                    className={`text-xl sm:text-3xl font-extrabold flex items-center gap-2 ${theme.headerText} text-center transition-colors-all duration-700 cursor-pointer select-none active:scale-95`}
-                                >
-                                    <Icon path={iconPaths.layers} size={24} className="sm:w-8 sm:h-8" /> Fiszki WOJTUKIEWICZ
-                                </h1>
+                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-xl sm:text-3xl font-extrabold flex items-center gap-2 ${theme.headerText} text-center transition-colors-all duration-700 cursor-pointer select-none active:scale-95`}><Icon path={iconPaths.layers} size={24} className="sm:w-8 sm:h-8" /> Fiszki WOJTUKIEWICZ</h1>
                             </div>
                             <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
                                 <div className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md flex flex-col justify-center transition-colors-all duration-700`}>
@@ -744,7 +739,6 @@
                                                             <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-100 border-gray-300"} transition-colors-all duration-700`}>
                                                                 <Icon path={iconPaths.clock} size={12} className={`${isDarkMode ? "text-gray-400" : "text-indigo-500"} transition-colors-all duration-700`}/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[80px] sm:w-[100px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} transition-colors-all duration-700`}><option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>))}<option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option></select>
                                                             </div>
-                                                            {/* IKONA PLAY/PAUSE USUNIĘTA */}
                                                             <button onClick={showTranslation} className="p-1 rounded-full hover:bg-gray-200/20" aria-label="Zamknij"><Icon path={iconPaths.close} size={18} className={`${isDarkMode ? "text-gray-400" : "text-gray-500"} transition-colors-all duration-700`} /></button>
                                                         </div>
                                                     </div>
