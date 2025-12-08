@@ -188,6 +188,8 @@
                 
                 const [isSpeaking, setIsSpeaking] = useState(false);
                 const [isPaused, setIsPaused] = useState(false);
+                // NOWY STAN DO PRZECHOWYWANIA AKTUALNEJ WYMOWY PODCZAS CZYTANIA
+                const [speakingPhonetic, setSpeakingPhonetic] = useState(null);
 
                 const [isDarkMode, setIsDarkMode] = useState(() => {
                     const savedTheme = localStorage.getItem('flashcards-theme');
@@ -370,7 +372,6 @@
                         rowsToProcess.forEach(row => {
                             if (row.sentencesList && row.sentencesList.length > 0) {
                                 row.sentencesList.forEach(s => {
-                                    // DODANO PHONETIC DO DANYCH ZDANIA
                                     sentences.push({ ...s, word: row.word, wordIndex: idx, phonetic: row.phonetic }); 
                                 });
                             }
@@ -411,13 +412,15 @@
                 const displayData = getDisplayData();
                 const sentencesListToRender = viewAllSentences ? allCategorySentences : (displayData ? displayData.sentences : []);
 
-                // OBLICZANIE AKTUALNEJ WYMOWY DO WYŚWIETLENIA NA DOLE
+                // OBLICZANIE CO POKAZAĆ NA DOLE: LIVE PHONETIC vs CARD PHONETIC
                 const currentPhoneticToDisplay = useMemo(() => {
-                    if (viewAllSentences && activeSentenceIndex !== null && sentencesListToRender[activeSentenceIndex]) {
-                        return sentencesListToRender[activeSentenceIndex].phonetic;
+                    // Jeśli lektor czyta, używamy live phonetic
+                    if (isSpeaking && speakingPhonetic) {
+                        return speakingPhonetic;
                     }
+                    // W przeciwnym razie domyślna wymowa karty
                     return displayData ? displayData.phonetic : "";
-                }, [viewAllSentences, activeSentenceIndex, sentencesListToRender, displayData]);
+                }, [isSpeaking, speakingPhonetic, displayData]);
 
                 const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
                 const handleMove = (clientX) => { setTouchEnd(clientX); };
@@ -525,15 +528,16 @@
                                 if (s.word !== lastWord) {
                                     if (lastWord !== "") tempQueue.push({ text: "...", isPause: true, duration: 'long' }); 
                                     lastWord = s.word;
-                                    tempQueue.push({ text: lastWord, isWord: true });
+                                    // DODAJEMY PHONETIC DO SŁOWA, ŻEBY ZMIENIĆ WYMOWĘ PRZED CZYTANIEM ZDAŃ
+                                    tempQueue.push({ text: lastWord, isWord: true, phonetic: s.phonetic });
                                     tempQueue.push({ text: ".", isPause: true, duration: 'short' }); 
                                 }
-                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index, globalIndex: index });
+                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index, globalIndex: index, phonetic: s.phonetic });
                                 tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
                             });
                         } else if (cardSide === 3) {
                             displayData.sentences.forEach((s, index) => {
-                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index });
+                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index, phonetic: displayData.phonetic });
                                 tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
                             });
                         } else {
@@ -583,6 +587,11 @@
                             const actualGlobalIndex = startIndex + i;
                             queueIndexRef.current = actualGlobalIndex;
 
+                            // AKTUALIZUJ LIVE PHONETIC
+                            if (item.phonetic) {
+                                setSpeakingPhonetic(item.phonetic);
+                            }
+
                             if (i === 0) setIsSpeaking(true);
                             
                             if (item.isSentence && item.visualIndex !== undefined) {
@@ -602,6 +611,7 @@
                                 if (!pausedIntentionally.current) {
                                     setIsSpeaking(false);
                                     setIsPaused(false);
+                                    setSpeakingPhonetic(null); // Reset
                                     setActiveSentenceIndex(null); 
                                     releaseWakeLock();
                                 }
@@ -611,6 +621,7 @@
                                     console.error("Speech error", e);
                                     setIsSpeaking(false);
                                     setIsPaused(false);
+                                    setSpeakingPhonetic(null);
                                     releaseWakeLock(); 
                                 }
                             };
@@ -626,6 +637,7 @@
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
                     setIsPaused(false);
+                    setSpeakingPhonetic(null); // Reset
                     setActiveSentenceIndex(null); 
                     releaseWakeLock(); 
                 };
@@ -762,38 +774,4 @@
                                 </div>
                                 <div className="w-full max-w-md flex-none space-y-3 z-20 mb-2">
                                     <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-4 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-700 text-sm`}><Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia</button>
-                                        <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">Następna <Icon path={iconPaths.right} className="w-5 h-5" /></button>
-                                    </div>
-                                    {/* ZMODYFIKOWANY DOLNY PRZYCISK */}
-                                    <button 
-                                        onClick={handleBottomBtnClick} 
-                                        className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking && !isPaused ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}
-                                    >
-                                        {cardSide === 3 
-                                            ? (
-                                                <>
-                                                    {isSpeaking && !isPaused ? <Icon path={iconPaths.pause} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.play} size={24} className="sm:w-6 sm:h-6"/>}
-                                                    {isSpeaking && !isPaused ? "Pauza" : (isPaused ? "Wznów" : "Czytaj zdania")}
-                                                </>
-                                            ) 
-                                            : (
-                                                <>
-                                                    {isSpeaking ? <Icon path={iconPaths.volX} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.vol} size={24} className="sm:w-6 sm:h-6"/>}
-                                                    {isSpeaking ? "Odtwarzanie..." : "Czytaj wymowę"}
-                                                </>
-                                            )
-                                        }
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                );
-            }
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<FlashcardsApp />);
-        } catch (err) { document.getElementById('error-overlay').style.display = 'flex'; document.getElementById('error-message').textContent = err.toString(); }
-    </script>
-</body>
-</html>
+                                        <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-
