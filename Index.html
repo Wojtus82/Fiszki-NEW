@@ -105,24 +105,23 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
             );
 
-            // Poprawiona definicja ikon (usunięte fragmenty <></> na rzecz <g>)
             const iconPaths = {
-                layers: <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>,
-                book: <g><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></g>,
-                rotate: <g><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></g>,
-                left: <g><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></g>,
-                right: <g><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></g>,
-                vol: <g><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></g>,
-                volX: <g><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></g>,
-                tag: <g><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></g>,
-                clock: <g><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></g>,
-                moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>,
-                sun: <g><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></g>,
-                close: <g><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></g>,
-                trophy: <g><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10"/><path d="M17 4v8a5 5 0 0 1-10 0V4"/><path d="M5 9v1a2 2 0 0 0 2 2"/><path d="M19 9v1a2 2 0 0 1-2 2"/></g>,
-                reloadCustom: <g><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></g>,
+                layers: <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
+                book: <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
+                rotate: <><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></>,
+                left: <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
+                right: <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>,
+                vol: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></>,
+                volX: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></>,
+                tag: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>,
+                clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+                moon: <><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></>,
+                sun: <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,
+                close: <><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>,
+                trophy: <><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10"/><path d="M17 4v8a5 5 0 0 1-10 0V4"/><path d="M5 9v1a2 2 0 0 0 2 2"/><path d="M19 9v1a2 2 0 0 1-2 2"/></>,
+                reloadCustom: <><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></>,
                 play: <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>,
-                pause: <g><rect x="6" y="4" width="4" height="16" fill="currentColor" /><rect x="14" y="4" width="4" height="16" fill="currentColor" /></g>
+                pause: <><rect x="6" y="4" width="4" height="16" fill="currentColor" /><rect x="14" y="4" width="4" height="16" fill="currentColor" /></>
             };
 
             const parseSentenceRow = (text) => {
@@ -189,7 +188,6 @@
                 
                 const [isSpeaking, setIsSpeaking] = useState(false);
                 const [isPaused, setIsPaused] = useState(false);
-                const [speakingPhonetic, setSpeakingPhonetic] = useState(null);
 
                 const [isDarkMode, setIsDarkMode] = useState(() => {
                     const savedTheme = localStorage.getItem('flashcards-theme');
@@ -412,12 +410,18 @@
                 const displayData = getDisplayData();
                 const sentencesListToRender = viewAllSentences ? allCategorySentences : (displayData ? displayData.sentences : []);
 
+                // OBLICZANIE AKTUALNEJ WYMOWY DO WYŚWIETLENIA NA DOLE
                 const currentPhoneticToDisplay = useMemo(() => {
-                    if (isSpeaking && speakingPhonetic) {
-                        return speakingPhonetic;
+                    if (viewAllSentences) {
+                        if (activeSentenceIndex !== null && sentencesListToRender[activeSentenceIndex]) {
+                            return sentencesListToRender[activeSentenceIndex].phonetic;
+                        }
+                        if (sentencesListToRender[speakingSentenceIndex]) {
+                            return sentencesListToRender[speakingSentenceIndex].phonetic;
+                        }
                     }
                     return displayData ? displayData.phonetic : "";
-                }, [isSpeaking, speakingPhonetic, displayData]);
+                }, [viewAllSentences, activeSentenceIndex, speakingSentenceIndex, sentencesListToRender, displayData]);
 
                 const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
                 const handleMove = (clientX) => { setTouchEnd(clientX); };
@@ -518,6 +522,7 @@
                         fullQueue = queueRef.current;
                     } else {
                         if (viewAllSentences) setSpeakingSentenceIndex(0);
+                        
                         let tempQueue = [];
                         if (cardSide === 3 && viewAllSentences) {
                             let lastWord = "";
@@ -525,15 +530,15 @@
                                 if (s.word !== lastWord) {
                                     if (lastWord !== "") tempQueue.push({ text: "...", isPause: true, duration: 'long' }); 
                                     lastWord = s.word;
-                                    tempQueue.push({ text: lastWord, isWord: true, phonetic: s.phonetic });
+                                    tempQueue.push({ text: lastWord, isWord: true, globalIndex: index });
                                     tempQueue.push({ text: ".", isPause: true, duration: 'short' }); 
                                 }
-                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index, globalIndex: index, phonetic: s.phonetic });
+                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index, globalIndex: index });
                                 tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
                             });
                         } else if (cardSide === 3) {
                             displayData.sentences.forEach((s, index) => {
-                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index, phonetic: displayData.phonetic });
+                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index });
                                 tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
                             });
                         } else {
@@ -583,11 +588,6 @@
                             const actualGlobalIndex = startIndex + i;
                             queueIndexRef.current = actualGlobalIndex;
 
-                            // AKTUALIZACJA WYMOWY DLA SŁOWA
-                            if (item.phonetic) {
-                                setSpeakingPhonetic(item.phonetic);
-                            }
-
                             if (i === 0) setIsSpeaking(true);
                             
                             if (item.isSentence && item.visualIndex !== undefined) {
@@ -599,6 +599,9 @@
                                 if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             } else if (item.isWord) {
                                 setActiveSentenceIndex(null); 
+                                if (viewAllSentences && item.globalIndex !== undefined) {
+                                    setSpeakingSentenceIndex(item.globalIndex);
+                                }
                             }
                         };
 
@@ -607,7 +610,6 @@
                                 if (!pausedIntentionally.current) {
                                     setIsSpeaking(false);
                                     setIsPaused(false);
-                                    setSpeakingPhonetic(null);
                                     setActiveSentenceIndex(null); 
                                     releaseWakeLock();
                                 }
@@ -617,7 +619,6 @@
                                     console.error("Speech error", e);
                                     setIsSpeaking(false);
                                     setIsPaused(false);
-                                    setSpeakingPhonetic(null);
                                     releaseWakeLock(); 
                                 }
                             };
@@ -633,7 +634,6 @@
                     if (window.speechSynthesis) window.speechSynthesis.cancel(); 
                     setIsSpeaking(false);
                     setIsPaused(false);
-                    setSpeakingPhonetic(null);
                     setActiveSentenceIndex(null); 
                     releaseWakeLock(); 
                 };
@@ -772,7 +772,6 @@
                                         <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-4 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-700 text-sm`}><Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia</button>
                                         <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">Następna <Icon path={iconPaths.right} className="w-5 h-5" /></button>
                                     </div>
-                                    {/* ZMODYFIKOWANY DOLNY PRZYCISK */}
                                     <button 
                                         onClick={handleBottomBtnClick} 
                                         className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking && !isPaused ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}
