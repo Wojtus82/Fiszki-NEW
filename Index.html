@@ -212,13 +212,11 @@
                 const wakeLockRef = useRef(null);
                 const itemRefs = useRef([]); 
                 
-                // --- STABILIZACJA PAUZY ---
-                const queueRef = useRef([]);        // Przechowuje listę obiektów do przeczytania
-                const queueIndexRef = useRef(0);    // Aktualny indeks w tej liście
-                const pausedIntentionally = useRef(false); // Czy pauza była celowa
-                const isPausedRef = useRef(false);  // Strażnik (Ref jest szybszy niż state)
+                const queueRef = useRef([]);
+                const queueIndexRef = useRef(0);
+                const pausedIntentionally = useRef(false);
+                const isPausedRef = useRef(false);
                 
-                // Refs do obsługi potrójnego kliknięcia
                 const lastTapRef = useRef(0);
                 const tapCountRef = useRef(0);
 
@@ -477,7 +475,7 @@
 
                 const handleCardClick = () => {
                     if (isFinished || displayData.isEmpty) return;
-                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
+                    cancelSpeech();
                     if (cardSide === 1) { setCardSide(2); setRotation(180); }
                     else if (cardSide === 2) { setCardSide(1); setRotation(0); }
                     else if (cardSide === 3) { showTranslation(); }
@@ -485,12 +483,12 @@
 
                 const showSentences = (e) => { 
                     if(e) e.stopPropagation(); 
-                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
+                    cancelSpeech();
                     setCardSide(3); setRotation(360); 
                 };
                 const showTranslation = (e) => { 
                     if(e) e.stopPropagation(); 
-                    cancelSpeech(); // WYŁĄCZ CZYTANIE PRZY ZMIANIE STRONY
+                    cancelSpeech();
                     setCardSide(2); setRotation(180); setViewAllSentences(false); 
                 };
 
@@ -506,10 +504,9 @@
                     
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
 
-                    // 1. ZBUDUJ LUB POBIERZ PEŁNĄ KOLEJKĘ
                     let fullQueue = [];
                     if (resume && queueRef.current.length > 0) {
-                        fullQueue = queueRef.current; // Użyj istniejącej kolejki
+                        fullQueue = queueRef.current;
                     } else {
                         if (viewAllSentences) setSpeakingSentenceIndex(0);
                         let tempQueue = [];
@@ -539,7 +536,7 @@
                         }
                         fullQueue = tempQueue;
                         queueRef.current = tempQueue;
-                        queueIndexRef.current = 0; // Reset na start
+                        queueIndexRef.current = 0;
                     }
 
                     if (fullQueue.length === 0) {
@@ -548,7 +545,6 @@
                         return;
                     }
 
-                    // 2. PRZYGOTUJ KOLEJKĘ DO ODTWORZENIA (od aktualnego indeksu)
                     const startIndex = resume ? queueIndexRef.current : 0;
                     const queueToSpeak = fullQueue.slice(startIndex);
 
@@ -557,7 +553,6 @@
                         return;
                     }
 
-                    // 3. ZLEĆ CZYTANIE
                     queueToSpeak.forEach((item, i) => {
                         const u = new SpeechSynthesisUtterance(item.text);
                         if (selectedVoice) u.voice = selectedVoice;
@@ -574,7 +569,6 @@
                         if (item.isWord) u.rate = 0.6; 
 
                         u.onstart = () => {
-                            // STRAŻNIK: Jeśli jest pauza, ignoruj
                             if (isPausedRef.current) return;
 
                             const actualGlobalIndex = startIndex + i;
@@ -726,12 +720,12 @@
                                                 <div className="w-full h-full flex flex-col animate-fadeIn">
                                                     <div className="flex justify-between items-center mb-2 sm:mb-3 border-b pb-2 border-gray-200/20 flex-none relative">
                                                         <h3 className={`font-bold flex items-center gap-2 text-sm sm:text-base ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'} transition-colors-all duration-700`}><Icon path={iconPaths.book} size={16} className="sm:w-[18px] sm:h-[18px]"/> Zdania</h3>
-                                                        <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`mx-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-black/5 active:scale-95 transition-all ${viewAllSentences ? 'text-emerald-500 bg-emerald-100/50' : 'text-indigo-400'}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
-                                                            <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={20} className="sm:w-6 sm:h-6" /></div><span className="text-xs sm:text-sm font-bold uppercase">All words</span>
+                                                        <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`mx-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-black/5 active:scale-95 transition-all ${viewAllSentences ? 'text-emerald-500' : 'text-indigo-400'}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
+                                                            <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={20} className="sm:w-6 sm:h-6" /></div><span className="text-xs sm:text-sm font-bold uppercase whitespace-nowrap">All words</span>
                                                         </button>
                                                         <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                                                             <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-100 border-gray-300"} transition-colors-all duration-700`}>
-                                                                <Icon path={iconPaths.clock} size={12} className={`${isDarkMode ? "text-gray-400" : "text-indigo-500"} transition-colors-all duration-700`}/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[130px] sm:w-[160px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} transition-colors-all duration-700`}><option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>))}<option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option></select>
+                                                                <Icon path={iconPaths.clock} size={12} className={`${isDarkMode ? "text-gray-400" : "text-indigo-500"} transition-colors-all duration-700`}/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[110px] sm:w-[150px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} transition-colors-all duration-700`}><option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>))}<option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option></select>
                                                             </div>
                                                         </div>
                                                     </div>
