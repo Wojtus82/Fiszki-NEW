@@ -204,6 +204,7 @@
                 
                 const [voices, setVoices] = useState([]);
                 const [selectedVoice, setSelectedVoice] = useState(null);
+                const [selectedPlVoice, setSelectedPlVoice] = useState(null);
 
                 const [touchStart, setTouchStart] = useState(null);
                 const [touchEnd, setTouchEnd] = useState(null);
@@ -249,6 +250,7 @@
 
                 useEffect(() => {
                     if (voices.length > 0) {
+                        // English Voice
                         const bestVoice = 
                             voices.find(v => v.name.includes("Google US English")) ||
                             voices.find(v => v.name.includes("Google UK English Female")) ||
@@ -258,11 +260,24 @@
                             voices.find(v => v.lang === 'en-US') ||
                             voices.find(v => v.lang.startsWith('en'));
 
-                        if (bestVoice) {
-                            setSelectedVoice(bestVoice);
-                        }
+                        if (bestVoice) setSelectedVoice(bestVoice);
+                        
+                        // Polish Voice
+                        const bestPl = 
+                             voices.find(v => v.name.includes("Google Polski")) ||
+                             voices.find(v => v.lang === 'pl-PL' && v.name.includes("Paulina")) ||
+                             voices.find(v => v.lang === 'pl-PL');
+                             
+                        if (bestPl) setSelectedPlVoice(bestPl);
                     }
                 }, [voices]);
+
+                // Helper to match Excel columns loosely (ignoring case and whitespace)
+                const getColumnValue = (row, colName) => {
+                    const keys = Object.keys(row);
+                    const matchingKey = keys.find(k => k.trim().toLowerCase() === colName.toLowerCase());
+                    return matchingKey ? row[matchingKey] : undefined;
+                };
 
                 useEffect(() => {
                     setLoading(true);
@@ -280,7 +295,6 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
                             if (jsonData && jsonData.length > 0) {
-                                // Tense definitions - "Questions" and "Początkujący" added here
                                 const tenseColumns = [
                                     "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
@@ -302,8 +316,10 @@
                                     });
 
                                     tenseColumns.forEach(tenseName => {
-                                        if (row[tenseName]) {
-                                            const tenseSentences = extractSentencesFromCell(row[tenseName]);
+                                        // Używamy helpera, aby znaleźć kolumnę nawet jak ma spacje w nazwie
+                                        const cellVal = getColumnValue(row, tenseName);
+                                        if (cellVal) {
+                                            const tenseSentences = extractSentencesFromCell(cellVal);
                                             if (tenseSentences.length > 0) {
                                                 processedData.push({
                                                     id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
@@ -518,6 +534,7 @@
                     pausedIntentionally.current = false;
                     
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
+                    const isPolishMode = tense === 'Początkujący'; // Wykrywanie trybu polskiego
 
                     let fullQueue = [];
                     if (resume && queueRef.current.length > 0) {
@@ -571,8 +588,16 @@
 
                     queueToSpeak.forEach((item, i) => {
                         const u = new SpeechSynthesisUtterance(item.text);
-                        if (selectedVoice) u.voice = selectedVoice;
-                        u.lang = 'en-US';
+                        
+                        // LOGIKA WYBORU JĘZYKA
+                        if (isPolishMode || (item.isSentence && tense === 'Początkujący')) {
+                            u.lang = 'pl-PL';
+                            if (selectedPlVoice) u.voice = selectedPlVoice;
+                        } else {
+                            u.lang = 'en-US';
+                            if (selectedVoice) u.voice = selectedVoice;
+                        }
+
                         u.rate = 0.7;
 
                         if (item.isPause) {
