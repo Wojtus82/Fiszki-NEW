@@ -280,9 +280,11 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
                             if (jsonData && jsonData.length > 0) {
+                                // ZMODYFIKOWANA LISTA KOLUMN:
                                 const tenseColumns = [
                                     "Present Simple", "Present continuous", "Past Simple", 
-                                    "Future Simple", "Present Perfect", "Past Continuous", "Going To"
+                                    "Future Simple", "Present Perfect", "Past Continuous", "Going To",
+                                    "Questions", "Początkujący"
                                 ];
                                 const processedData = [];
                                 jsonData.forEach(row => {
