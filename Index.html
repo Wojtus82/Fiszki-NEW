@@ -133,14 +133,29 @@
                 return { en, pl };
             };
 
-            const extractSentencesFromCell = (cellContent) => {
+            // ZMODYFIKOWANA FUNKCJA
+            const extractSentencesFromCell = (cellContent, isBeginner = false) => {
                 if (!cellContent) return [];
                 let strContent = String(cellContent).trim();
                 if (!strContent) return [];
+                
+                // Zawsze wstawiamy nową linię przed numeracją 1. 2. 3.
                 strContent = strContent.replace(/(?:^|\s+)([1-5]\.)\s*/g, '\n$1 ');
-                strContent = strContent.replace(/\)/g, ')\n');
+                
+                // Tylko jeśli to NIE jest Beginner, używamy logiki nawiasów do podziału
+                if (!isBeginner) {
+                    strContent = strContent.replace(/\)/g, ')\n');
+                }
+                
                 const lines = strContent.split(/\r?\n/).filter(line => line.trim() !== "");
-                return lines.map(line => parseSentenceRow(line)).filter(s => s && s.en);
+                
+                return lines.map(line => {
+                    // Dla Beginner nie parsujemy tłumaczenia - cała linia to tekst angielski
+                    if (isBeginner) {
+                        return { en: line.trim(), pl: '' };
+                    }
+                    return parseSentenceRow(line);
+                }).filter(s => s && s.en);
             };
 
             const getWordSizeClass = (text) => {
@@ -298,7 +313,7 @@
                                 const tenseColumns = [
                                     "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
-                                    "Questions", "Beginner"
+                                    "Questions", "Początkujący", "Beginner"
                                 ];
                                 const processedData = [];
                                 jsonData.forEach(row => {
@@ -316,10 +331,12 @@
                                     });
 
                                     tenseColumns.forEach(tenseName => {
-                                        // Używamy helpera, aby znaleźć kolumnę nawet jak ma spacje w nazwie
                                         const cellVal = getColumnValue(row, tenseName);
                                         if (cellVal) {
-                                            const tenseSentences = extractSentencesFromCell(cellVal);
+                                            // ZMIANA: PRZEKAZUJEMY FLAGĘ DLA BEGINNER
+                                            const isBeginner = tenseName === "Beginner";
+                                            const tenseSentences = extractSentencesFromCell(cellVal, isBeginner);
+                                            
                                             if (tenseSentences.length > 0) {
                                                 processedData.push({
                                                     id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
@@ -773,7 +790,7 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1 pb-20">{sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (<li key={i} ref={el => itemRefs.current[i] = el} className={`flex flex-col gap-1 transition-transform duration-300 origin-left pl-1 ${activeSentenceIndex === i ? 'scale-110 z-10' : 'scale-100 z-0'}`}><div className="flex gap-2 leading-snug"><span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-700'} transition-colors-all duration-700`}>{highlightTargetWord(s.en, viewAllSentences ? s.word : displayData.word)}</span></div><div className={`pl-6 text-sm sm:text-base italic ${theme.subText} transition-colors-all duration-700`}>({s.pl})</div></li>)) : <li className="text-center opacity-50 italic mt-4">Brak przykładowych zdań dla tego czasu</li>}</ul>
+                                                    <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1 pb-20">{sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (<li key={i} ref={el => itemRefs.current[i] = el} className={`flex flex-col gap-1 transition-transform duration-300 origin-left pl-1 ${activeSentenceIndex === i ? 'scale-110 z-10' : 'scale-100 z-0'}`}><div className="flex gap-2 leading-snug"><span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-700'} transition-colors-all duration-700`}>{highlightTargetWord(s.en, viewAllSentences ? s.word : displayData.word)}</span></div>{s.pl && tense !== 'Beginner' && (<div className={`pl-6 text-sm sm:text-base italic ${theme.subText} transition-colors-all duration-700`}>({s.pl})</div>)}</li>)) : <li className="text-center opacity-50 italic mt-4">Brak przykładowych zdań dla tego czasu</li>}</ul>
                                                     <div className={`mt-2 text-center font-mono text-lg sm:text-xl font-bold opacity-80 ${theme.subText} transition-colors-all duration-700`}>
                                                         {currentPhoneticToDisplay}
                                                     </div>
