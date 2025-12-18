@@ -298,7 +298,7 @@
                                 const tenseColumns = [
                                     "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
-                                    "Questions", "Początkujący"
+                                    "Questions", "Początkujący", "Beginner"
                                 ];
                                 const processedData = [];
                                 jsonData.forEach(row => {
@@ -603,7 +603,7 @@
                         if (item.isPause) {
                             u.text = " . . . "; 
                             u.volume = 0; 
-                            if (item.duration === 'long') u.rate = 0.1;      
+                            if (item.duration === 'long') u.rate = 0.1;       
                             else if (item.duration === 'medium') u.rate = 0.3; 
                             else u.rate = 0.8;                                
                         }
