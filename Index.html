@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Full Smart Select</title>
+    <title>Fiszki WOJTUKIEWICZ - Fixed</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -71,11 +71,10 @@
             user-select: none;
         }
 
-        /* Styl dla zaznaczonej pozycji w trybie multi */
         .item-multi-selected {
-            background-color: #ecfdf5 !important; /* emerald-50 light */
-            border-color: #10b981 !important; /* emerald-500 */
-            color: #065f46 !important; /* emerald-800 */
+            background-color: #ecfdf5 !important;
+            border-color: #10b981 !important;
+            color: #065f46 !important;
         }
         .dark .item-multi-selected {
             background-color: #064e3b !important;
@@ -141,7 +140,8 @@
                 filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>,
                 square: <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>,
                 checkSquare: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 12 14 22 4"></polyline></>,
-                barChart: <line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line>
+                /* POPRAWIONA LINIA PONIŻEJ */
+                barChart: <><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></>
             };
 
             const parseSentenceRow = (text) => {
@@ -390,7 +390,7 @@
                     const cats = [...new Set(filteredRows.map(row => row.category))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
                     setAvailableCategories(cats);
                     
-                    // Reset selection on level change (optional - maybe you want to keep category name if it exists in both levels)
+                    // Reset selection on level change
                     setSelectedCategories([]);
                     setTempSelectedCategories([]);
                 }, [selectedLevels, fullDatabase]);
@@ -399,7 +399,6 @@
                     if (!fullDatabase.length) return;
                     
                     const uniqueIds = [...new Set(fullDatabase.filter(row => {
-                        // LOGIC: Check if row.level is in selectedLevels AND check categories
                         const levelMatch = selectedLevels.includes(row.level);
                         const catMatch = selectedCategories.length === 0 ? true : selectedCategories.includes(row.category);
                         return levelMatch && catMatch;
