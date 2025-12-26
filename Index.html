@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Fixed</title>
+    <title>Fiszki WOJTUKIEWICZ - Fixed Filters</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -140,7 +140,6 @@
                 filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>,
                 square: <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>,
                 checkSquare: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 12 14 22 4"></polyline></>,
-                /* POPRAWIONA LINIA PONIŻEJ */
                 barChart: <><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></>
             };
 
@@ -384,13 +383,11 @@
                 useEffect(() => {
                     if (!fullDatabase.length) { setAvailableCategories([]); return; }
                     
-                    // Filter categories based on ALL selected levels
                     const filteredRows = fullDatabase.filter(row => selectedLevels.includes(row.level));
                     
                     const cats = [...new Set(filteredRows.map(row => row.category))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
                     setAvailableCategories(cats);
                     
-                    // Reset selection on level change
                     setSelectedCategories([]);
                     setTempSelectedCategories([]);
                 }, [selectedLevels, fullDatabase]);
@@ -486,21 +483,37 @@
                 // --- KONIEC LOGIKI MULTI SELECT ---
 
 
+                // --- ZABEZPIECZONA FUNKCJA: availableTenses ---
                 const availableTenses = useMemo(() => {
                         if (!currentWordIds.length || !fullDatabase.length) return [];
                         const currentId = currentWordIds[currentIndex];
-                        const rows = fullDatabase.filter(row => row.id === currentId);
+                        
+                        // ZMIANA: Dodano filtrowanie po selectedLevels i selectedCategories
+                        const rows = fullDatabase.filter(row => 
+                            row.id === currentId && 
+                            selectedLevels.includes(row.level) &&
+                            (selectedCategories.length === 0 || selectedCategories.includes(row.category))
+                        );
+
                         const tenses = rows.map(r => r.tense).filter(t => t && t !== 'Base');
                         return [...new Set(tenses)];
-                }, [currentWordIds, currentIndex, fullDatabase]);
+                }, [currentWordIds, currentIndex, fullDatabase, selectedLevels, selectedCategories]);
 
+                // --- ZABEZPIECZONA FUNKCJA: allCategorySentences (GŁÓWNY FIX) ---
                 const allCategorySentences = useMemo(() => {
                     if (!viewAllSentences) return [];
                     if (!fullDatabase.length) return [];
                     if (!currentWordIds.length) return [];
                     let sentences = [];
                     currentWordIds.forEach((id, idx) => {
-                        const wordRows = fullDatabase.filter(row => row.id === id);
+                        // ZMIANA: Filtrujemy bazę danych tak, aby brała tylko wiersze pasujące do filtrów (Level/Category)
+                        // Wcześniej brało wszystkie wiersze z danym ID, niezależnie od poziomu.
+                        const wordRows = fullDatabase.filter(row => 
+                            row.id === id && 
+                            selectedLevels.includes(row.level) &&
+                            (selectedCategories.length === 0 || selectedCategories.includes(row.category))
+                        );
+
                         let rowsToProcess = [];
                         if (tense === 'mixed') rowsToProcess = wordRows.filter(r => r.tense !== 'Base');
                         else rowsToProcess = wordRows.filter(r => r.tense === tense);
@@ -514,7 +527,7 @@
                         });
                     });
                     return sentences;
-                }, [viewAllSentences, currentWordIds, fullDatabase, tense]);
+                }, [viewAllSentences, currentWordIds, fullDatabase, tense, selectedLevels, selectedCategories]);
 
                 useEffect(() => {
                     itemRefs.current = [];
@@ -526,20 +539,29 @@
                     if (!currentWordIds.length) return { isEmpty: true, word: "Brak słówek", translation: "Spróbuj zmienić kategorię lub poziom", phonetic: "---", sentences: [] };
 
                     const currentId = currentWordIds[currentIndex];
-                    const baseRow = fullDatabase.find(row => row.id === currentId && row.tense === 'Base');
-                    const fallbackRow = fullDatabase.find(row => row.id === currentId);
+
+                    // ZMIANA: Najpierw pobierzmy pasujące wiersze (zgodne z poziomem i kategorią)
+                    const validRows = fullDatabase.filter(row => 
+                        row.id === currentId &&
+                        selectedLevels.includes(row.level) &&
+                        (selectedCategories.length === 0 || selectedCategories.includes(row.category))
+                    );
+
+                    const baseRow = validRows.find(row => row.tense === 'Base');
+                    const fallbackRow = validRows[0]; // Bierzemy pierwszy pasujący, jeśli nie ma Base
                     const mainInfoRow = baseRow || fallbackRow;
+                    
                     if (!mainInfoRow) return null;
 
                     let sentences = [];
                     if (tense === 'mixed') {
-                        const allVariations = fullDatabase.filter(row => row.id === currentId && row.tense !== 'Base');
+                        const allVariations = validRows.filter(row => row.tense !== 'Base');
                         allVariations.forEach(row => { if (row.sentencesList) sentences.push(...row.sentencesList); });
                         sentences = sentences.sort(() => Math.random() - 0.5).slice(0, 5);
                     } else if (tense === 'Base') {
                         if (baseRow && baseRow.sentencesList) sentences = baseRow.sentencesList;
                     } else {
-                        const activeRow = fullDatabase.find(row => row.id === currentId && row.tense === tense);
+                        const activeRow = validRows.find(row => row.tense === tense);
                         if (activeRow && activeRow.sentencesList) sentences = activeRow.sentencesList;
                     }
                     return { word: mainInfoRow.word, translation: mainInfoRow.translation, phonetic: mainInfoRow.phonetic, sentences: sentences };
