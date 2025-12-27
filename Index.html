@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Kolor Poprawiony</title>
+    <title>Fiszki WOJTUKIEWICZ - Beginner Hybrid Audio</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -355,7 +355,7 @@
                                     tenseColumns.forEach(tenseName => {
                                         const cellVal = getColumnValue(row, tenseName);
                                         if (cellVal) {
-                                            const isBeginner = tenseName === "Beginner";
+                                            const isBeginner = tenseName === "Beginner" || tenseName === "Początkujący";
                                             const tenseSentences = extractSentencesFromCell(cellVal, isBeginner);
                                             
                                             if (tenseSentences.length > 0) {
@@ -666,38 +666,107 @@
                     pausedIntentionally.current = false;
                     
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
-                    const isPolishMode = tense === 'Początkujący'; 
+                    
+                    // Definicja trybów mieszanych
+                    const isMixedLangMode = tense === 'Początkujący' || tense === 'Beginner';
+                    const targetWord = displayData.word ? displayData.word.split('(')[0].trim() : "";
 
                     let fullQueue = [];
+                    
                     if (resume && queueRef.current.length > 0) {
                         fullQueue = queueRef.current;
                     } else {
                         if (viewAllSentences) setSpeakingSentenceIndex(0);
                         
                         let tempQueue = [];
+
+                        // Funkcja pomocnicza do dzielenia zdań na PL/EN
+                        const pushMixedSentence = (rawText, vIndex, gIndex) => {
+                            const text = cleanSentence(rawText);
+                            if (!targetWord || !isMixedLangMode) {
+                                // Zwykły tryb - jeden język
+                                tempQueue.push({ 
+                                    text: text, 
+                                    isSentence: true, 
+                                    visualIndex: vIndex, 
+                                    globalIndex: gIndex,
+                                    lang: isMixedLangMode ? 'pl-PL' : 'en-US' // Jeśli Beginner ale nie znaleziono słowa, czytaj PL
+                                });
+                            } else {
+                                // Tryb mieszany - rozbijamy zdanie
+                                const escapedTarget = targetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                const regex = new RegExp(`(${escapedTarget})`, 'gi');
+                                const parts = text.split(regex);
+
+                                parts.forEach(part => {
+                                    if (!part.trim()) return;
+                                    const isEnWord = part.toLowerCase() === targetWord.toLowerCase();
+                                    tempQueue.push({
+                                        text: part,
+                                        isSentence: true, // Nadal traktujemy to jako część zdania dla podświetlenia
+                                        visualIndex: vIndex,
+                                        globalIndex: gIndex,
+                                        lang: isEnWord ? 'en-US' : 'pl-PL',
+                                        forceVoice: isEnWord ? selectedVoice : selectedPlVoice
+                                    });
+                                });
+                            }
+                        };
+
                         if (cardSide === 3 && viewAllSentences) {
+                            // CZYTANIE WSZYSTKICH ZDAŃ
                             let lastWord = "";
                             sentencesListToRender.forEach((s, index) => {
+                                // Nagłówek słowa (gdy zmienia się słowo w widoku wszystkich)
                                 if (s.word !== lastWord) {
                                     if (lastWord !== "") tempQueue.push({ text: "...", isPause: true, duration: 'long' }); 
                                     lastWord = s.word;
-                                    tempQueue.push({ text: lastWord, isWord: true, globalIndex: index });
+                                    tempQueue.push({ text: lastWord, isWord: true, globalIndex: index, lang: 'en-US' });
                                     tempQueue.push({ text: ".", isPause: true, duration: 'short' }); 
                                 }
-                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index, globalIndex: index });
+                                
+                                // Zdanie (może być miksowane)
+                                // Dla viewAllSentences musimy pobrać targetWord dynamicznie dla każdego wiersza, 
+                                // bo lista może zawierać różne słowa
+                                const rowTargetWord = s.word ? s.word.split('(')[0].trim() : "";
+                                
+                                if (isMixedLangMode && rowTargetWord) {
+                                    const cText = cleanSentence(s.en);
+                                    const escT = rowTargetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                    const reg = new RegExp(`(${escT})`, 'gi');
+                                    const pts = cText.split(reg);
+                                    
+                                    pts.forEach(pt => {
+                                        if(!pt.trim()) return;
+                                        const isEn = pt.toLowerCase() === rowTargetWord.toLowerCase();
+                                        tempQueue.push({
+                                            text: pt, isSentence: true, visualIndex: index, globalIndex: index,
+                                            lang: isEn ? 'en-US' : 'pl-PL',
+                                            forceVoice: isEn ? selectedVoice : selectedPlVoice
+                                        });
+                                    });
+                                } else {
+                                    pushMixedSentence(s.en, index, index);
+                                }
+                                
                                 tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
                             });
+
                         } else if (cardSide === 3) {
+                            // CZYTANIE LISTY ZDAŃ DLA JEDNEGO SŁOWA
                             displayData.sentences.forEach((s, index) => {
-                                tempQueue.push({ text: cleanSentence(s.en), isSentence: true, visualIndex: index });
+                                pushMixedSentence(s.en, index);
                                 tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
                             });
                         } else {
-                                if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
-                                    tempQueue.push({ text: cleanSentence(displayData.sentences[0].en) });
-                                } else {
-                                    tempQueue.push({ text: displayData.word });
-                                }
+                            // STRONA GŁÓWNA (AWERS/REWERS)
+                            if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
+                                // Jeśli jest wybrany konkretny czas, przeczytaj pierwsze zdanie
+                                pushMixedSentence(displayData.sentences[0].en);
+                            } else {
+                                // Czytaj samo słowo/tłumaczenie
+                                tempQueue.push({ text: displayData.word, lang: 'en-US' });
+                            }
                         }
                         fullQueue = tempQueue;
                         queueRef.current = tempQueue;
@@ -721,15 +790,29 @@
                     queueToSpeak.forEach((item, i) => {
                         const u = new SpeechSynthesisUtterance(item.text);
                         
-                        if (isPolishMode || (item.isSentence && tense === 'Początkujący')) {
-                            u.lang = 'pl-PL';
-                            if (selectedPlVoice) u.voice = selectedPlVoice;
+                        // --- LOGIKA WYBORU JĘZYKA ---
+                        if (item.forceVoice) {
+                            // Jeśli element ma wymuszony głos (z logiki splitera Beginner)
+                            u.voice = item.forceVoice;
+                            u.lang = item.lang;
+                        } else if (item.lang) {
+                            // Jeśli element ma ustawiony język
+                            u.lang = item.lang;
+                            if (item.lang === 'pl-PL' && selectedPlVoice) u.voice = selectedPlVoice;
+                            if (item.lang === 'en-US' && selectedVoice) u.voice = selectedVoice;
                         } else {
-                            u.lang = 'en-US';
-                            if (selectedVoice) u.voice = selectedVoice;
+                            // Fallback
+                            // Używamy isMixedLangMode jako wskaźnika, że domyślnie to polski, jeśli nie określono inaczej
+                            if (isMixedLangMode) {
+                                u.lang = 'pl-PL';
+                                if (selectedPlVoice) u.voice = selectedPlVoice;
+                            } else {
+                                u.lang = 'en-US';
+                                if (selectedVoice) u.voice = selectedVoice;
+                            }
                         }
 
-                        u.rate = 0.7;
+                        u.rate = 0.85;
 
                         if (item.isPause) {
                             u.text = " . . . "; 
@@ -738,7 +821,11 @@
                             else if (item.duration === 'medium') u.rate = 0.3; 
                             else u.rate = 0.8;                               
                         }
-                        if (item.isWord) u.rate = 0.6; 
+                        
+                        // Słowo angielskie w polskim zdaniu warto przeczytać wolniej
+                        if (item.lang === 'en-US' && isMixedLangMode) {
+                            u.rate = 0.7;
+                        }
 
                         u.onstart = () => {
                             if (isPausedRef.current) return;
