@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Beginner Hybrid Audio</title>
+    <title>Fiszki WOJTUKIEWICZ - No "Kropka" Fix</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -682,7 +682,12 @@
 
                         // Funkcja pomocnicza do dzielenia zdań na PL/EN
                         const pushMixedSentence = (rawText, vIndex, gIndex) => {
-                            const text = cleanSentence(rawText);
+                            let text = cleanSentence(rawText);
+                            
+                            // --- POPRAWKA: Usuń kropkę z końca zdania, aby lektor nie czytał "kropka" ---
+                            text = text.replace(/\.$/, ''); 
+                            // --------------------------------------------------------------------------
+
                             if (!targetWord || !isMixedLangMode) {
                                 // Zwykły tryb - jeden język
                                 tempQueue.push({ 
@@ -690,7 +695,7 @@
                                     isSentence: true, 
                                     visualIndex: vIndex, 
                                     globalIndex: gIndex,
-                                    lang: isMixedLangMode ? 'pl-PL' : 'en-US' // Jeśli Beginner ale nie znaleziono słowa, czytaj PL
+                                    lang: isMixedLangMode ? 'pl-PL' : 'en-US' 
                                 });
                             } else {
                                 // Tryb mieszany - rozbijamy zdanie
@@ -700,10 +705,13 @@
 
                                 parts.forEach(part => {
                                     if (!part.trim()) return;
+                                    // Dodatkowe zabezpieczenie: jeśli część to same znaki interpunkcyjne, ignoruj
+                                    if (/^[.,?!]+$/.test(part.trim())) return;
+
                                     const isEnWord = part.toLowerCase() === targetWord.toLowerCase();
                                     tempQueue.push({
                                         text: part,
-                                        isSentence: true, // Nadal traktujemy to jako część zdania dla podświetlenia
+                                        isSentence: true, 
                                         visualIndex: vIndex,
                                         globalIndex: gIndex,
                                         lang: isEnWord ? 'en-US' : 'pl-PL',
@@ -717,7 +725,7 @@
                             // CZYTANIE WSZYSTKICH ZDAŃ
                             let lastWord = "";
                             sentencesListToRender.forEach((s, index) => {
-                                // Nagłówek słowa (gdy zmienia się słowo w widoku wszystkich)
+                                // Nagłówek słowa
                                 if (s.word !== lastWord) {
                                     if (lastWord !== "") tempQueue.push({ text: "...", isPause: true, duration: 'long' }); 
                                     lastWord = s.word;
@@ -726,18 +734,20 @@
                                 }
                                 
                                 // Zdanie (może być miksowane)
-                                // Dla viewAllSentences musimy pobrać targetWord dynamicznie dla każdego wiersza, 
-                                // bo lista może zawierać różne słowa
                                 const rowTargetWord = s.word ? s.word.split('(')[0].trim() : "";
                                 
                                 if (isMixedLangMode && rowTargetWord) {
-                                    const cText = cleanSentence(s.en);
+                                    let cText = cleanSentence(s.en);
+                                    cText = cText.replace(/\.$/, ''); // Usuń kropkę tutaj też
+                                    
                                     const escT = rowTargetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                     const reg = new RegExp(`(${escT})`, 'gi');
                                     const pts = cText.split(reg);
                                     
                                     pts.forEach(pt => {
                                         if(!pt.trim()) return;
+                                        if (/^[.,?!]+$/.test(pt.trim())) return; // Ignoruj interpunkcję
+
                                         const isEn = pt.toLowerCase() === rowTargetWord.toLowerCase();
                                         tempQueue.push({
                                             text: pt, isSentence: true, visualIndex: index, globalIndex: index,
@@ -761,10 +771,8 @@
                         } else {
                             // STRONA GŁÓWNA (AWERS/REWERS)
                             if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
-                                // Jeśli jest wybrany konkretny czas, przeczytaj pierwsze zdanie
                                 pushMixedSentence(displayData.sentences[0].en);
                             } else {
-                                // Czytaj samo słowo/tłumaczenie
                                 tempQueue.push({ text: displayData.word, lang: 'en-US' });
                             }
                         }
@@ -790,19 +798,14 @@
                     queueToSpeak.forEach((item, i) => {
                         const u = new SpeechSynthesisUtterance(item.text);
                         
-                        // --- LOGIKA WYBORU JĘZYKA ---
                         if (item.forceVoice) {
-                            // Jeśli element ma wymuszony głos (z logiki splitera Beginner)
                             u.voice = item.forceVoice;
                             u.lang = item.lang;
                         } else if (item.lang) {
-                            // Jeśli element ma ustawiony język
                             u.lang = item.lang;
                             if (item.lang === 'pl-PL' && selectedPlVoice) u.voice = selectedPlVoice;
                             if (item.lang === 'en-US' && selectedVoice) u.voice = selectedVoice;
                         } else {
-                            // Fallback
-                            // Używamy isMixedLangMode jako wskaźnika, że domyślnie to polski, jeśli nie określono inaczej
                             if (isMixedLangMode) {
                                 u.lang = 'pl-PL';
                                 if (selectedPlVoice) u.voice = selectedPlVoice;
@@ -822,14 +825,12 @@
                             else u.rate = 0.8;                               
                         }
                         
-                        // Słowo angielskie w polskim zdaniu warto przeczytać wolniej
                         if (item.lang === 'en-US' && isMixedLangMode) {
                             u.rate = 0.7;
                         }
 
                         u.onstart = () => {
                             if (isPausedRef.current) return;
-
                             const actualGlobalIndex = startIndex + i;
                             queueIndexRef.current = actualGlobalIndex;
 
