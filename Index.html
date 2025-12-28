@@ -343,8 +343,16 @@
                 }, [voices]);
 
                 const getColumnValue = (row, colName) => {
+                    if (!row) return undefined;
                     const keys = Object.keys(row);
-                    const matchingKey = keys.find(k => k.trim().toLowerCase() === colName.toLowerCase());
+                    // Normalize search: string, trim, lowercase
+                    const search = String(colName).trim().toLowerCase();
+                    
+                    // Exact match first (assuming nice data)
+                    if (row[colName] !== undefined) return row[colName];
+
+                    // Loose match (case insensitive, trim)
+                    const matchingKey = keys.find(k => String(k).trim().toLowerCase() === search);
                     return matchingKey ? row[matchingKey] : undefined;
                 };
 
@@ -364,6 +372,9 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
                             if (jsonData && jsonData.length > 0) {
+                                // DIAGNOSTYKA: Pokaż w konsoli jakie klucze widzi program w pierwszym wierszu
+                                console.log('Wczytane nagłówki (klucze) z Excela:', Object.keys(jsonData[0] || {}));
+
                                 const tenseColumns = [
                                     "Beginner", "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
@@ -381,6 +392,7 @@
                                     // EXTRAKCJA KOLUMN INFORMACYJNYCH 1-10
                                     const grammarInfo = {};
                                     for(let i=1; i<=10; i++) {
+                                        // Szukamy kolumny o nazwie "1", "2" itd.
                                         const val = getColumnValue(row, String(i));
                                         grammarInfo[String(i)] = val ? String(val).trim() : "";
                                     }
@@ -1168,7 +1180,7 @@
                                                         {displayData && displayData.infoText ? (
                                                             <div className="whitespace-pre-line">{displayData.infoText}</div>
                                                         ) : (
-                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla wybranego czasu.</div>
+                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla wybranego czasu.<br/>Sprawdź kolumnę nr {tenseColumnMap[tense] || '1'} w Excelu.</div>
                                                         )}
                                                     </div>
                                                     <div className="flex-none mt-4 w-full">
