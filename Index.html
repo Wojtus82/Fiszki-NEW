@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Pause Control</title>
+    <title>Fiszki WOJTUKIEWICZ - Grammar Info</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -153,22 +153,6 @@
                     <path d="M3 13h5M2 17h4M4 9h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </>,
                 infoCircle: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>
-            };
-
-            // MAPPING FOR INFO COLUMNS
-            const tenseColumnMap = {
-                'Base': '1',
-                'Present Simple': '2',
-                'Present continuous': '3',
-                'Past Simple': '4',
-                'Future Simple': '5',
-                'Present Perfect': '6',
-                'Past Continuous': '7',
-                'Going To': '8',
-                'Questions': '9',
-                'Beginner': '10',
-                'Początkujący': '10',
-                'mixed': '1' // Default to Base for Mixed
             };
 
             const parseSentenceRow = (text) => {
@@ -345,18 +329,11 @@
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
                     const keys = Object.keys(row);
-                    // Search target converted to string and trimmed
-                    const target = String(colName).trim();
+                    // Normalize search
+                    const target = String(colName).trim().toLowerCase();
                     
-                    // 1. Check strict string match
-                    if (row[target] !== undefined) return row[target];
-                    
-                    // 2. Check strict number match
-                    const numTarget = Number(target);
-                    if (!isNaN(numTarget) && row[numTarget] !== undefined) return row[numTarget];
-
-                    // 3. Loose search (case insensitive, trimmed keys)
-                    const matchingKey = keys.find(k => String(k).trim().toLowerCase() === target.toLowerCase());
+                    // Loose search (case insensitive, trimmed keys)
+                    const matchingKey = keys.find(k => String(k).trim().toLowerCase() === target);
                     return matchingKey ? row[matchingKey] : undefined;
                 };
 
@@ -374,13 +351,13 @@
                             const firstSheetName = workbook.SheetNames[0];
                             const worksheet = workbook.Sheets[firstSheetName];
                             
-                            // Load data including header row issues
+                            // Load data
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
-                                // --- DEBUG ---
-                                console.log('Przykładowy wiersz (klucze):', Object.keys(jsonData[0]));
-                                // -------------
+                                // --- DEBUG W KONSOLI ---
+                                console.log('Wczytane nagłówki z Excela:', Object.keys(jsonData[0]));
+                                // -----------------------
 
                                 const tenseColumns = [
                                     "Beginner", "Present Simple", "Present continuous", "Past Simple", 
@@ -396,13 +373,21 @@
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
                                     
-                                    // EXTRAKCJA KOLUMN INFORMACYJNYCH 1-10
+                                    // EXTRAKCJA KOLUMN INFORMACYJNYCH: Base_info, Present Simple_info itp.
                                     const grammarInfo = {};
-                                    for(let i=1; i<=10; i++) {
-                                        // Szukamy kolumny o nazwie "1", "2" itd.
-                                        const val = getColumnValue(row, String(i));
-                                        grammarInfo[String(i)] = val ? String(val).trim() : "";
-                                    }
+                                    
+                                    // 1. Mapowanie Base (może być pod 'Base_info' lub '1')
+                                    let baseInfo = getColumnValue(row, "Base_info") || getColumnValue(row, "1");
+                                    grammarInfo['Base'] = baseInfo ? String(baseInfo).trim() : "";
+
+                                    // 2. Mapowanie reszty czasów (nazwa_czasu + "_info")
+                                    tenseColumns.forEach(t => {
+                                        let info = getColumnValue(row, `${t}_info`);
+                                        // Opcjonalnie: fallback do numerów jeśli używasz
+                                        // if (!info && t === 'Present Simple') info = getColumnValue(row, "2"); 
+                                        
+                                        grammarInfo[t] = info ? String(info).trim() : "";
+                                    });
 
                                     const baseSentences = extractSentencesFromCell(row.base);
                                     processedData.push({
@@ -614,9 +599,10 @@
                         if (activeRow && activeRow.sentencesList) sentences = activeRow.sentencesList;
                     }
                     
-                    // GET INFO CONTENT
-                    const colKey = tenseColumnMap[tense] || '1';
-                    const infoText = mainInfoRow.grammarInfo ? mainInfoRow.grammarInfo[colKey] : "";
+                    // GET INFO CONTENT from the new grammarInfo logic
+                    // If mixed, default to Base
+                    const t = (tense === 'mixed') ? 'Base' : tense;
+                    const infoText = mainInfoRow.grammarInfo ? mainInfoRow.grammarInfo[t] : "";
 
                     return { word: mainInfoRow.word, translation: mainInfoRow.translation, phonetic: mainInfoRow.phonetic, sentences: sentences, infoText: infoText };
                 };
