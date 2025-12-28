@@ -383,9 +383,6 @@
                                     // 2. Mapowanie reszty czasów (nazwa_czasu + "_info")
                                     tenseColumns.forEach(t => {
                                         let info = getColumnValue(row, `${t}_info`);
-                                        // Opcjonalnie: fallback do numerów jeśli używasz
-                                        // if (!info && t === 'Present Simple') info = getColumnValue(row, "2"); 
-                                        
                                         grammarInfo[t] = info ? String(info).trim() : "";
                                     });
 
