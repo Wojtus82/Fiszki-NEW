@@ -214,6 +214,7 @@
 
             function FlashcardsApp() {
                 const [fullDatabase, setFullDatabase] = useState([]);
+                const [grammarData, setGrammarData] = useState({}); // NOWY STAN DLA GRAMATYKI
                 const [loading, setLoading] = useState(true);
                 const [fileError, setFileError] = useState(null);
 
@@ -352,15 +353,35 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
-                                // --- DEBUG W KONSOLI ---
-                                console.log('Wczytane nagłówki z Excela:', Object.keys(jsonData[0]));
-                                // -----------------------
+                                // --- LOGOWANIE DLA DIAGNOSTYKI ---
+                                console.log('Wczytane klucze:', Object.keys(jsonData[0]));
 
                                 const tenseColumns = [
                                     "Beginner", "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
                                     "Questions"
                                 ];
+
+                                // === NOWA LOGIKA SZUKANIA OPISÓW GRAMATYKI (PRZESZUKANIE CAŁEJ KOLUMNY) ===
+                                const foundGrammar = {};
+                                const allTensesToCheck = ['Base', ...tenseColumns];
+
+                                allTensesToCheck.forEach(tenseName => {
+                                    const colHeader = `${tenseName}_info`; // np. "Present Simple_info"
+                                    
+                                    // Znajdź pierwszy wiersz, który ma cokolwiek wpisane w tej kolumnie
+                                    const foundRow = jsonData.find(row => {
+                                        const val = getColumnValue(row, colHeader);
+                                        return val && String(val).trim().length > 0;
+                                    });
+                                    
+                                    if (foundRow) {
+                                        foundGrammar[tenseName] = String(getColumnValue(foundRow, colHeader)).trim();
+                                    }
+                                });
+                                setGrammarData(foundGrammar);
+                                // =========================================================================
+
                                 const processedData = [];
                                 jsonData.forEach(row => {
                                     const id = row.id;
@@ -370,23 +391,10 @@
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
                                     
-                                    // EXTRAKCJA KOLUMN INFORMACYJNYCH: Base_info, Present Simple_info itp.
-                                    const grammarInfo = {};
-                                    
-                                    // 1. Mapowanie Base
-                                    let baseInfo = getColumnValue(row, "Base_info") || getColumnValue(row, "1");
-                                    grammarInfo['Base'] = baseInfo ? String(baseInfo).trim() : "";
-
-                                    // 2. Mapowanie reszty czasów (nazwa_czasu + "_info")
-                                    tenseColumns.forEach(t => {
-                                        let info = getColumnValue(row, `${t}_info`);
-                                        grammarInfo[t] = info ? String(info).trim() : "";
-                                    });
-
                                     const baseSentences = extractSentencesFromCell(row.base);
                                     processedData.push({
                                         id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
-                                        phonetic: phonetic, tense: 'Base', sentencesList: baseSentences, grammarInfo: grammarInfo
+                                        phonetic: phonetic, tense: 'Base', sentencesList: baseSentences
                                     });
 
                                     tenseColumns.forEach(tenseName => {
@@ -398,7 +406,7 @@
                                             if (tenseSentences.length > 0) {
                                                 processedData.push({
                                                     id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
-                                                    phonetic: phonetic, tense: tenseName, sentencesList: tenseSentences, grammarInfo: grammarInfo
+                                                    phonetic: phonetic, tense: tenseName, sentencesList: tenseSentences
                                                 });
                                             }
                                         }
@@ -593,10 +601,9 @@
                         if (activeRow && activeRow.sentencesList) sentences = activeRow.sentencesList;
                     }
                     
-                    // GET INFO CONTENT from the new grammarInfo logic
-                    // If mixed, default to Base
+                    // POBIERZ INFO Z GLOBALNEGO STANU
                     const t = (tense === 'mixed') ? 'Base' : tense;
-                    const infoText = mainInfoRow.grammarInfo ? mainInfoRow.grammarInfo[t] : "";
+                    const infoText = grammarData[t] || "";
 
                     return { word: mainInfoRow.word, translation: mainInfoRow.translation, phonetic: mainInfoRow.phonetic, sentences: sentences, infoText: infoText };
                 };
@@ -1167,7 +1174,10 @@
                                                         {displayData && displayData.infoText ? (
                                                             <div className="whitespace-pre-line">{displayData.infoText}</div>
                                                         ) : (
-                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla wybranego czasu.<br/>Sprawdź kolumnę '{tense === 'mixed' ? 'Base' : tense}_info' w Excelu.</div>
+                                                            <div className="italic opacity-70 text-center mt-10">
+                                                                Brak informacji dla wybranego czasu.<br/>
+                                                                Sprawdź kolumnę '{tense === 'mixed' ? 'Base' : tense}_info' w Excelu.
+                                                            </div>
                                                         )}
                                                     </div>
                                                     <div className="flex-none mt-4 w-full">
