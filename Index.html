@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - No "Kropka" Fix</title>
+    <title>Fiszki WOJTUKIEWICZ - Pause Control</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -245,6 +245,10 @@
                 
                 const [speakingSentenceIndex, setSpeakingSentenceIndex] = useState(0);
                 
+                // --- PAUSE DURATION STATE ---
+                const [pauseDuration, setPauseDuration] = useState(0);
+                // -2, -1, 0, 1, 2
+
                 const [voices, setVoices] = useState([]);
                 const [selectedVoice, setSelectedVoice] = useState(null);
                 const [selectedPlVoice, setSelectedPlVoice] = useState(null);
@@ -655,6 +659,15 @@
                     setCardSide(2); setRotation(180); setViewAllSentences(false); 
                 };
 
+                const togglePauseDuration = (e) => {
+                    e.stopPropagation();
+                    setPauseDuration(prev => {
+                        // Cycle: -2 -> -1 -> 0 -> 1 -> 2 -> -2
+                        if (prev >= 2) return -2;
+                        return prev + 1;
+                    });
+                };
+
                 const handleSpeak = (resume = false) => {
                     if (isFinished || !displayData || displayData.isEmpty) return;
                     
@@ -667,7 +680,6 @@
                     
                     const cleanSentence = (txt) => txt.replace(/^\s*[0-9]+\.\s*/g, '').trim();
                     
-                    // Definicja trybów mieszanych
                     const isMixedLangMode = tense === 'Początkujący' || tense === 'Beginner';
                     const targetWord = displayData.word ? displayData.word.split('(')[0].trim() : "";
 
@@ -680,16 +692,13 @@
                         
                         let tempQueue = [];
 
-                        // Funkcja pomocnicza do dzielenia zdań na PL/EN
                         const pushMixedSentence = (rawText, vIndex, gIndex) => {
                             let text = cleanSentence(rawText);
                             
-                            // --- POPRAWKA: Usuń kropkę z końca zdania, aby lektor nie czytał "kropka" ---
+                            // Remove trailing dot so "kropka" is not read
                             text = text.replace(/\.$/, ''); 
-                            // --------------------------------------------------------------------------
 
                             if (!targetWord || !isMixedLangMode) {
-                                // Zwykły tryb - jeden język
                                 tempQueue.push({ 
                                     text: text, 
                                     isSentence: true, 
@@ -698,14 +707,12 @@
                                     lang: isMixedLangMode ? 'pl-PL' : 'en-US' 
                                 });
                             } else {
-                                // Tryb mieszany - rozbijamy zdanie
                                 const escapedTarget = targetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                 const regex = new RegExp(`(${escapedTarget})`, 'gi');
                                 const parts = text.split(regex);
 
                                 parts.forEach(part => {
                                     if (!part.trim()) return;
-                                    // Dodatkowe zabezpieczenie: jeśli część to same znaki interpunkcyjne, ignoruj
                                     if (/^[.,?!]+$/.test(part.trim())) return;
 
                                     const isEnWord = part.toLowerCase() === targetWord.toLowerCase();
@@ -727,18 +734,18 @@
                             sentencesListToRender.forEach((s, index) => {
                                 // Nagłówek słowa
                                 if (s.word !== lastWord) {
-                                    if (lastWord !== "") tempQueue.push({ text: "...", isPause: true, duration: 'long' }); 
+                                    if (lastWord !== "") tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration }); 
                                     lastWord = s.word;
                                     tempQueue.push({ text: lastWord, isWord: true, globalIndex: index, lang: 'en-US' });
-                                    tempQueue.push({ text: ".", isPause: true, duration: 'short' }); 
+                                    tempQueue.push({ text: ".", isPause: true, customLevel: pauseDuration }); 
                                 }
                                 
-                                // Zdanie (może być miksowane)
+                                // Zdanie
                                 const rowTargetWord = s.word ? s.word.split('(')[0].trim() : "";
                                 
                                 if (isMixedLangMode && rowTargetWord) {
                                     let cText = cleanSentence(s.en);
-                                    cText = cText.replace(/\.$/, ''); // Usuń kropkę tutaj też
+                                    cText = cText.replace(/\.$/, '');
                                     
                                     const escT = rowTargetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                     const reg = new RegExp(`(${escT})`, 'gi');
@@ -746,7 +753,7 @@
                                     
                                     pts.forEach(pt => {
                                         if(!pt.trim()) return;
-                                        if (/^[.,?!]+$/.test(pt.trim())) return; // Ignoruj interpunkcję
+                                        if (/^[.,?!]+$/.test(pt.trim())) return; 
 
                                         const isEn = pt.toLowerCase() === rowTargetWord.toLowerCase();
                                         tempQueue.push({
@@ -759,17 +766,18 @@
                                     pushMixedSentence(s.en, index, index);
                                 }
                                 
-                                tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
+                                // PAUSE BETWEEN SENTENCES
+                                tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
                             });
 
                         } else if (cardSide === 3) {
                             // CZYTANIE LISTY ZDAŃ DLA JEDNEGO SŁOWA
                             displayData.sentences.forEach((s, index) => {
                                 pushMixedSentence(s.en, index);
-                                tempQueue.push({ text: "...", isPause: true, duration: 'medium' });
+                                // PAUSE BETWEEN SENTENCES
+                                tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
                             });
                         } else {
-                            // STRONA GŁÓWNA (AWERS/REWERS)
                             if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
                                 pushMixedSentence(displayData.sentences[0].en);
                             } else {
@@ -820,9 +828,19 @@
                         if (item.isPause) {
                             u.text = " . . . "; 
                             u.volume = 0; 
-                            if (item.duration === 'long') u.rate = 0.1;       
-                            else if (item.duration === 'medium') u.rate = 0.3; 
-                            else u.rate = 0.8;                               
+                            
+                            // LOGIKA PAUZY:
+                            // -2: Bardzo długa pauza (bardzo wolne czytanie kropek)
+                            // 2: Bardzo krótka pauza (szybkie czytanie kropek)
+                            let r = 0.3; // Default 0
+                            
+                            if (item.customLevel === -2) r = 0.05;
+                            else if (item.customLevel === -1) r = 0.1;
+                            else if (item.customLevel === 0) r = 0.3;
+                            else if (item.customLevel === 1) r = 0.8;
+                            else if (item.customLevel === 2) r = 2.0;
+                            
+                            u.rate = r;
                         }
                         
                         if (item.lang === 'en-US' && isMixedLangMode) {
@@ -1091,7 +1109,7 @@
                                     <div className={`relative w-full h-full shadow-2xl rounded-2xl cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-700 ease-in-out'}`} style={{ transform: `rotateY(${rotation}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
                                         <div className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardFrontBg} ${isDarkMode ? 'border-gray-600' : 'border-indigo-200'} transition-colors-all duration-700`} style={{ transform: 'rotateY(0deg)' }}>
                                             {cardSide === 3 ? (
-                                                <div className="w-full h-full flex flex-col animate-fadeIn">
+                                                <div className="w-full h-full flex flex-col animate-fadeIn relative">
                                                     <div className="flex justify-between items-center mb-2 sm:mb-3 border-b pb-2 border-gray-200/20 flex-none relative">
                                                         <h3 className={`font-bold flex items-center gap-2 text-sm sm:text-base ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'} transition-colors-all duration-700`}><Icon path={iconPaths.book} size={16} className="sm:w-[18px] sm:h-[18px]"/> Zdania</h3>
                                                         <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`mx-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-black/5 active:scale-95 transition-all ${viewAllSentences ? 'text-emerald-500' : 'text-indigo-400'}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
@@ -1107,6 +1125,24 @@
                                                     <div className={`mt-2 text-center font-mono text-lg sm:text-xl font-bold opacity-80 ${theme.subText} transition-colors-all duration-700`}>
                                                         {currentPhoneticToDisplay}
                                                     </div>
+
+                                                    {/* --- PAUSE DURATION BUTTON (RIGHT BOTTOM) --- */}
+                                                    <div className="absolute bottom-2 right-2 z-50">
+                                                        <button 
+                                                            onClick={togglePauseDuration}
+                                                            className={`
+                                                                flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md border active:scale-95 transition-all
+                                                                ${isDarkMode 
+                                                                    ? 'bg-gray-700 border-gray-600 text-indigo-300 hover:bg-gray-600' 
+                                                                    : 'bg-white border-gray-200 text-indigo-600 hover:bg-gray-50'
+                                                                }
+                                                            `}
+                                                        >
+                                                            <Icon path={iconPaths.clock} size={14} />
+                                                            <span>Pauza: {pauseDuration}</span>
+                                                        </button>
+                                                    </div>
+
                                                 </div>
                                             ) : (
                                                 <>
