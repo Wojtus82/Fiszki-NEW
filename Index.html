@@ -345,14 +345,18 @@
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
                     const keys = Object.keys(row);
-                    // Normalize search: string, trim, lowercase
-                    const search = String(colName).trim().toLowerCase();
+                    // Search target converted to string and trimmed
+                    const target = String(colName).trim();
                     
-                    // Exact match first (assuming nice data)
-                    if (row[colName] !== undefined) return row[colName];
+                    // 1. Check strict string match
+                    if (row[target] !== undefined) return row[target];
+                    
+                    // 2. Check strict number match
+                    const numTarget = Number(target);
+                    if (!isNaN(numTarget) && row[numTarget] !== undefined) return row[numTarget];
 
-                    // Loose match (case insensitive, trim)
-                    const matchingKey = keys.find(k => String(k).trim().toLowerCase() === search);
+                    // 3. Loose search (case insensitive, trimmed keys)
+                    const matchingKey = keys.find(k => String(k).trim().toLowerCase() === target.toLowerCase());
                     return matchingKey ? row[matchingKey] : undefined;
                 };
 
@@ -369,11 +373,14 @@
                             const workbook = XLSX.read(ab, { type: 'array' });
                             const firstSheetName = workbook.SheetNames[0];
                             const worksheet = workbook.Sheets[firstSheetName];
-                            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                            
+                            // Load data including header row issues
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
-                                // DIAGNOSTYKA: Pokaż w konsoli jakie klucze widzi program w pierwszym wierszu
-                                console.log('Wczytane nagłówki (klucze) z Excela:', Object.keys(jsonData[0] || {}));
+                                // --- DEBUG ---
+                                console.log('Przykładowy wiersz (klucze):', Object.keys(jsonData[0]));
+                                // -------------
 
                                 const tenseColumns = [
                                     "Beginner", "Present Simple", "Present continuous", "Past Simple", 
