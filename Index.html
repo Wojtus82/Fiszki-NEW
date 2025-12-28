@@ -373,7 +373,7 @@
                                     // EXTRAKCJA KOLUMN INFORMACYJNYCH: Base_info, Present Simple_info itp.
                                     const grammarInfo = {};
                                     
-                                    // 1. Mapowanie Base (może być pod 'Base_info' lub '1')
+                                    // 1. Mapowanie Base
                                     let baseInfo = getColumnValue(row, "Base_info") || getColumnValue(row, "1");
                                     grammarInfo['Base'] = baseInfo ? String(baseInfo).trim() : "";
 
