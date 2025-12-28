@@ -837,20 +837,32 @@
                         u.rate = 0.85;
 
                         if (item.isPause) {
-                            u.text = " . . . "; 
                             u.volume = 0; 
                             
                             // LOGIKA PAUZY:
-                            // -2: Bardzo długa pauza (bardzo wolne czytanie kropek)
-                            // 2: Bardzo krótka pauza (szybkie czytanie kropek)
-                            let r = 0.3; // Default 0
+                            let txt = " . . . ";
+                            let r = 0.5;
                             
-                            if (item.customLevel === -2) r = 0.05;
-                            else if (item.customLevel === -1) r = 0.1;
-                            else if (item.customLevel === 0) r = 0.3;
-                            else if (item.customLevel === 1) r = 0.8;
-                            else if (item.customLevel === 2) r = 2.0;
+                            if (item.customLevel === -2) {
+                                // BARDZO DŁUGA PAUZA
+                                txt = " . . . . . . . . . . ";
+                                r = 0.1;
+                            } else if (item.customLevel === -1) {
+                                txt = " . . . . . . ";
+                                r = 0.3;
+                            } else if (item.customLevel === 0) {
+                                txt = " . . . ";
+                                r = 0.6;
+                            } else if (item.customLevel === 1) {
+                                txt = " . . ";
+                                r = 1.5;
+                            } else if (item.customLevel === 2) {
+                                // BARDZO KRÓTKA
+                                txt = " . ";
+                                r = 3.0; 
+                            }
                             
+                            u.text = txt;
                             u.rate = r;
                         }
                         
@@ -1150,7 +1162,7 @@
                                                             `}
                                                         >
                                                             <Icon path={iconPaths.runningMan} size={18} />
-                                                            <span>Pauza: {pauseDuration}</span>
+                                                            <span>{pauseDuration}</span>
                                                         </button>
                                                     </div>
 
