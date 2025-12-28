@@ -329,10 +329,7 @@
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
                     const keys = Object.keys(row);
-                    // Normalize search
                     const target = String(colName).trim().toLowerCase();
-                    
-                    // Loose search (case insensitive, trimmed keys)
                     const matchingKey = keys.find(k => String(k).trim().toLowerCase() === target);
                     return matchingKey ? row[matchingKey] : undefined;
                 };
@@ -1170,7 +1167,7 @@
                                                         {displayData && displayData.infoText ? (
                                                             <div className="whitespace-pre-line">{displayData.infoText}</div>
                                                         ) : (
-                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla wybranego czasu.<br/>Sprawdź kolumnę nr {tenseColumnMap[tense] || '1'} w Excelu.</div>
+                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla wybranego czasu.<br/>Sprawdź kolumnę '{tense === 'mixed' ? 'Base' : tense}_info' w Excelu.</div>
                                                         )}
                                                     </div>
                                                     <div className="flex-none mt-4 w-full">
