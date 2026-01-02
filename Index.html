@@ -237,8 +237,10 @@
                 const [isFinished, setIsFinished] = useState(false);
                 
                 const [cardSide, setCardSide] = useState(1);
-                // DODANO: Stan poprzedniej strony do obsługi animacji
                 const [prevCardSide, setPrevCardSide] = useState(1);
+                
+                // DODANO: Obrót w osi X (góra-dół)
+                const [rotationX, setRotationX] = useState(0);
 
                 const [rotation, setRotation] = useState(0);
                 const [noTransition, setNoTransition] = useState(false);
@@ -662,9 +664,10 @@
 
                 const resetCard = () => {
                     setNoTransition(true); 
-                    setPrevCardSide(cardSide); // Zachowaj stan
+                    setPrevCardSide(cardSide); 
                     setCardSide(1); 
                     setRotation(0); 
+                    setRotationX(0); // Reset X rotation
                     cancelSpeech(); 
                     setViewAllSentences(false);
                     setTimeout(() => setNoTransition(false), 50); 
@@ -674,12 +677,13 @@
                     if (!currentWordIds.length || isFinished) return;
                     setViewAllSentences(false); cancelSpeech();
                     if (currentIndex >= currentWordIds.length - 1) {
-                        setIsFinished(true); setNoTransition(true); setPrevCardSide(cardSide); setCardSide(1); setRotation(0); return;
+                        setIsFinished(true); setNoTransition(true); setPrevCardSide(cardSide); setCardSide(1); setRotation(0); setRotationX(0); return;
                     }
                     setNoTransition(true); 
                     setPrevCardSide(cardSide);
                     setCardSide(1); 
                     setRotation(0);
+                    setRotationX(0);
                     setTimeout(() => { setNoTransition(false); setCurrentIndex((prev) => prev + 1); }, 50);
                 };
 
@@ -690,6 +694,7 @@
                     setPrevCardSide(cardSide);
                     setCardSide(1); 
                     setRotation(0);
+                    setRotationX(0);
                     setTimeout(() => { setNoTransition(false); setCurrentIndex((prev) => (prev - 1 + currentWordIds.length) % currentWordIds.length); }, 50);
                 };
 
@@ -702,11 +707,13 @@
                         setPrevCardSide(1);
                         setCardSide(2); 
                         setRotation(180); 
+                        setRotationX(0);
                     }
                     else if (cardSide === 2) { 
                         setPrevCardSide(2);
                         setCardSide(1); 
                         setRotation(0); 
+                        setRotationX(0);
                     }
                     else if (cardSide === 3) { showTranslation(); }
                     else if (cardSide === 4) { showSentences(); }
@@ -718,6 +725,7 @@
                     setPrevCardSide(cardSide);
                     setCardSide(3); 
                     setRotation(360); 
+                    setRotationX(0); // Ensure X rotation is 0
                 };
                 const showTranslation = (e) => { 
                     if(e) e.stopPropagation(); 
@@ -725,6 +733,7 @@
                     setPrevCardSide(cardSide);
                     setCardSide(2); 
                     setRotation(180); 
+                    setRotationX(0);
                     setViewAllSentences(false); 
                 };
                 
@@ -733,7 +742,9 @@
                     cancelSpeech();
                     setPrevCardSide(cardSide);
                     setCardSide(4);
-                    setRotation(540); 
+                    // Tutaj zmieniamy tylko oś X, Y zostaje na 360 (front)
+                    setRotation(360); 
+                    setRotationX(180); 
                 };
 
                 const togglePauseDuration = (e) => {
@@ -1105,11 +1116,11 @@
                         ) : (
                             <>
                                 <div className="relative w-full max-w-md flex-1 min-h-[250px] mb-4 z-10 perspective-1000">
-                                    <div className={`relative w-full h-full shadow-2xl rounded-2xl cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-700 ease-in-out'}`} style={{ transform: `rotateY(${rotation}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
+                                    <div className={`relative w-full h-full shadow-2xl rounded-2xl cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-700 ease-in-out'}`} style={{ transform: `rotateY(${rotation}deg) rotateX(${rotationX}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
                                         
                                         {/* --- FRONT SIDE (0deg & 360deg) --- */}
                                         <div className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardFrontBg} ${isDarkMode ? 'border-gray-600' : 'border-indigo-200'} transition-colors-all duration-700`} style={{ transform: 'rotateY(0deg)' }}>
-                                            {(cardSide === 3 || (prevCardSide === 3 && cardSide !== 1)) ? (
+                                            {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative">
                                                     <div className="flex justify-between items-center mb-2 sm:mb-3 border-b pb-2 border-gray-200/20 flex-none relative">
                                                         <h3 className={`font-bold flex items-center gap-2 text-sm sm:text-base ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'} transition-colors-all duration-700`}><Icon path={iconPaths.book} size={16} className="sm:w-[18px] sm:h-[18px]"/> Zdania</h3>
@@ -1187,7 +1198,7 @@
                                         </div>
 
                                         {/* --- BACK SIDE (180deg & 540deg) --- */}
-                                        <div className={`absolute inset-0 w-full h-full text-white rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardBackBg} ${isDarkMode ? 'border-indigo-950' : 'border-indigo-800'} transition-colors-all duration-700`} style={{ transform: 'rotateY(180deg)' }}>
+                                        <div className={`absolute inset-0 w-full h-full text-white rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardBackBg} ${isDarkMode ? 'border-indigo-950' : 'border-indigo-800'} transition-colors-all duration-700`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
                                             {(cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? (
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative">
                                                     <div className="flex-none mb-2 border-b border-white/20 pb-2">
