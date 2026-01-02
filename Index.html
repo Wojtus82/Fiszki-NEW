@@ -985,6 +985,20 @@
                     });
                 };
 
+                // --- NOWY EFEKT: ZMIANA PAUZY W TRAKCIE CZYTANIA ---
+                useEffect(() => {
+                    if (isSpeaking && !isPaused) {
+                        // 1. Zatrzymujemy obecne czytanie
+                        window.speechSynthesis.cancel();
+                        
+                        // 2. Czyścimy cache kolejki, aby wymusić wygenerowanie jej na nowo z nowym pauseDuration
+                        queueRef.current = [];
+                        
+                        // 3. Wznawiamy czytanie (resume=true zachowa index, ale wygeneruje nowe obiekty z nowym czasem pauzy)
+                        handleSpeak(true);
+                    }
+                }, [pauseDuration]);
+
                 const cancelSpeech = () => { 
                     isPausedRef.current = false;
                     pausedIntentionally.current = false;
