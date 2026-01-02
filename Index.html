@@ -894,7 +894,9 @@
                         }
                         fullQueue = tempQueue;
                         queueRef.current = tempQueue;
-                        queueIndexRef.current = 0;
+                        
+                        // FIX: Only reset index if NOT resuming.
+                        if (!resume) queueIndexRef.current = 0;
                     }
 
                     if (fullQueue.length === 0) {
@@ -988,19 +990,9 @@
                 // --- NOWY EFEKT: ZMIANA PAUZY W TRAKCIE CZYTANIA ---
                 useEffect(() => {
                     if (isSpeaking && !isPaused) {
-                        // 1. Zaznaczamy, że pauzujemy celowo (żeby onend starego zdania nie zresetował stanu)
                         pausedIntentionally.current = true;
-                        
-                        // 2. Anulujemy mowę
                         window.speechSynthesis.cancel();
-                        
-                        // 3. Czyścimy cache, by wymusić przebudowę z nowymi czasami pauz
                         queueRef.current = [];
-                        
-                        // 4. Wznawiamy. 
-                        // Ważne: handleSpeak w środku ustawia pausedIntentionally = false,
-                        // ale ponieważ cancel() jest synchroniczne (zazwyczaj), onend odpali się teraz
-                        // i zobaczy naszą flagę true. Potem handleSpeak ustawi ją na false dla nowych zdań.
                         handleSpeak(true);
                     }
                 }, [pauseDuration]);
