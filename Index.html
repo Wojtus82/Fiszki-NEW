@@ -574,7 +574,7 @@
 
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
-                    if (!currentWordIds.length) return { isEmpty: true, word: "Brak słówek", translation: "Spróbuj zmienić kategorię lub poziom", phonetic: "---", sentences: [] };
+                    if (!currentWordIds.length) return { isEmpty: true, word: "Brak słówek", translation: "Spróbuj zmienić kategorię lub poziom", phonetic: "---", sentences: [], beginnerSentences: [] };
 
                     const currentId = currentWordIds[currentIndex];
 
@@ -589,6 +589,11 @@
                     const mainInfoRow = baseRow || fallbackRow;
                     
                     if (!mainInfoRow) return null;
+
+                    // --- Pobieranie danych dla strony 5 (Beginner) ---
+                    // Szukamy w całej bazie wiersza dla tego ID, który ma tense = Beginner/Początkujący
+                    const beginnerRow = fullDatabase.find(r => r.id === currentId && (r.tense === 'Beginner' || r.tense === 'Początkujący'));
+                    const beginnerSentences = beginnerRow ? beginnerRow.sentencesList : [];
 
                     let sentences = [];
                     if (tense === 'mixed') {
@@ -605,7 +610,14 @@
                     const t = (tense === 'mixed') ? 'Base' : tense;
                     const infoText = grammarData[t] || "";
 
-                    return { word: mainInfoRow.word, translation: mainInfoRow.translation, phonetic: mainInfoRow.phonetic, sentences: sentences, infoText: infoText };
+                    return { 
+                        word: mainInfoRow.word, 
+                        translation: mainInfoRow.translation, 
+                        phonetic: mainInfoRow.phonetic, 
+                        sentences: sentences, 
+                        infoText: infoText,
+                        beginnerSentences: beginnerSentences // Added for side 5
+                    };
                 };
 
                 const displayData = getDisplayData();
@@ -717,6 +729,7 @@
                     }
                     else if (cardSide === 3) { showTranslation(); }
                     else if (cardSide === 4) { showSentences(); }
+                    else if (cardSide === 5) { showTranslation(); } // Click on side 5 returns to side 2
                 };
 
                 const showSentences = (e) => { 
@@ -725,7 +738,7 @@
                     setPrevCardSide(cardSide);
                     setCardSide(3); 
                     setRotation(360); 
-                    setRotationX(0); // Ensure X rotation is 0
+                    setRotationX(0); 
                 };
                 const showTranslation = (e) => { 
                     if(e) e.stopPropagation(); 
@@ -742,8 +755,18 @@
                     cancelSpeech();
                     setPrevCardSide(cardSide);
                     setCardSide(4);
-                    // Tutaj zmieniamy tylko oś X, Y zostaje na 360 (front)
                     setRotation(360); 
+                    setRotationX(180); 
+                };
+
+                const showBeginnerInfo = (e) => {
+                    if(e) e.stopPropagation();
+                    cancelSpeech();
+                    setPrevCardSide(cardSide);
+                    setCardSide(5);
+                    // From Side 2 (Y=180), we flip X (180). 
+                    // Wrapper becomes Y=180, X=180.
+                    setRotation(180); 
                     setRotationX(180); 
                 };
 
@@ -782,8 +805,6 @@
 
                         const pushMixedSentence = (rawText, vIndex, gIndex) => {
                             let text = cleanSentence(rawText);
-                            
-                            // Remove trailing dot so "kropka" is not read
                             text = text.replace(/\.$/, ''); 
 
                             if (!targetWord || !isMixedLangMode) {
@@ -817,10 +838,8 @@
                         };
 
                         if (cardSide === 3 && viewAllSentences) {
-                            // CZYTANIE WSZYSTKICH ZDAŃ
                             let lastWord = "";
                             sentencesListToRender.forEach((s, index) => {
-                                // Nagłówek słowa
                                 if (s.word !== lastWord) {
                                     if (lastWord !== "") tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration }); 
                                     lastWord = s.word;
@@ -828,21 +847,17 @@
                                     tempQueue.push({ text: ".", isPause: true, customLevel: pauseDuration }); 
                                 }
                                 
-                                // Zdanie
                                 const rowTargetWord = s.word ? s.word.split('(')[0].trim() : "";
                                 
                                 if (isMixedLangMode && rowTargetWord) {
                                     let cText = cleanSentence(s.en);
                                     cText = cText.replace(/\.$/, '');
-                                    
                                     const escT = rowTargetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                     const reg = new RegExp(`(${escT})`, 'gi');
                                     const pts = cText.split(reg);
-                                    
                                     pts.forEach(pt => {
                                         if(!pt.trim()) return;
                                         if (/^[.,?!]+$/.test(pt.trim())) return; 
-
                                         const isEn = pt.toLowerCase() === rowTargetWord.toLowerCase();
                                         tempQueue.push({
                                             text: pt, isSentence: true, visualIndex: index, globalIndex: index,
@@ -853,16 +868,21 @@
                                 } else {
                                     pushMixedSentence(s.en, index, index);
                                 }
-                                
-                                // PAUSE BETWEEN SENTENCES
                                 tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
                             });
 
                         } else if (cardSide === 3) {
-                            // CZYTANIE LISTY ZDAŃ DLA JEDNEGO SŁOWA
                             displayData.sentences.forEach((s, index) => {
                                 pushMixedSentence(s.en, index);
-                                // PAUSE BETWEEN SENTENCES
+                                tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
+                            });
+                        } else if (cardSide === 5) {
+                            // CZYTANIE ZDAŃ BEGINNER
+                            displayData.beginnerSentences.forEach((s, index) => {
+                                // Beginner usually mixed sentences
+                                // Just read straight EN for now unless mixed mode logic applies, but let's assume EN
+                                // Or reuse pushMixedSentence if you want mixed logic on side 5
+                                tempQueue.push({ text: cleanSentence(s.en), lang: 'en-US' }); 
                                 tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
                             });
                         } else {
@@ -915,57 +935,31 @@
 
                         if (item.isPause) {
                             u.volume = 0; 
-                            
-                            // LOGIKA PAUZY:
                             let txt = " . . . ";
                             let r = 0.5;
-                            
-                            if (item.customLevel === -2) {
-                                // BARDZO DŁUGA PAUZA
-                                txt = " . . . . . . . . . . ";
-                                r = 0.1;
-                            } else if (item.customLevel === -1) {
-                                txt = " . . . . . . ";
-                                r = 0.3;
-                            } else if (item.customLevel === 0) {
-                                txt = " . . . ";
-                                r = 0.6;
-                            } else if (item.customLevel === 1) {
-                                txt = " . . ";
-                                r = 1.5;
-                            } else if (item.customLevel === 2) {
-                                // BARDZO KRÓTKA
-                                txt = " . ";
-                                r = 3.0; 
-                            }
-                            
+                            if (item.customLevel === -2) { txt = " . . . . . . . . . . "; r = 0.1; } 
+                            else if (item.customLevel === -1) { txt = " . . . . . . "; r = 0.3; } 
+                            else if (item.customLevel === 0) { txt = " . . . "; r = 0.6; } 
+                            else if (item.customLevel === 1) { txt = " . . "; r = 1.5; } 
+                            else if (item.customLevel === 2) { txt = " . "; r = 3.0; } 
                             u.text = txt;
                             u.rate = r;
                         }
-                        
-                        if (item.lang === 'en-US' && isMixedLangMode) {
-                            u.rate = 0.7;
-                        }
+                        if (item.lang === 'en-US' && isMixedLangMode) { u.rate = 0.7; }
 
                         u.onstart = () => {
                             if (isPausedRef.current) return;
                             const actualGlobalIndex = startIndex + i;
                             queueIndexRef.current = actualGlobalIndex;
-
                             if (i === 0) setIsSpeaking(true);
-                            
                             if (item.isSentence && item.visualIndex !== undefined) {
                                 setActiveSentenceIndex(item.visualIndex); 
-                                if (viewAllSentences && item.globalIndex !== undefined) {
-                                    setSpeakingSentenceIndex(item.globalIndex);
-                                }
+                                if (viewAllSentences && item.globalIndex !== undefined) { setSpeakingSentenceIndex(item.globalIndex); }
                                 const element = itemRefs.current[item.visualIndex];
                                 if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             } else if (item.isWord) {
                                 setActiveSentenceIndex(null); 
-                                if (viewAllSentences && item.globalIndex !== undefined) {
-                                    setSpeakingSentenceIndex(item.globalIndex);
-                                }
+                                if (viewAllSentences && item.globalIndex !== undefined) { setSpeakingSentenceIndex(item.globalIndex); }
                             }
                         };
 
@@ -987,7 +981,6 @@
                                 }
                             };
                         }
-
                         window.speechSynthesis.speak(u);
                     });
                 };
@@ -1019,10 +1012,10 @@
                 };
 
                 const handleBottomBtnClick = () => {
-                    if (cardSide === 3) {
+                    if (cardSide === 3 || cardSide === 5) {
                         togglePlayPause();
                     } else if (cardSide === 4) {
-                        showSentences(); // Wróć do zdań
+                        showSentences();
                     } else {
                         handleSpeak(false);
                     }
@@ -1118,7 +1111,7 @@
                                 <div className="relative w-full max-w-md flex-1 min-h-[250px] mb-4 z-10 perspective-1000">
                                     <div className={`relative w-full h-full shadow-2xl rounded-2xl cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-700 ease-in-out'}`} style={{ transform: `rotateY(${rotation}deg) rotateX(${rotationX}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
                                         
-                                        {/* --- FRONT SIDE (0deg & 360deg) --- */}
+                                        {/* --- FRONT SIDE (0deg & 360deg & 180deg-flipped) --- */}
                                         <div className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardFrontBg} ${isDarkMode ? 'border-gray-600' : 'border-indigo-200'} transition-colors-all duration-700`} style={{ transform: 'rotateY(0deg)' }}>
                                             {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative">
@@ -1137,56 +1130,51 @@
                                                     
                                                     {/* --- PHONETIC & PAUSE DURATION CONTAINER --- */}
                                                     <div className="relative w-full mt-2 flex justify-center items-center flex-none">
-                                                        
-                                                        {/* --- INFO BUTTON --- */}
                                                         <div className="absolute left-0">
-                                                            <button 
-                                                                onClick={showGrammarInfo}
-                                                                className={`
-                                                                    flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all
-                                                                    ${isDarkMode 
-                                                                        ? 'bg-transparent text-emerald-600 hover:bg-white/10' 
-                                                                        : 'bg-transparent text-emerald-800 hover:bg-black/5'
-                                                                    }
-                                                                `}
-                                                            >
+                                                            <button onClick={showGrammarInfo} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all ${isDarkMode ? 'bg-transparent text-emerald-600 hover:bg-white/10' : 'bg-transparent text-emerald-800 hover:bg-black/5'}`}>
                                                                 <Icon path={iconPaths.infoCircle} size={18} />
                                                             </button>
                                                         </div>
-
-                                                        <div className={`font-mono text-lg sm:text-xl font-bold opacity-80 ${theme.subText} transition-colors-all duration-700`}>
-                                                            {currentPhoneticToDisplay}
-                                                        </div>
+                                                        <div className={`font-mono text-lg sm:text-xl font-bold opacity-80 ${theme.subText} transition-colors-all duration-700`}>{currentPhoneticToDisplay}</div>
                                                         <div className="absolute right-0">
-                                                            <button 
-                                                                onClick={togglePauseDuration}
-                                                                className={`
-                                                                    flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all
-                                                                    ${isDarkMode 
-                                                                        ? 'bg-transparent text-emerald-600 hover:bg-white/10' 
-                                                                        : 'bg-transparent text-emerald-800 hover:bg-black/5'
-                                                                    }
-                                                                `}
-                                                            >
+                                                            <button onClick={togglePauseDuration} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all ${isDarkMode ? 'bg-transparent text-emerald-600 hover:bg-white/10' : 'bg-transparent text-emerald-800 hover:bg-black/5'}`}>
                                                                 <Icon path={iconPaths.runningMan} size={18} />
                                                                 <span>{pauseDuration}</span>
                                                             </button>
                                                         </div>
                                                     </div>
-
+                                                </div>
+                                            ) : (cardSide === 5 || (prevCardSide === 5 && cardSide !== 1 && cardSide !== 3)) ? (
+                                                <div className="w-full h-full flex flex-col animate-fadeIn relative rotate-180"> {/* rotate-180 fixes inverted text */}
+                                                    <div className="flex-none mb-2 border-b border-gray-200/20 pb-2">
+                                                        <h3 className="text-lg font-bold flex items-center gap-2"><Icon path={iconPaths.infoCircle} size={20}/> Beginner</h3>
+                                                    </div>
+                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-sm sm:text-base leading-relaxed pr-1">
+                                                        {displayData && displayData.beginnerSentences && displayData.beginnerSentences.length > 0 ? (
+                                                            <ul className="space-y-3">
+                                                                {displayData.beginnerSentences.map((s, i) => (
+                                                                    <li key={i} className="flex flex-col gap-1">
+                                                                        <div className={`${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>{s.en}</div>
+                                                                        {s.pl && <div className={`text-sm italic ${theme.subText}`}>({s.pl})</div>}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        ) : (
+                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla sekcji Beginner.</div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-none mt-4 w-full">
+                                                        <button onClick={showTranslation} className="w-full bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 text-current font-bold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
+                                                            <Icon path={iconPaths.rotate} size={18}/> Wróć do tłumaczenia
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <>
                                                     <div className={`absolute top-4 left-4 sm:top-6 sm:left-6 text-[10px] sm:text-xs font-bold uppercase flex flex-wrap items-center gap-1 sm:gap-2 max-w-full overflow-hidden ${theme.subText} transition-colors-all duration-700`}><span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span></div>
-                                                    
-                                                    {/* PRZYCISK ZMIANY JĘZYKA */}
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setIsPlToEn(!isPlToEn); }}
-                                                        className={`absolute top-4 right-4 sm:top-6 sm:right-6 px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold border transition-all active:scale-95 flex items-center gap-1 ${isDarkMode ? 'border-indigo-500 text-indigo-300 hover:bg-gray-700' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}
-                                                    >
+                                                    <button onClick={(e) => { e.stopPropagation(); setIsPlToEn(!isPlToEn); }} className={`absolute top-4 right-4 sm:top-6 sm:right-6 px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold border transition-all active:scale-95 flex items-center gap-1 ${isDarkMode ? 'border-indigo-500 text-indigo-300 hover:bg-gray-700' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}>
                                                     <Icon path={iconPaths.swap} size={14} className="sm:w-4 sm:h-4"/> {isPlToEn ? "PL ➔ EN" : "EN ➔ PL"}
                                                     </button>
-
                                                     <div className="flex-1 flex items-center justify-center w-full px-2">
                                                         <h2 className={`${getWordSizeClass(isPlToEn ? (displayData ? displayData.translation : '') : (displayData ? displayData.word : ''))} font-black text-center break-words leading-tight ${theme.cardFrontText} transition-colors-all duration-700`}>
                                                             {displayData ? (isPlToEn ? displayData.translation : displayData.word) : 'Loading...'}
@@ -1208,10 +1196,7 @@
                                                         {displayData && displayData.infoText ? (
                                                             <div className="whitespace-pre-line">{displayData.infoText}</div>
                                                         ) : (
-                                                            <div className="italic opacity-70 text-center mt-10">
-                                                                Brak informacji dla wybranego czasu.<br/>
-                                                                Sprawdź kolumnę '{tense === 'mixed' ? 'Base' : tense}_info' w Excelu.
-                                                            </div>
+                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla wybranego czasu.<br/>Sprawdź kolumnę '{tense === 'mixed' ? 'Base' : tense}_info' w Excelu.</div>
                                                         )}
                                                     </div>
                                                     <div className="flex-none mt-4 w-full">
@@ -1222,6 +1207,11 @@
                                                 </div>
                                             ) : (
                                                 <>
+                                                    <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+                                                        <button onClick={showBeginnerInfo} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all ${isDarkMode ? 'bg-transparent text-emerald-600 hover:bg-white/10' : 'bg-transparent text-emerald-200 hover:bg-white/10'}`}>
+                                                            <Icon path={iconPaths.infoCircle} size={18} />
+                                                        </button>
+                                                    </div>
                                                     <div className="absolute top-4 right-4 sm:top-6 sm:right-6 text-[10px] sm:text-xs font-bold text-indigo-200 uppercase">
                                                         {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
                                                     </div>
@@ -1240,11 +1230,8 @@
                                         <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-4 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-700 text-sm`}><Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia</button>
                                         <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">Następna <Icon path={iconPaths.right} className="w-5 h-5" /></button>
                                     </div>
-                                    <button 
-                                        onClick={handleBottomBtnClick} 
-                                        className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking && !isPaused ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}
-                                    >
-                                        {cardSide === 3 
+                                    <button onClick={handleBottomBtnClick} className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking && !isPaused ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}>
+                                        {cardSide === 3 || cardSide === 5
                                             ? (
                                                 <>
                                                     {isSpeaking && !isPaused ? <Icon path={iconPaths.pause} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.play} size={24} className="sm:w-6 sm:h-6"/>}
