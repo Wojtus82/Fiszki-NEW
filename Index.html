@@ -1207,18 +1207,24 @@
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
-                                                        <button onClick={showBeginnerInfo} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all ${isDarkMode ? 'bg-transparent text-emerald-600 hover:bg-white/10' : 'bg-transparent text-emerald-200 hover:bg-white/10'}`}>
-                                                            <Icon path={iconPaths.infoCircle} size={18} />
-                                                        </button>
-                                                    </div>
                                                     <div className="absolute top-4 right-4 sm:top-6 sm:right-6 text-[10px] sm:text-xs font-bold text-indigo-200 uppercase">
                                                         {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
                                                     </div>
                                                     <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-bold mb-3 sm:mb-4 text-center leading-tight break-words max-w-full`}>
                                                         {displayData ? (isPlToEn ? displayData.word : displayData.translation) : ''}
                                                     </h2>
-                                                    <div className={`bg-white/20 px-5 sm:px-7 py-2 sm:py-3 rounded-full font-mono ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')} mb-8 sm:mb-10`}>{displayData ? displayData.phonetic : ''}</div>
+
+                                                    {/* MOVED BUTTON CONTAINER */}
+                                                    <div className="relative w-full flex justify-center items-center flex-none mb-8 sm:mb-10">
+                                                        <div className="absolute left-0">
+                                                            <button onClick={showBeginnerInfo} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all ${isDarkMode ? 'bg-transparent text-emerald-600 hover:bg-white/10' : 'bg-transparent text-emerald-200 hover:bg-white/10'}`}>
+                                                                <Icon path={iconPaths.infoCircle} size={18} />
+                                                            </button>
+                                                        </div>
+                                                        {/* Phonetic display with margins removed (handled by container) */}
+                                                        <div className={`bg-white/20 px-5 sm:px-7 py-2 sm:py-3 rounded-full font-mono ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : ''}</div>
+                                                    </div>
+
                                                     <button onClick={showSentences} className={`font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg active:scale-95 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}><Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> {tense === 'Base' ? 'Zdania (Base)' : `Zdania (${tense})`}</button>
                                                 </>
                                             )}
