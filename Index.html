@@ -988,13 +988,19 @@
                 // --- NOWY EFEKT: ZMIANA PAUZY W TRAKCIE CZYTANIA ---
                 useEffect(() => {
                     if (isSpeaking && !isPaused) {
-                        // 1. Zatrzymujemy obecne czytanie
+                        // 1. Zaznaczamy, że pauzujemy celowo (żeby onend starego zdania nie zresetował stanu)
+                        pausedIntentionally.current = true;
+                        
+                        // 2. Anulujemy mowę
                         window.speechSynthesis.cancel();
                         
-                        // 2. Czyścimy cache kolejki, aby wymusić wygenerowanie jej na nowo z nowym pauseDuration
+                        // 3. Czyścimy cache, by wymusić przebudowę z nowymi czasami pauz
                         queueRef.current = [];
                         
-                        // 3. Wznawiamy czytanie (resume=true zachowa index, ale wygeneruje nowe obiekty z nowym czasem pauzy)
+                        // 4. Wznawiamy. 
+                        // Ważne: handleSpeak w środku ustawia pausedIntentionally = false,
+                        // ale ponieważ cancel() jest synchroniczne (zazwyczaj), onend odpali się teraz
+                        // i zobaczy naszą flagę true. Potem handleSpeak ustawi ją na false dla nowych zdań.
                         handleSpeak(true);
                     }
                 }, [pauseDuration]);
