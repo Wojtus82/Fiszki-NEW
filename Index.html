@@ -270,7 +270,9 @@
                 const [selectedVoice, setSelectedVoice] = useState(null);
                 const [selectedPlVoice, setSelectedPlVoice] = useState(null);
 
-                const [touchStart, setTouchStart] = useState(null);
+                // --- TOUCH & SWIPE LOGIC STATE ---
+                // Zmieniono: przechowujemy współrzędne X i Y
+                const [touchStart, setTouchStart] = useState(null); 
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
 
@@ -635,24 +637,43 @@
                     return displayData ? displayData.phonetic : "";
                 }, [viewAllSentences, activeSentenceIndex, speakingSentenceIndex, sentencesListToRender, displayData]);
 
-                const handleStart = (clientX) => { setTouchEnd(null); setTouchStart(clientX); };
-                const handleMove = (clientX) => { setTouchEnd(clientX); };
+                // --- ZMODYFIKOWANA LOGIKA GESTÓW ---
+                const handleStart = (clientX, clientY) => { 
+                    setTouchEnd(null); 
+                    setTouchStart({ x: clientX, y: clientY }); 
+                };
+                
+                const handleMove = (clientX, clientY) => { 
+                    setTouchEnd({ x: clientX, y: clientY }); 
+                };
+                
                 const handleEnd = () => {
                     if (!touchStart || !touchEnd) return;
-                    const distance = touchStart - touchEnd;
-                    if (distance > minSwipeDistance) handleNext();
-                    else if (distance < -minSwipeDistance) handlePrev();
+                    
+                    const distanceX = touchStart.x - touchEnd.x;
+                    const distanceY = touchStart.y - touchEnd.y;
+
+                    // WYKRYWANIE SCROLLA PIONOWEGO:
+                    // Jeśli ruch w pionie (Y) jest większy niż w poziomie (X), ignorujemy zmianę karty.
+                    if (Math.abs(distanceY) > Math.abs(distanceX)) {
+                        setTouchStart(null); setTouchEnd(null);
+                        return;
+                    }
+
+                    if (distanceX > minSwipeDistance) handleNext();
+                    else if (distanceX < -minSwipeDistance) handlePrev();
+                    
                     setTouchStart(null); setTouchEnd(null);
                 };
 
-                const onTouchStart = (e) => handleStart(e.targetTouches[0].clientX);
-                const onTouchMove = (e) => handleMove(e.targetTouches[0].clientX);
+                const onTouchStart = (e) => handleStart(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
+                const onTouchMove = (e) => handleMove(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
                 const onTouchEnd = () => handleEnd();
-                const onMouseDown = (e) => handleStart(e.clientX);
-                const onMouseMove = (e) => { if(touchStart) handleMove(e.clientX); };
+                const onMouseDown = (e) => handleStart(e.clientX, e.clientY);
+                const onMouseMove = (e) => { if(touchStart) handleMove(e.clientX, e.clientY); };
                 const onMouseUp = () => {
-                    if (touchStart && touchEnd && Math.abs(touchStart - touchEnd) > minSwipeDistance) handleEnd();
-                    setTouchStart(null); setTouchEnd(null);
+                    // Logic check inside handleEnd handles distance, so we just call it
+                    handleEnd(); 
                 };
                 const onMouseLeave = () => { setTouchStart(null); setTouchEnd(null); };
 
