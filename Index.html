@@ -392,10 +392,14 @@
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
                                     
+                                    // WCZYTYWANIE KOLUMNY word_info
+                                    const wordInfo = row.word_info ? String(row.word_info).trim() : "";
+
                                     const baseSentences = extractSentencesFromCell(row.base);
                                     processedData.push({
                                         id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
-                                        phonetic: phonetic, tense: 'Base', sentencesList: baseSentences
+                                        phonetic: phonetic, tense: 'Base', sentencesList: baseSentences,
+                                        wordInfo: wordInfo // ZAPISANIE DANYCH
                                     });
 
                                     tenseColumns.forEach(tenseName => {
@@ -407,7 +411,8 @@
                                             if (tenseSentences.length > 0) {
                                                 processedData.push({
                                                     id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
-                                                    phonetic: phonetic, tense: tenseName, sentencesList: tenseSentences
+                                                    phonetic: phonetic, tense: tenseName, sentencesList: tenseSentences,
+                                                    wordInfo: wordInfo // Dodane też tutaj, chociaż główne pobieranie idzie z Base
                                                 });
                                             }
                                         }
@@ -574,7 +579,7 @@
 
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
-                    if (!currentWordIds.length) return { isEmpty: true, word: "Brak słówek", translation: "Spróbuj zmienić kategorię lub poziom", phonetic: "---", sentences: [], beginnerSentences: [] };
+                    if (!currentWordIds.length) return { isEmpty: true, word: "Brak słówek", translation: "Spróbuj zmienić kategorię lub poziom", phonetic: "---", sentences: [], wordInfo: "" };
 
                     const currentId = currentWordIds[currentIndex];
 
@@ -589,11 +594,6 @@
                     const mainInfoRow = baseRow || fallbackRow;
                     
                     if (!mainInfoRow) return null;
-
-                    // --- Pobieranie danych dla strony 5 (Beginner) ---
-                    // Szukamy w całej bazie wiersza dla tego ID, który ma tense = Beginner/Początkujący
-                    const beginnerRow = fullDatabase.find(r => r.id === currentId && (r.tense === 'Beginner' || r.tense === 'Początkujący'));
-                    const beginnerSentences = beginnerRow ? beginnerRow.sentencesList : [];
 
                     let sentences = [];
                     if (tense === 'mixed') {
@@ -616,7 +616,7 @@
                         phonetic: mainInfoRow.phonetic, 
                         sentences: sentences, 
                         infoText: infoText,
-                        beginnerSentences: beginnerSentences // Added for side 5
+                        wordInfo: mainInfoRow.wordInfo // PRZEKAZANIE DANYCH Word Info
                     };
                 };
 
@@ -877,14 +877,13 @@
                                 tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
                             });
                         } else if (cardSide === 5) {
-                            // CZYTANIE ZDAŃ BEGINNER
-                            displayData.beginnerSentences.forEach((s, index) => {
-                                // Beginner usually mixed sentences
-                                // Just read straight EN for now unless mixed mode logic applies, but let's assume EN
-                                // Or reuse pushMixedSentence if you want mixed logic on side 5
-                                tempQueue.push({ text: cleanSentence(s.en), lang: 'en-US' }); 
-                                tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
-                            });
+                            // CZYTANIE TREŚCI Z Word Info (dawniej Beginner)
+                            // Zakładamy, że to tekst, który czytamy po angielsku (chyba że wykryjemy inny język, ale default en-US)
+                            if (displayData.wordInfo) {
+                                tempQueue.push({ text: displayData.wordInfo, lang: 'en-US' }); 
+                            } else {
+                                // Fallback empty
+                            }
                         } else {
                             if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
                                 pushMixedSentence(displayData.sentences[0].en);
@@ -1159,20 +1158,13 @@
                                             ) : (cardSide === 5 || (prevCardSide === 5 && cardSide !== 1 && cardSide !== 3)) ? (
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative rotate-180"> {/* rotate-180 fixes inverted text */}
                                                     <div className="flex-none mb-2 border-b border-gray-200/20 pb-2">
-                                                        <h3 className="text-lg font-bold flex items-center gap-2"><Icon path={iconPaths.infoCircle} size={20}/> Beginner</h3>
+                                                        <h3 className="text-lg font-bold flex items-center gap-2"><Icon path={iconPaths.infoCircle} size={20}/> Word Info</h3>
                                                     </div>
                                                     <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-sm sm:text-base leading-relaxed pr-1">
-                                                        {displayData && displayData.beginnerSentences && displayData.beginnerSentences.length > 0 ? (
-                                                            <ul className="space-y-3">
-                                                                {displayData.beginnerSentences.map((s, i) => (
-                                                                    <li key={i} className="flex flex-col gap-1">
-                                                                        <div className={`${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>{s.en}</div>
-                                                                        {s.pl && <div className={`text-sm italic ${theme.subText}`}>({s.pl})</div>}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
+                                                        {displayData && displayData.wordInfo ? (
+                                                            <div className="whitespace-pre-line text-lg">{displayData.wordInfo}</div>
                                                         ) : (
-                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla sekcji Beginner.</div>
+                                                            <div className="italic opacity-70 text-center mt-10">Brak dodatkowych informacji (word_info).</div>
                                                         )}
                                                     </div>
                                                     <div className="flex-none mt-4 w-full">
