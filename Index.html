@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Intro Animation</title>
+    <title>Fiszki WOJTUKIEWICZ - Final Compact</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -506,13 +506,12 @@
                 // --- INTRO EFFECT LOGIC ---
                 useEffect(() => {
                     if (!loading && fullDatabase.length > 0) {
-                        // Startujemy sekwencję po załadowaniu bazy
                         setIntroPhase('text');
-                        const timer1 = setTimeout(() => setIntroPhase('spin'), 1000); // Po 1s zacznij kręcić
-                        const timer2 = setTimeout(() => setIntroPhase('done'), 2500); // 1s czekania + 1.5s animacji
+                        const timer1 = setTimeout(() => setIntroPhase('spin'), 1000); 
+                        const timer2 = setTimeout(() => setIntroPhase('done'), 2500); 
                         return () => { clearTimeout(timer1); clearTimeout(timer2); };
                     }
-                }, [loading]); // Uruchom tylko raz, gdy zniknie loading
+                }, [loading]); 
 
 
                 // --- LOGIKA MULTI SELECT ---
@@ -782,8 +781,6 @@
 
                 const handleCardClick = () => {
                     if (isFinished || (displayData && displayData.isEmpty)) return;
-                    // Jeśli trwa intro (ale nie kręcenie), kliknięcie nic nie robi lub można pominąć?
-                    // Tutaj, jeśli jest intro, nie chcemy klikać.
                     if (introPhase !== 'done') return;
 
                     cancelSpeech();
@@ -1058,6 +1055,7 @@
                     });
                 };
 
+                // --- NOWY EFEKT: ZMIANA PAUZY W TRAKCIE CZYTANIA ---
                 useEffect(() => {
                     if (isSpeaking && !isPaused) {
                         pausedIntentionally.current = true;
