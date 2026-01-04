@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Final Compact</title>
+    <title>Fiszki WOJTUKIEWICZ - Final</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -74,7 +74,7 @@
         @keyframes spinThreeTimes { 0% { transform: rotate(0deg); } 100% { transform: rotate(1080deg); } }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
-        /* --- STARTUP ICON ANIMATION --- */
+        /* --- PRZYWRÓCONA ANIMACJA STARTOWA --- */
         @keyframes startUpShake {
             0% { transform: scale(1) rotate(0deg); }
             15% { transform: scale(1.6) rotate(-25deg); }
@@ -84,19 +84,11 @@
             75% { transform: scale(1.1) rotate(-10deg); }
             100% { transform: scale(1) rotate(0deg); }
         }
+
         .startup-anim {
             display: inline-block;
             transform-origin: center center;
-            animation: startUpShake 1.5s ease-in-out 2;
-        }
-
-        /* --- INTRO CARD ANIMATION (X + Y Rotation) --- */
-        @keyframes introSpinComplex {
-            0% { transform: rotateX(0deg) rotateY(0deg); }
-            100% { transform: rotateX(1080deg) rotateY(1080deg); }
-        }
-        .animate-intro-spin {
-            animation: introSpinComplex 1.5s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+            animation: startUpShake 1.5s ease-in-out 2; /* 2 powtórzenia */
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -273,10 +265,6 @@
                 const [currentIndex, setCurrentIndex] = useState(0);
                 const [isFinished, setIsFinished] = useState(false);
                 
-                // --- INTRO STATE ---
-                // 'text' -> wyświetl napis, 'spin' -> kręć, 'done' -> pokaż fiszkę
-                const [introPhase, setIntroPhase] = useState('text');
-
                 const [cardSide, setCardSide] = useState(1);
                 const [prevCardSide, setPrevCardSide] = useState(1);
                 
@@ -404,6 +392,8 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
+                                console.log('Wczytane klucze:', Object.keys(jsonData[0]));
+
                                 const tenseColumns = [
                                     "Beginner", "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
@@ -436,13 +426,15 @@
                                     const word = row.word ? String(row.word).trim() : "";
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
+                                    
+                                    // WCZYTYWANIE KOLUMNY word_info
                                     const wordInfo = row.word_info ? String(row.word_info).trim() : "";
 
                                     const baseSentences = extractSentencesFromCell(row.base);
                                     processedData.push({
                                         id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
                                         phonetic: phonetic, tense: 'Base', sentencesList: baseSentences,
-                                        wordInfo: wordInfo 
+                                        wordInfo: wordInfo // ZAPISANIE DANYCH
                                     });
 
                                     tenseColumns.forEach(tenseName => {
@@ -455,7 +447,7 @@
                                                 processedData.push({
                                                     id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
                                                     phonetic: phonetic, tense: tenseName, sentencesList: tenseSentences,
-                                                    wordInfo: wordInfo
+                                                    wordInfo: wordInfo // Dodane też tutaj, chociaż główne pobieranie idzie z Base
                                                 });
                                             }
                                         }
@@ -502,16 +494,6 @@
                     setIsFinished(false);
                     resetCard();
                 }, [selectedCategories, selectedLevels, fullDatabase]);
-
-                // --- INTRO EFFECT LOGIC ---
-                useEffect(() => {
-                    if (!loading && fullDatabase.length > 0) {
-                        setIntroPhase('text');
-                        const timer1 = setTimeout(() => setIntroPhase('spin'), 1000); 
-                        const timer2 = setTimeout(() => setIntroPhase('done'), 2500); 
-                        return () => { clearTimeout(timer1); clearTimeout(timer2); };
-                    }
-                }, [loading]); 
 
 
                 // --- LOGIKA MULTI SELECT ---
@@ -669,7 +651,7 @@
                         phonetic: mainInfoRow.phonetic, 
                         sentences: sentences, 
                         infoText: infoText,
-                        wordInfo: mainInfoRow.wordInfo
+                        wordInfo: mainInfoRow.wordInfo // PRZEKAZANIE DANYCH Word Info
                     };
                 };
 
@@ -704,6 +686,8 @@
                     const distanceX = touchStart.x - touchEnd.x;
                     const distanceY = touchStart.y - touchEnd.y;
 
+                    // WYKRYWANIE SCROLLA PIONOWEGO:
+                    // Jeśli ruch w pionie (Y) jest większy niż w poziomie (X), ignorujemy zmianę karty.
                     if (Math.abs(distanceY) > Math.abs(distanceX)) {
                         setTouchStart(null); setTouchEnd(null);
                         return;
@@ -720,7 +704,10 @@
                 const onTouchEnd = () => handleEnd();
                 const onMouseDown = (e) => handleStart(e.clientX, e.clientY);
                 const onMouseMove = (e) => { if(touchStart) handleMove(e.clientX, e.clientY); };
-                const onMouseUp = () => { handleEnd(); };
+                const onMouseUp = () => {
+                    // Logic check inside handleEnd handles distance, so we just call it
+                    handleEnd(); 
+                };
                 const onMouseLeave = () => { setTouchStart(null); setTouchEnd(null); };
 
                 const handleTripleTap = (callback) => {
@@ -781,8 +768,6 @@
 
                 const handleCardClick = () => {
                     if (isFinished || (displayData && displayData.isEmpty)) return;
-                    if (introPhase !== 'done') return;
-
                     cancelSpeech();
                     if (cardSide === 1) { 
                         setPrevCardSide(1);
@@ -1164,46 +1149,46 @@
                 if (fileError) return <div className="h-[100dvh] flex flex-col items-center justify-center p-8 text-center"><div className="text-5xl mb-6">⚠️</div><div className="text-2xl font-bold mb-4 text-red-500">Problem z bazą danych</div><pre className="mb-8 text-sm bg-red-50 p-6 rounded-2xl text-left overflow-auto max-w-full whitespace-pre-wrap border border-red-100 shadow-inner">{fileError}</pre><button onClick={() => location.reload()} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg tactile-button transition">Odśwież stronę</button></div>;
 
                 return (
-                    <div className="h-[100dvh] flex flex-col items-center pt-2 pb-[5dvh] px-4 font-sans relative overflow-hidden noselect">
+                    <div className="h-[100dvh] flex flex-col items-center pt-1 pb-2 px-3 font-sans relative overflow-hidden noselect">
                         {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
                         
                         {/* --- MODALE (Glassmorphism) --- */}
                         {isLevelModalOpen && (
                             <div className="fixed inset-0 z-[9999] flex flex-col animate-slideIn glass-panel">
-                                <div className={`p-5 flex justify-between items-center flex-none ${theme.controlsBg}`}>
-                                    <h3 className={`text-xl font-bold flex items-center gap-3 ${theme.headerText}`}><Icon path={iconPaths.barChart} size={24}/> Wybierz poziom</h3>
-                                    <button onClick={closeLevelModal} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"><Icon path={iconPaths.close} size={28}/></button>
+                                <div className={`p-4 flex justify-between items-center flex-none ${theme.controlsBg}`}>
+                                    <h3 className={`text-lg font-bold flex items-center gap-2 ${theme.headerText}`}><Icon path={iconPaths.barChart} size={22}/> Wybierz poziom</h3>
+                                    <button onClick={closeLevelModal} className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"><Icon path={iconPaths.close} size={24}/></button>
                                 </div>
-                                <div className="p-4 text-xs sm:text-sm text-center font-medium opacity-70">Kliknij <strong>nazwę</strong>, aby wybrać jeden. Kliknij <strong>kwadracik</strong>, aby zaznaczyć wiele.</div>
-                                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="flex flex-col gap-3">{availableLevels.map(lvl => { const isSelected = tempSelectedLevels.includes(lvl); return (<div key={lvl} className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-200 select-none shadow-sm ${isSelected ? 'item-multi-selected' : `${theme.buttonBg} border-transparent`}`}><div className="flex-1 py-1 font-bold text-2xl active:scale-95 transition-transform cursor-pointer" onClick={() => handleSingleSelectLevel(lvl)}>{lvl}</div><div className="pl-4 py-2 cursor-pointer active:scale-90 transition-transform text-gray-400 hover:text-accent" onClick={(e) => handleMultiToggleLevel(e, lvl)}>{isSelected ? <div className="text-accent"><Icon path={iconPaths.checkSquare} size={32} /></div> : <Icon path={iconPaths.square} size={32} />}</div></div>); })}</div></div>
-                                {tempSelectedLevels.length > 0 && (<div className="p-4 flex-none z-10 animate-slideUp"><button onClick={confirmMultiLevelSelection} className={`w-full ${theme.accentBtnBg} font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-3`}><Icon path={iconPaths.check} /> Zatwierdź poziomy ({tempSelectedLevels.length})</button></div>)}
+                                <div className="p-3 text-xs text-center font-medium opacity-70">Kliknij <strong>nazwę</strong>, aby wybrać jeden. Kliknij <strong>kwadracik</strong>, aby zaznaczyć wiele.</div>
+                                <div className="flex-1 overflow-y-auto p-3 custom-scrollbar"><div className="flex flex-col gap-2.5">{availableLevels.map(lvl => { const isSelected = tempSelectedLevels.includes(lvl); return (<div key={lvl} className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all duration-200 select-none shadow-sm ${isSelected ? 'item-multi-selected' : `${theme.buttonBg} border-transparent`}`}><div className="flex-1 py-1 font-bold text-xl active:scale-95 transition-transform cursor-pointer" onClick={() => handleSingleSelectLevel(lvl)}>{lvl}</div><div className="pl-4 py-1 cursor-pointer active:scale-90 transition-transform text-gray-400 hover:text-accent" onClick={(e) => handleMultiToggleLevel(e, lvl)}>{isSelected ? <div className="text-accent"><Icon path={iconPaths.checkSquare} size={28} /></div> : <Icon path={iconPaths.square} size={28} />}</div></div>); })}</div></div>
+                                {tempSelectedLevels.length > 0 && (<div className="p-3 flex-none z-10 animate-slideUp"><button onClick={confirmMultiLevelSelection} className={`w-full ${theme.accentBtnBg} font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2`}><Icon path={iconPaths.check} size={20} /> Zatwierdź poziomy ({tempSelectedLevels.length})</button></div>)}
                             </div>
                         )}
                         {isCategoryModalOpen && (
                             <div className="fixed inset-0 z-[9999] flex flex-col animate-slideIn glass-panel">
-                                <div className={`p-5 flex justify-between items-center flex-none ${theme.controlsBg}`}>
-                                    <h3 className={`text-xl font-bold flex items-center gap-3 ${theme.headerText}`}><Icon path={iconPaths.filter} size={24}/> Wybierz temat</h3>
-                                    <button onClick={closeCategoryModal} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"><Icon path={iconPaths.close} size={28}/></button>
+                                <div className={`p-4 flex justify-between items-center flex-none ${theme.controlsBg}`}>
+                                    <h3 className={`text-lg font-bold flex items-center gap-2 ${theme.headerText}`}><Icon path={iconPaths.filter} size={22}/> Wybierz temat</h3>
+                                    <button onClick={closeCategoryModal} className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"><Icon path={iconPaths.close} size={24}/></button>
                                 </div>
-                                <div className="p-4 text-xs sm:text-sm text-center font-medium opacity-70">Kliknij <strong>nazwę</strong>, aby wybrać jeden. Kliknij <strong>kwadracik</strong>, aby zaznaczyć wiele.</div>
-                                <div className="flex-1 overflow-y-auto p-2 sm:p-4 custom-scrollbar"><div className="flex flex-col gap-2 pb-20">{availableCategories.map(cat => { const isSelected = tempSelectedCategories.includes(cat); return (<div key={cat} className={`flex items-center justify-between p-3 px-4 rounded-2xl border-2 transition-all duration-200 select-none shadow-sm ${isSelected ? 'item-multi-selected' : `${theme.buttonBg} border-transparent`}`}><div className="flex-1 py-1 font-bold text-lg active:scale-95 transition-transform cursor-pointer" onClick={() => handleSingleSelectCategory(cat)}>{cat}</div><div className="pl-4 py-2 cursor-pointer active:scale-90 transition-transform text-gray-400 hover:text-accent" onClick={(e) => handleMultiToggleCategory(e, cat)}>{isSelected ? <div className="text-accent"><Icon path={iconPaths.checkSquare} size={32} /></div> : <Icon path={iconPaths.square} size={32} />}</div></div>); })}</div></div>
-                                {tempSelectedCategories.length > 0 && (<div className="p-4 flex-none z-10 animate-slideUp"><button onClick={confirmMultiCategorySelection} className={`w-full ${theme.accentBtnBg} font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-3`}><Icon path={iconPaths.check} /> Zatwierdź wybrane ({tempSelectedCategories.length})</button></div>)}
+                                <div className="p-3 text-xs text-center font-medium opacity-70">Kliknij <strong>nazwę</strong>, aby wybrać jeden. Kliknij <strong>kwadracik</strong>, aby zaznaczyć wiele.</div>
+                                <div className="flex-1 overflow-y-auto p-2 sm:p-3 custom-scrollbar"><div className="flex flex-col gap-2 pb-16">{availableCategories.map(cat => { const isSelected = tempSelectedCategories.includes(cat); return (<div key={cat} className={`flex items-center justify-between p-2.5 px-3 rounded-xl border-2 transition-all duration-200 select-none shadow-sm ${isSelected ? 'item-multi-selected' : `${theme.buttonBg} border-transparent`}`}><div className="flex-1 py-1 font-bold text-base active:scale-95 transition-transform cursor-pointer" onClick={() => handleSingleSelectCategory(cat)}>{cat}</div><div className="pl-3 py-1 cursor-pointer active:scale-90 transition-transform text-gray-400 hover:text-accent" onClick={(e) => handleMultiToggleCategory(e, cat)}>{isSelected ? <div className="text-accent"><Icon path={iconPaths.checkSquare} size={28} /></div> : <Icon path={iconPaths.square} size={28} />}</div></div>); })}</div></div>
+                                {tempSelectedCategories.length > 0 && (<div className="p-3 flex-none z-10 animate-slideUp"><button onClick={confirmMultiCategorySelection} className={`w-full ${theme.accentBtnBg} font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2`}><Icon path={iconPaths.check} size={20} /> Zatwierdź wybrane ({tempSelectedCategories.length})</button></div>)}
                             </div>
                         )}
 
                         {/* --- HEADER (Glassmorphism) --- */}
-                        <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-4 mt-2 mb-4 p-4 rounded-3xl glass-panel shadow-sm z-10">
-                            <div className="w-full relative flex items-center justify-center min-h-[48px]">
+                        <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-1 mb-3 p-3 rounded-2xl glass-panel shadow-sm z-10">
+                            <div className="w-full relative flex items-center justify-center min-h-[40px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-3 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={22} className={isDarkMode ? "text-yellow-400" : "text-primary"} /></div></button>
+                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className={isDarkMode ? "text-yellow-400" : "text-primary"} /></div></button>
                                 </div>
-                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-xl sm:text-2xl font-black flex items-center gap-3 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={28} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
+                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
                             </div>
-                            <div className="w-full grid grid-cols-2 gap-3 sm:gap-4">
-                                <div onClick={openLevelModal} className={`${theme.controlsBg} px-4 py-3 rounded-2xl shadow-sm border-l-[6px] ${selectedLevels.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase block mb-1 ${theme.subText} tracking-wider`}>Poziom</label><div className={`w-full bg-transparent font-bold text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getLevelLabel()}</div></div>
-                                <div onClick={openCategoryModal} className={`${theme.controlsBg} px-4 py-3 rounded-2xl shadow-sm border-l-[6px] ${selectedCategories.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase mb-1 flex items-center gap-1 ${theme.subText} tracking-wider`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3 opacity-70"/> Temat</label><div className={`w-full bg-transparent font-bold text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getCategoryLabel()}</div></div>
+                            <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
+                                <div onClick={openLevelModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-sm border-l-[4px] ${selectedLevels.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase block mb-0.5 ${theme.subText} tracking-wider`}>Poziom</label><div className={`w-full bg-transparent font-bold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getLevelLabel()}</div></div>
+                                <div onClick={openCategoryModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-sm border-l-[4px] ${selectedCategories.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 flex items-center gap-1 ${theme.subText} tracking-wider`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3 opacity-70"/> Temat</label><div className={`w-full bg-transparent font-bold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getCategoryLabel()}</div></div>
                             </div>
-                            <div className={`${theme.counterBg} px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap ${theme.counterText} shadow-sm w-auto text-center mt-1 flex items-center gap-2`}>
+                            <div className={`${theme.counterBg} px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap ${theme.counterText} shadow-sm w-auto text-center mt-0.5 flex items-center gap-2`}>
                                 <Icon path={iconPaths.barChart} size={14} className="opacity-60"/>
                                 {viewAllSentences && sentencesListToRender.length > 0 ? (() => { const currentS = sentencesListToRender[speakingSentenceIndex]; const currentWordNum = currentS ? currentS.wordIndex + 1 : 1; return `Słowo: ${currentWordNum} / ${currentWordIds.length}`; })() : (currentWordIds.length > 0 ? `${isFinished ? currentWordIds.length : currentIndex + 1} / ${currentWordIds.length}` : '0 / 0')}
                             </div>
@@ -1211,59 +1196,53 @@
 
                         {/* --- MAIN CARD AREA --- */}
                         {isFinished ? (
-                                <div className="w-full max-w-md flex-1 min-h-[300px] mb-6 z-10 flex flex-col items-center justify-center animate-popIn perspective-1000">
-                                <div className={`w-full p-10 rounded-[32px] flex flex-col items-center justify-center text-center ${theme.cardFrontBg} transition-all duration-500`}>
-                                    <div className={`mb-8 p-8 rounded-full bg-yellow-100 dark:bg-yellow-900/30 shadow-inner animate-bounce-slow`}><Icon path={iconPaths.trophy} size={80} className="text-yellow-500 drop-shadow-sm" /></div>
-                                    <h2 className={`text-4xl font-black mb-3 ${theme.cardFrontText} tracking-tight`}>Gratulacje!</h2>
-                                    <p className={`text-xl mb-10 ${theme.subText} font-medium`}>Brawo, skończyłeś całą kategorię!</p>
-                                    <button onClick={handleReset} className={`${theme.accentBtnBg} py-4 px-10 rounded-2xl text-xl flex items-center gap-3`}>
-                                        <div className="animate-spin-three"><Icon path={iconPaths.rotate} size={24} /></div> Zacznij od nowa
+                                <div className="w-full max-w-md flex-1 min-h-[300px] mb-3 z-10 flex flex-col items-center justify-center animate-popIn perspective-1000">
+                                <div className={`w-full p-6 rounded-[24px] flex flex-col items-center justify-center text-center ${theme.cardFrontBg} transition-all duration-500`}>
+                                    <div className={`mb-6 p-6 rounded-full bg-yellow-100 dark:bg-yellow-900/30 shadow-inner animate-bounce-slow`}><Icon path={iconPaths.trophy} size={64} className="text-yellow-500 drop-shadow-sm" /></div>
+                                    <h2 className={`text-3xl font-black mb-2 ${theme.cardFrontText} tracking-tight`}>Gratulacje!</h2>
+                                    <p className={`text-lg mb-8 ${theme.subText} font-medium`}>Brawo, skończyłeś całą kategorię!</p>
+                                    <button onClick={handleReset} className={`${theme.accentBtnBg} py-3 px-8 rounded-xl text-lg flex items-center gap-2`}>
+                                        <div className="animate-spin-three"><Icon path={iconPaths.rotate} size={20} /></div> Zacznij od nowa
                                     </button>
                                 </div>
                                 </div>
                         ) : (
                             <>
-                                <div className="relative w-full max-w-md flex-1 min-h-[300px] mb-6 z-0 perspective-1000">
-                                    <div className={`relative w-full h-full rounded-[32px] cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-500 ease-out-back'} ${introPhase === 'spin' ? 'animate-intro-spin' : ''}`} style={introPhase === 'spin' ? {} : { transform: `rotateY(${rotation}deg) rotateX(${rotationX}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
+                                <div className="relative w-full max-w-md flex-1 min-h-[300px] mb-3 z-0 perspective-1000">
+                                    <div className={`relative w-full h-full rounded-[24px] cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-500 ease-out-back'}`} style={{ transform: `rotateY(${rotation}deg) rotateX(${rotationX}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
                                         
                                         {/* --- FRONT SIDE --- */}
-                                        <div className={`absolute inset-0 w-full h-full rounded-[32px] flex flex-col items-center justify-center p-6 sm:p-8 backface-hidden ${theme.cardFrontBg} transition-colors-all duration-500`} style={{ transform: 'rotateY(0deg)' }}>
-                                            {introPhase !== 'done' ? (
-                                                 // --- INTRO PHASE ---
-                                                <div className="flex flex-col items-center justify-center animate-fadeIn gap-4">
-                                                     <div className="animate-spin-three text-accent"><Icon path={iconPaths.layers} size={64} /></div>
-                                                     <h2 className={`text-2xl font-black ${theme.cardFrontText}`}>Losowanie kolejki słów...</h2>
-                                                </div>
-                                            ) : (cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
+                                        <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${theme.cardFrontBg} transition-colors-all duration-500`} style={{ transform: 'rotateY(0deg)' }}>
+                                            {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
                                                 // --- ZDANIA (Front) ---
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative">
-                                                    <div className="flex justify-between items-center mb-4 border-b border-gray-200/10 pb-3 flex-none relative">
-                                                        <h3 className={`font-bold flex items-center gap-2 text-lg ${theme.headerText}`}><Icon path={iconPaths.book} size={20} className="text-accent"/> Zdania</h3>
+                                                    <div className="flex justify-between items-center mb-3 border-b border-gray-200/10 pb-2 flex-none relative">
+                                                        <h3 className={`font-bold flex items-center gap-2 text-base ${theme.headerText}`}><Icon path={iconPaths.book} size={18} className="text-accent"/> Zdania</h3>
                                                         
                                                         {/* PRZYCISK GRAMATYKA (TERAZ TUTAJ) */}
-                                                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                                                            <button onClick={showGrammarInfo} className={`flex items-center gap-2 px-3 py-1.5 rounded-full tactile-button ${theme.buttonBg}`}>
-                                                                <Icon path={iconPaths.infoCircle} size={18} className="text-accent"/> <span className="text-xs font-bold uppercase">Gramatyka</span>
+                                                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                            <button onClick={showGrammarInfo} className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
+                                                                <Icon path={iconPaths.infoCircle} size={16} className="text-accent"/> <span className="text-[10px] font-bold uppercase">Gramatyka</span>
                                                             </button>
 
-                                                            <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 ${theme.controlsBg} ${theme.controlsBorder}`}>
-                                                                <Icon path={iconPaths.clock} size={14} className="text-accent opacity-80"/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[100px] sm:w-[120px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
+                                                            <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${theme.controlsBg} ${theme.controlsBorder}`}>
+                                                                <Icon path={iconPaths.clock} size={12} className="text-accent opacity-80"/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-[10px] font-bold outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <ul className="space-y-4 text-lg text-left overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4 relative -mr-2 pl-2">{sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (<li key={i} ref={el => itemRefs.current[i] = el} className={`flex flex-col gap-2 transition-transform duration-300 origin-left rounded-xl p-3 ${activeSentenceIndex === i ? 'scale-105 z-10 bg-accent/10 shadow-sm -ml-2' : 'scale-100 z-0'}`}><div className="flex gap-2 leading-snug font-medium"><span className={`${isDarkMode ? 'text-slate-200' : 'text-primary-dark'} transition-colors-all duration-500`}>{highlightTargetWord(s.en, viewAllSentences ? s.word : (displayData ? displayData.word : ''))}</span></div>{s.pl && tense !== 'Beginner' && (<div className={`pl-4 text-base italic ${theme.subText} border-l-2 border-accent/30`}>{s.pl}</div>)}</li>)) : <li className="text-center opacity-50 italic mt-10 flex flex-col items-center gap-4"><Icon path={iconPaths.filter} size={40} className="opacity-30" />Brak zdań dla tego czasu</li>}</ul>
+                                                    <ul className="space-y-3 text-base text-left overflow-y-auto pr-1 custom-scrollbar flex-1 pb-3 relative -mr-1 pl-1">{sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (<li key={i} ref={el => itemRefs.current[i] = el} className={`flex flex-col gap-1 transition-transform duration-300 origin-left rounded-lg p-2 ${activeSentenceIndex === i ? 'scale-105 z-10 bg-accent/10 shadow-sm -ml-1' : 'scale-100 z-0'}`}><div className="flex gap-2 leading-snug font-medium"><span className={`${isDarkMode ? 'text-slate-200' : 'text-primary-dark'} transition-colors-all duration-500`}>{highlightTargetWord(s.en, viewAllSentences ? s.word : (displayData ? displayData.word : ''))}</span></div>{s.pl && tense !== 'Beginner' && (<div className={`pl-3 text-sm italic ${theme.subText} border-l-2 border-accent/30`}>{s.pl}</div>)}</li>)) : <li className="text-center opacity-50 italic mt-8 flex flex-col items-center gap-3"><Icon path={iconPaths.filter} size={32} className="opacity-30" />Brak zdań dla tego czasu</li>}</ul>
                                                     
-                                                    <div className="relative w-full mt-4 flex justify-between items-center flex-none p-3 rounded-2xl bg-black/5 dark:bg-white/5">
+                                                    <div className="relative w-full mt-3 flex justify-between items-center flex-none p-2 rounded-xl bg-black/5 dark:bg-white/5">
+                                                            
+                                                            {/* PRZYCISK ALL (TERAZ TUTAJ) */}
+                                                            <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${viewAllSentences ? 'bg-accent text-white shadow-accent/30' : theme.buttonBg}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
+                                                                <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={16} /></div><span className="text-[10px] font-bold uppercase whitespace-nowrap">All</span>
+                                                            </button>
                                                         
-                                                        {/* PRZYCISK ALL (TERAZ TUTAJ - LEWY DÓŁ) */}
-                                                        <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-full tactile-button ${viewAllSentences ? 'bg-accent text-white shadow-accent/30' : theme.buttonBg}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
-                                                            <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={18} /></div><span className="text-xs font-bold uppercase whitespace-nowrap">All</span>
-                                                        </button>
+                                                        <div className={`font-mono text-lg font-bold opacity-70 ${theme.subText} tracking-wider`}>{currentPhoneticToDisplay}</div>
                                                         
-                                                        <div className={`font-mono text-xl font-bold opacity-70 ${theme.subText} tracking-wider`}>{currentPhoneticToDisplay}</div>
-                                                        
-                                                            <button onClick={togglePauseDuration} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold ${theme.buttonBg}`}>
-                                                                <Icon path={iconPaths.runningMan} size={18} className={pauseDuration !== 0 ? "text-accent" : "opacity-50"} />
+                                                            <button onClick={togglePauseDuration} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${theme.buttonBg}`}>
+                                                                <Icon path={iconPaths.runningMan} size={16} className={pauseDuration !== 0 ? "text-accent" : "opacity-50"} />
                                                                 <span className={pauseDuration !== 0 ? "text-accent" : "opacity-50"}>{pauseDuration > 0 ? `+${pauseDuration}` : pauseDuration}</span>
                                                             </button>
                                                     </div>
@@ -1271,87 +1250,87 @@
                                             ) : (cardSide === 5 || (prevCardSide === 5 && cardSide !== 1 && cardSide !== 3)) ? (
                                                 // --- WORD INFO (Front - rotated) ---
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative rotate-180">
-                                                    <div className="flex-none mb-4 border-b border-gray-200/10 pb-3">
-                                                        <h3 className={`text-xl font-bold flex items-center gap-3 ${theme.headerText}`}><Icon path={iconPaths.infoCircle} size={24} className="text-accent"/> Word Info</h3>
+                                                    <div className="flex-none mb-3 border-b border-gray-200/10 pb-2">
+                                                        <h3 className={`text-lg font-bold flex items-center gap-2 ${theme.headerText}`}><Icon path={iconPaths.infoCircle} size={20} className="text-accent"/> Word Info</h3>
                                                     </div>
-                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-lg leading-relaxed pr-4 -mr-4 relative">
-                                                        <div className="p-2">
+                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-base leading-relaxed pr-2 -mr-2 relative">
+                                                        <div className="p-1">
                                                         {displayData && displayData.wordInfo ? (
                                                             <div className="whitespace-pre-line font-medium text-primary-dark dark:text-slate-200">{displayData.wordInfo}</div>
                                                         ) : (
-                                                            <div className="italic opacity-60 text-center mt-20 flex flex-col items-center gap-4"><Icon path={iconPaths.fileText} size={48} className="opacity-30" />Brak dodatkowych informacji.</div>
+                                                            <div className="italic opacity-60 text-center mt-16 flex flex-col items-center gap-3"><Icon path={iconPaths.fileText} size={40} className="opacity-30" />Brak dodatkowych informacji.</div>
                                                         )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex-none mt-6 w-full">
-                                                        <button onClick={showTranslation} className={`w-full ${theme.buttonBg} font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-3`}>
-                                                            <Icon path={iconPaths.rotate} size={22}/> Wróć do tłumaczenia
+                                                    <div className="flex-none mt-4 w-full">
+                                                        <button onClick={showTranslation} className={`w-full ${theme.buttonBg} font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2`}>
+                                                            <Icon path={iconPaths.rotate} size={20}/> Wróć do tłumaczenia
                                                         </button>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 // --- STANDARDOWY FRONT (Słówko) ---
                                                 <>
-                                                    <div className={`absolute top-6 left-6 text-xs font-bold uppercase flex flex-wrap items-center gap-2 ${theme.subText} tracking-wider`}><span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 backdrop-blur-md truncate max-w-[120px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span></div>
-                                                    <button onClick={(e) => { e.stopPropagation(); setIsPlToEn(!isPlToEn); }} className={`absolute top-6 right-6 px-4 py-2 rounded-full text-xs font-bold border ${theme.controlsBorder} ${theme.buttonBg} flex items-center gap-2 shadow-sm group`}>
-                                                    <Icon path={iconPaths.swap} size={16} className="text-accent group-hover:rotate-180 transition-transform duration-300"/> {isPlToEn ? "PL ➔ EN" : "EN ➔ PL"}
+                                                    <div className={`absolute top-4 left-4 text-xs font-bold uppercase flex flex-wrap items-center gap-2 ${theme.subText} tracking-wider`}><span className="px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 backdrop-blur-md truncate max-w-[100px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span></div>
+                                                    <button onClick={(e) => { e.stopPropagation(); setIsPlToEn(!isPlToEn); }} className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold border ${theme.controlsBorder} ${theme.buttonBg} flex items-center gap-1 shadow-sm group`}>
+                                                    <Icon path={iconPaths.swap} size={14} className="text-accent group-hover:rotate-180 transition-transform duration-300"/> {isPlToEn ? "PL ➔ EN" : "EN ➔ PL"}
                                                     </button>
-                                                    <div className="flex-1 flex items-center justify-center w-full px-4">
+                                                    <div className="flex-1 flex items-center justify-center w-full px-2">
                                                         <h2 className={`${getWordSizeClass(isPlToEn ? (displayData ? displayData.translation : '') : (displayData ? displayData.word : ''))} font-black text-center break-words leading-tight ${theme.cardFrontText} drop-shadow-sm tracking-tight`}>
                                                             {displayData ? (isPlToEn ? displayData.translation : displayData.word) : '...'}
                                                         </h2>
                                                     </div>
-                                                    <div className={`absolute bottom-6 text-xs flex items-center gap-2 font-bold uppercase ${theme.subText} opacity-60 tracking-widest animate-pulse`}><Icon path={iconPaths.rotate} size={14}/> Kliknij, aby obrócić</div>
+                                                    <div className={`absolute bottom-4 text-xs flex items-center gap-1 font-bold uppercase ${theme.subText} opacity-60 tracking-widest animate-pulse`}><Icon path={iconPaths.rotate} size={12}/> Kliknij, aby obrócić</div>
                                                 </>
                                             )}
                                         </div>
 
                                         {/* --- BACK SIDE --- */}
-                                        <div className={`absolute inset-0 w-full h-full rounded-[32px] flex flex-col items-center justify-center p-6 sm:p-8 backface-hidden ${theme.cardBackBg} transition-colors-all duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
+                                        <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${theme.cardBackBg} transition-colors-all duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
                                             {(cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? (
                                                 // --- GRAMATYKA (Tył - rotated X) ---
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative">
-                                                    <div className="flex-none mb-4 border-b border-white/10 pb-3">
-                                                        <h3 className="text-xl font-bold flex items-center gap-3 text-accent-light"><Icon path={iconPaths.infoCircle} size={24}/> Gramatyka</h3>
+                                                    <div className="flex-none mb-3 border-b border-white/10 pb-2">
+                                                        <h3 className="text-lg font-bold flex items-center gap-2 text-accent-light"><Icon path={iconPaths.infoCircle} size={20}/> Gramatyka</h3>
                                                     </div>
-                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-lg leading-relaxed pr-4 -mr-4 relative">
-                                                         <div className="p-2">
+                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-base leading-relaxed pr-2 -mr-2 relative">
+                                                         <div className="p-1">
                                                         {displayData && displayData.infoText ? (
                                                             <div className="whitespace-pre-line font-medium">{displayData.infoText}</div>
                                                         ) : (
-                                                            <div className="italic opacity-60 text-center mt-20 flex flex-col items-center gap-4"><Icon path={iconPaths.fileText} size={48} className="opacity-30" />Brak informacji gramatycznych dla tego czasu.</div>
+                                                            <div className="italic opacity-60 text-center mt-16 flex flex-col items-center gap-3"><Icon path={iconPaths.fileText} size={40} className="opacity-30" />Brak informacji gramatycznych dla tego czasu.</div>
                                                         )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex-none mt-6 w-full">
-                                                        <button onClick={showSentences} className="w-full bg-white/10 hover:bg-white/20 tactile-button text-white font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-3">
-                                                            <Icon path={iconPaths.book} size={22}/> Wróć do zdań
+                                                    <div className="flex-none mt-4 w-full">
+                                                        <button onClick={showSentences} className="w-full bg-white/10 hover:bg-white/20 tactile-button text-white font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2">
+                                                            <Icon path={iconPaths.book} size={20}/> Wróć do zdań
                                                         </button>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 // --- TŁUMACZENIE (Tył) ---
                                                 <>
-                                                    <div className="absolute top-6 right-6 text-xs font-bold text-accent-light uppercase tracking-wider px-3 py-1 rounded-full bg-white/10 backdrop-blur-md shadow-inner">
+                                                    <div className="absolute top-4 right-4 text-xs font-bold text-accent-light uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md shadow-inner">
                                                         {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
                                                     </div>
 
-                                                    <div className="absolute bottom-6 left-6">
-                                                        <button onClick={showBeginnerInfo} className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 tactile-button text-accent-light shadow-sm transition-all group">
-                                                            <Icon path={iconPaths.infoCircle} size={20} className="group-hover:scale-110 transition-transform"/> <span className="hidden sm:inline">Word Info</span>
+                                                    <div className="absolute bottom-4 left-4">
+                                                        <button onClick={showBeginnerInfo} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 tactile-button text-accent-light shadow-sm transition-all group">
+                                                            <Icon path={iconPaths.infoCircle} size={16} className="group-hover:scale-110 transition-transform"/> <span className="hidden sm:inline">Word Info</span>
                                                         </button>
                                                     </div>
 
-                                                    <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-black mb-6 text-center leading-tight break-words max-w-full tracking-tight drop-shadow-md`}>
+                                                    <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-black mb-4 text-center leading-tight break-words max-w-full tracking-tight drop-shadow-md`}>
                                                         {displayData ? (isPlToEn ? displayData.word : displayData.translation) : ''}
                                                     </h2>
 
-                                                    <div className="relative w-full flex justify-center items-center flex-none mb-8">
-                                                        <div className={`bg-black/20 px-8 py-3 rounded-2xl font-mono font-bold shadow-inner text-accent-light ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : '---'}</div>
+                                                    <div className="relative w-full flex justify-center items-center flex-none mb-6">
+                                                        <div className={`bg-black/20 px-6 py-2 rounded-xl font-mono font-bold shadow-inner text-accent-light ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : '---'}</div>
                                                     </div>
 
-                                                    <button onClick={showSentences} className={`font-bold py-3 px-8 rounded-2xl shadow-lg ${theme.buttonBg} flex items-center gap-3 text-lg transition-all hover:scale-105`}>
-                                                        <Icon path={iconPaths.book} size={22} className="text-accent"/> {tense === 'Base' ? 'Zdania' : `Zdania (${tense})`}
+                                                    <button onClick={showSentences} className={`font-bold py-2 px-6 rounded-xl shadow-lg ${theme.buttonBg} flex items-center gap-2 text-base transition-all hover:scale-105`}>
+                                                        <Icon path={iconPaths.book} size={20} className="text-accent"/> {tense === 'Base' ? 'Zdania' : `Zdania (${tense})`}
                                                     </button>
                                                 </>
                                             )}
@@ -1359,26 +1338,26 @@
                                     </div>
                                 </div>
                                 {/* --- CONTROLS BOTTOM --- */}
-                                <div className="w-full max-w-md flex-none space-y-4 z-20 mb-2 glass-panel p-4 rounded-[32px] shadow-soft-xl">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button onClick={handlePrev} className={`${theme.buttonBg} font-bold py-4 rounded-2xl flex justify-center items-center gap-3 text-base group`}><Icon path={iconPaths.left} className="w-6 h-6 text-accent group-hover:-translate-x-1 transition-transform" /> Poprzednia</button>
-                                        <button onClick={handleNext} className={`${theme.buttonBg} font-bold py-4 rounded-2xl flex justify-center items-center gap-3 text-base group`}>Następna <Icon path={iconPaths.right} className="w-6 h-6 text-accent group-hover:translate-x-1 transition-transform" /></button>
+                                <div className="w-full max-w-md flex-none space-y-3 z-20 mb-1 glass-panel p-3 rounded-[24px] shadow-soft-xl">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button onClick={handlePrev} className={`${theme.buttonBg} font-bold py-3 rounded-xl flex justify-center items-center gap-2 text-sm group`}><Icon path={iconPaths.left} className="w-5 h-5 text-accent group-hover:-translate-x-1 transition-transform" /> Poprzednia</button>
+                                        <button onClick={handleNext} className={`${theme.buttonBg} font-bold py-3 rounded-xl flex justify-center items-center gap-2 text-sm group`}>Następna <Icon path={iconPaths.right} className="w-5 h-5 text-accent group-hover:translate-x-1 transition-transform" /></button>
                                     </div>
-                                    <button onClick={handleBottomBtnClick} className={`w-full text-xl font-bold py-5 rounded-2xl shadow-lg flex justify-center items-center gap-4 transition-all duration-300 hover:scale-[1.02] active:scale-100 ${isSpeaking && !isPaused ? "bg-emerald-600 hover:bg-emerald-700 text-white tactile-button shadow-emerald-500/30" : theme.accentBtnBg}`}>
+                                    <button onClick={handleBottomBtnClick} className={`w-full text-lg font-bold py-4 rounded-xl shadow-lg flex justify-center items-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-100 ${isSpeaking && !isPaused ? "bg-emerald-600 hover:bg-emerald-700 text-white tactile-button shadow-emerald-500/30" : theme.accentBtnBg}`}>
                                         {cardSide === 3 || cardSide === 5
                                             ? (
                                                 <>
-                                                    {isSpeaking && !isPaused ? <Icon path={iconPaths.pause} size={28} className="animate-pulse"/> : <Icon path={iconPaths.play} size={28} className="ml-1"/>}
+                                                    {isSpeaking && !isPaused ? <Icon path={iconPaths.pause} size={24} className="animate-pulse"/> : <Icon path={iconPaths.play} size={24} className="ml-1"/>}
                                                     {isSpeaking && !isPaused ? "Pauza" : (isPaused ? "Wznów" : "Czytaj zdania")}
                                                 </>
                                             ) 
                                             : (cardSide === 4 ? (
                                                 <>
-                                                    <Icon path={iconPaths.book} size={28}/> Wróć do zdań
+                                                    <Icon path={iconPaths.book} size={24}/> Wróć do zdań
                                                 </>
                                             ) : (
                                                 <>
-                                                    {isSpeaking ? <Icon path={iconPaths.volX} size={28} className="animate-pulse"/> : <Icon path={iconPaths.vol} size={28}/>}
+                                                    {isSpeaking ? <Icon path={iconPaths.volX} size={24} className="animate-pulse"/> : <Icon path={iconPaths.vol} size={24}/>}
                                                     {isSpeaking ? "Odtwarzanie..." : "Czytaj wymowę"}
                                                 </>
                                             ))
