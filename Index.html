@@ -3,87 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Grammar Info</title>
+    <title>Fiszki WOJTUKIEWICZ - Premium Design</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // Nowa, bardziej wyrafinowana paleta
+                        primary: { DEFAULT: '#334155', light: '#475569', dark: '#1e293b' }, // Slate blueish
+                        accent: { DEFAULT: '#0d9488', light: '#14b8a6', dark: '#0f766e' }, // Teal/Seafoam
+                        paper: { light: '#f8fafc', dark: '#1e293b' } // Off-white & Deep charcoal
+                    },
+                    boxShadow: {
+                        'soft-xl': '0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.01)',
+                        'inner-light': 'inset 0 2px 4px 0 rgb(255 255 255 / 0.5)',
+                        'inner-dark': 'inset 0 2px 4px 0 rgb(0 0 0 / 0.2)',
+                    }
+                }
+            }
+        }
+    </script>
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <style>
+        /* --- CUSTOM STYLES FOR PREMIUM FEEL --- */
+        body {
+            /* Bardziej złożone, miękkie tło */
+            background: radial-gradient(circle at top center, #f1f5f9, #cbd5e1);
+            min-height: 100dvh;
+        }
+        .dark body {
+            background: radial-gradient(circle at top center, #1e293b, #0f172a);
+        }
+
+        /* Efekt "szkła" dla nagłówka i modali */
+        .glass-panel {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-panel {
+            background-color: rgba(30, 41, 59, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Bardziej "mięsiste", namacalne przyciski */
+        .tactile-button {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1), inset 0 1px 1px rgba(255,255,255,0.2);
+        }
+        .tactile-button:active {
+            transform: scale(0.97);
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
+        .animate-fadeIn { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         
-        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .animate-popIn { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-popIn { animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); } /* Bardziej sprężysta animacja */
 
         .animate-slideIn { animation: fadeIn 0.3s ease-out; }
 
-        @keyframes spinThreeTimes { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(1080deg); } 
-        }
+        @keyframes spinThreeTimes { 0% { transform: rotate(0deg); } 100% { transform: rotate(1080deg); } }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
-
-        @keyframes startUpShake {
-            0% { transform: scale(1) rotate(0deg); }
-            15% { transform: scale(1.6) rotate(-25deg); }
-            30% { transform: scale(2.2) rotate(25deg); }
-            45% { transform: scale(1.6) rotate(-25deg); }
-            60% { transform: scale(1.2) rotate(25deg); }
-            75% { transform: scale(1.1) rotate(-10deg); }
-            100% { transform: scale(1) rotate(0deg); }
-        }
-
-        .startup-anim {
-            display: inline-block;
-            transform-origin: center center;
-            animation: startUpShake 1.5s ease-in-out 2;
-        }
-
-        .transition-colors-all { 
-            transition-property: background-color, border-color, color, fill, stroke, background-image, box-shadow; 
-            transition-duration: 500ms; 
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); 
-        }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
         
         #error-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.98); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; color: #991b1b; padding: 20px; text-align: center; }
         .no-tap-highlight { -webkit-tap-highlight-color: transparent; }
         
-        .noselect {
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -khtml-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
+        .noselect { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
         .item-multi-selected {
-            background-color: #ecfdf5 !important;
-            border-color: #10b981 !important;
-            color: #065f46 !important;
+            background-color: #f0fdfa !important; /* accent-50 */
+            border-color: #0d9488 !important; /* accent-600 */
+            color: #0f766e !important; /* accent-700 */
+            box-shadow: inset 0 0 0 1px #0d9488;
         }
         .dark .item-multi-selected {
-            background-color: #064e3b !important;
-            border-color: #10b981 !important;
-            color: #d1fae5 !important;
+            background-color: #134e4a !important; /* accent-900/50 */
+            border-color: #14b8a6 !important; /* accent-500 */
+            color: #ccfbf1 !important; /* accent-100 */
         }
     </style>
 </head>
-<body class="m-0 transition-colors-all no-tap-highlight overflow-hidden">
+<body class="m-0 text-slate-700 dark:text-slate-200 no-tap-highlight overflow-hidden transition-colors duration-500">
 
     <div id="error-overlay">
         <h2 class="text-2xl font-bold mb-2">Wystąpił błąd</h2>
@@ -114,8 +134,9 @@
         try {
             const { useState, useEffect, useMemo, useRef } = React;
 
+            // Uproszczone ikony z lekko grubszym obrysem dla lepszej widoczności
             const Icon = ({ path, size = 24, className="" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
             );
 
             const iconPaths = {
@@ -138,19 +159,16 @@
                 swap: <><path d="M7 16V4M7 4L3 8M7 4L11 8"/><path d="M17 8v12M17 20l4-4M17 20l-4-4"/></>,
                 check: <polyline points="20 6 9 17 4 12"></polyline>,
                 filter: <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>,
-                square: <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>,
-                checkSquare: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 12 14 22 4"></polyline></>,
+                square: <rect x="3" y="3" width="18" height="18" rx="3.5" ry="3.5"></rect>, // Bardziej zaokrąglone
+                checkSquare: <><rect x="3" y="3" width="18" height="18" rx="3.5" ry="3.5"></rect><polyline points="9 11 12 14 22 4"></polyline></>,
                 barChart: <><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></>,
                 runningMan: <>
-                    {/* Head */}
                     <circle cx="18" cy="5" r="2" fill="currentColor" />
-                    {/* Body & Limbs */}
-                    <path d="M14.5 9.5L12 17l4 3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M14.5 9.5l3.5 3l3-1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M14.5 9.5l-2-2-4 1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 17l-3 2l-2-1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    {/* Speed Lines */}
-                    <path d="M3 13h5M2 17h4M4 9h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M14.5 9.5L12 17l4 3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M14.5 9.5l3.5 3l3-1" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M14.5 9.5l-2-2-4 1" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M12 17l-3 2l-2-1" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M3 13h5M2 17h4M4 9h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
                 </>,
                 infoCircle: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>
             };
@@ -271,7 +289,6 @@
                 const [selectedPlVoice, setSelectedPlVoice] = useState(null);
 
                 // --- TOUCH & SWIPE LOGIC STATE ---
-                // Zmieniono: przechowujemy współrzędne X i Y
                 const [touchStart, setTouchStart] = useState(null); 
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
@@ -289,6 +306,11 @@
 
                 useEffect(() => {
                     localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
+                    if (isDarkMode) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
                 }, [isDarkMode]);
 
                 useEffect(() => {
@@ -491,9 +513,9 @@
                 };
 
                 const getCategoryLabel = () => {
-                    if (selectedCategories.length === 0) return "Wszystkie (Default)";
+                    if (selectedCategories.length === 0) return "Wszystkie";
                     if (selectedCategories.length === 1) return selectedCategories[0];
-                    return `Wybrano: ${selectedCategories.length}`;
+                    return `${selectedCategories.length} wybrane`;
                 };
 
                 const openLevelModal = () => {
@@ -528,7 +550,7 @@
                 const getLevelLabel = () => {
                     if (selectedLevels.length === 0) return "Brak";
                     if (selectedLevels.length === 1) return selectedLevels[0];
-                    return `Wybrano: ${selectedLevels.length}`;
+                    return `${selectedLevels.length} wybrane`;
                 };
 
                 // --- END MULTI SELECT ---
@@ -581,7 +603,7 @@
 
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
-                    if (!currentWordIds.length) return { isEmpty: true, word: "Brak słówek", translation: "Spróbuj zmienić kategorię lub poziom", phonetic: "---", sentences: [], wordInfo: "" };
+                    if (!currentWordIds.length) return { isEmpty: true, word: "Brak słówek", translation: "Zmień filtry", phonetic: "---", sentences: [], wordInfo: "" };
 
                     const currentId = currentWordIds[currentIndex];
 
@@ -1061,225 +1083,267 @@
                     const parts = sentence.split(regex);
                     return parts.map((part, index) => 
                         part.toLowerCase() === cleanTarget.toLowerCase() 
-                        ? <span key={index} className={`${isDarkMode ? 'text-red-400' : 'text-red-600'} font-extrabold text-xl sm:text-2xl`}>{part}</span> 
+                        ? <span key={index} className={`${isDarkMode ? 'text-accent-light' : 'text-accent-dark'} font-extrabold text-xl sm:text-2xl`}>{part}</span> 
                         : part
                     );
                 };
 
+                // Updated Premium Theme Objects
                 const theme = isDarkMode ? {
-                    bg: 'bg-gray-900', text: 'text-gray-100', headerText: 'text-indigo-400',
-                    cardFrontBg: 'bg-gray-800', cardFrontText: 'text-white', cardBorder: 'border-gray-700',
-                    cardBackBg: 'bg-indigo-900', controlsBg: 'bg-gray-800', controlsBorder: 'border-gray-700',
-                    selectText: 'text-indigo-300', subText: 'text-gray-400', counterBg: 'bg-gray-800',
-                    counterText: 'text-indigo-300', buttonBg: 'bg-gray-800', buttonHover: 'hover:bg-gray-700',
-                    buttonText: 'text-gray-200', accent: 'bg-indigo-800 text-indigo-200'
+                    // Dark Mode Premium
+                    headerText: 'text-slate-300 tracking-wide',
+                    subText: 'text-slate-400',
+                    selectText: 'text-slate-200 font-medium',
+                    
+                    // Controls (Buttons, Selects)
+                    controlsBg: 'bg-primary-dark/50 backdrop-blur-md border-primary-light/20',
+                    controlsBorder: 'border-primary-light/30',
+                    
+                    // Card Styles
+                    cardFrontBg: 'bg-primary-dark shadow-soft-xl shadow-black/50 border-primary-light/10',
+                    cardFrontText: 'text-slate-100',
+                    cardBackBg: 'bg-primary-dark shadow-soft-xl shadow-black/50 border-primary-light/10',
+                    
+                    // Interactive Elements
+                    buttonBg: 'bg-primary-light/20 hover:bg-primary-light/30 tactile-button text-slate-200',
+                    accentBtnBg: 'bg-accent-dark hover:bg-accent tactile-button text-white shadow-lg shadow-accent-dark/30',
+                    
+                    counterBg: 'bg-primary-dark/30 backdrop-blur-md',
+                    counterText: 'text-slate-300'
+
                 } : {
-                    bg: 'bg-gradient-to-br from-blue-50 to-indigo-100', text: 'text-gray-800', headerText: 'text-indigo-700',
-                    cardFrontBg: 'bg-white', cardFrontText: 'text-gray-800', cardBorder: 'border-indigo-200',
-                    cardBackBg: 'bg-indigo-600', controlsBg: 'bg-white', controlsBorder: 'border-indigo-200',
-                    selectText: 'text-indigo-700', subText: 'text-gray-500', counterBg: 'bg-white/50',
-                    counterText: 'text-indigo-800', buttonBg: 'bg-white', buttonHover: 'hover:bg-gray-50',
-                    buttonText: 'text-gray-700', accent: 'bg-indigo-100 text-indigo-500'
+                    // Light Mode Premium
+                    headerText: 'text-primary-dark tracking-wide',
+                    subText: 'text-slate-500',
+                    selectText: 'text-primary-dark font-medium',
+
+                     // Controls (Buttons, Selects)
+                    controlsBg: 'bg-white/70 backdrop-blur-md border-slate-200/50 shadow-sm',
+                    controlsBorder: 'border-slate-300',
+
+                    // Card Styles
+                    cardFrontBg: 'bg-paper-light shadow-soft-xl border border-slate-100',
+                    cardFrontText: 'text-primary-dark',
+                    cardBackBg: 'bg-primary text-slate-100 shadow-soft-xl',
+                    
+                    // Interactive Elements
+                    buttonBg: 'bg-white hover:bg-slate-50 tactile-button text-primary-dark',
+                    accentBtnBg: 'bg-accent hover:bg-accent-light tactile-button text-white shadow-lg shadow-accent/30',
+
+                    counterBg: 'bg-white/50 backdrop-blur-md',
+                    counterText: 'text-primary-dark'
                 };
 
-                if (loading) return <div className={`h-[100dvh] flex flex-col items-center justify-center p-4 ${theme.bg} ${theme.text}`}><div className="text-4xl mb-4 animate-spin text-indigo-500"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold">Wczytywanie bazy słów...</div></div>;
-                if (fileError) return <div className={`h-[100dvh] flex flex-col items-center justify-center p-8 ${theme.bg} ${theme.text} text-center`}><div className="text-4xl mb-4">⚠️</div><div className="text-xl font-bold mb-4 text-red-500">Problem z bazą danych</div><pre className="mb-6 text-sm bg-red-50 p-4 rounded text-left overflow-auto max-w-full whitespace-pre-wrap">{fileError}</pre><button onClick={() => location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg">Odśwież stronę</button></div>;
+                if (loading) return <div className="h-[100dvh] flex flex-col items-center justify-center p-4"><div className="text-4xl mb-4 animate-spin text-accent"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold text-primary-light dark:text-slate-300 animate-pulse">Wczytywanie bazy słów...</div></div>;
+                if (fileError) return <div className="h-[100dvh] flex flex-col items-center justify-center p-8 text-center"><div className="text-5xl mb-6">⚠️</div><div className="text-2xl font-bold mb-4 text-red-500">Problem z bazą danych</div><pre className="mb-8 text-sm bg-red-50 p-6 rounded-2xl text-left overflow-auto max-w-full whitespace-pre-wrap border border-red-100 shadow-inner">{fileError}</pre><button onClick={() => location.reload()} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg tactile-button transition">Odśwież stronę</button></div>;
 
                 return (
-                    <div className={`h-[100dvh] flex flex-col items-center pt-1 pb-[5dvh] px-4 font-sans transition-colors-all duration-700 ${theme.bg} ${theme.text} relative overflow-hidden noselect`}>
-                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
+                    <div className="h-[100dvh] flex flex-col items-center pt-2 pb-[5dvh] px-4 font-sans relative overflow-hidden noselect">
+                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
                         
-                        {/* --- MODALE --- */}
+                        {/* --- MODALE (Glassmorphism) --- */}
                         {isLevelModalOpen && (
-                            <div className={`fixed inset-0 z-[9999] flex flex-col transition-all animate-slideIn ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
-                                <div className={`p-4 border-b flex justify-between items-center flex-none shadow-sm ${isDarkMode ? 'border-gray-800 bg-gray-900' : 'border-gray-100 bg-white'}`}>
-                                    <h3 className="text-xl font-bold flex items-center gap-2"><Icon path={iconPaths.barChart} size={24}/> Wybierz poziom</h3>
-                                    <button onClick={closeLevelModal} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><Icon path={iconPaths.close} size={28}/></button>
+                            <div className="fixed inset-0 z-[9999] flex flex-col animate-slideIn glass-panel">
+                                <div className={`p-5 flex justify-between items-center flex-none ${theme.controlsBg}`}>
+                                    <h3 className={`text-xl font-bold flex items-center gap-3 ${theme.headerText}`}><Icon path={iconPaths.barChart} size={24}/> Wybierz poziom</h3>
+                                    <button onClick={closeLevelModal} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"><Icon path={iconPaths.close} size={28}/></button>
                                 </div>
-                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs sm:text-sm text-center font-medium border-b border-blue-100 dark:border-blue-900/30">Kliknij <strong>nazwę</strong>, aby wybrać jeden. Kliknij <strong>kwadracik</strong>, aby zaznaczyć wiele.</div>
-                                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="flex flex-col gap-3">{availableLevels.map(lvl => { const isSelected = tempSelectedLevels.includes(lvl); return (<div key={lvl} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-150 select-none ${isSelected ? 'item-multi-selected' : (isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700')}`}><div className="flex-1 py-2 font-bold text-2xl active:scale-95 transition-transform cursor-pointer" onClick={() => handleSingleSelectLevel(lvl)}>{lvl}</div><div className="pl-4 py-2 cursor-pointer active:scale-90 transition-transform text-gray-400 hover:text-emerald-500" onClick={(e) => handleMultiToggleLevel(e, lvl)}>{isSelected ? <div className="text-emerald-500"><Icon path={iconPaths.checkSquare} size={32} /></div> : <Icon path={iconPaths.square} size={32} />}</div></div>); })}</div></div>
-                                {tempSelectedLevels.length > 0 && (<div className={`p-4 border-t flex-none z-10 animate-slideUp ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}><button onClick={confirmMultiLevelSelection} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all text-lg flex items-center justify-center gap-2"><Icon path={iconPaths.check} /> Zatwierdź poziomy ({tempSelectedLevels.length})</button></div>)}
+                                <div className="p-4 text-xs sm:text-sm text-center font-medium opacity-70">Kliknij <strong>nazwę</strong>, aby wybrać jeden. Kliknij <strong>kwadracik</strong>, aby zaznaczyć wiele.</div>
+                                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="flex flex-col gap-3">{availableLevels.map(lvl => { const isSelected = tempSelectedLevels.includes(lvl); return (<div key={lvl} className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-200 select-none shadow-sm ${isSelected ? 'item-multi-selected' : `${theme.buttonBg} border-transparent`}`}><div className="flex-1 py-1 font-bold text-2xl active:scale-95 transition-transform cursor-pointer" onClick={() => handleSingleSelectLevel(lvl)}>{lvl}</div><div className="pl-4 py-2 cursor-pointer active:scale-90 transition-transform text-gray-400 hover:text-accent" onClick={(e) => handleMultiToggleLevel(e, lvl)}>{isSelected ? <div className="text-accent"><Icon path={iconPaths.checkSquare} size={32} /></div> : <Icon path={iconPaths.square} size={32} />}</div></div>); })}</div></div>
+                                {tempSelectedLevels.length > 0 && (<div className="p-4 flex-none z-10 animate-slideUp"><button onClick={confirmMultiLevelSelection} className={`w-full ${theme.accentBtnBg} font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-3`}><Icon path={iconPaths.check} /> Zatwierdź poziomy ({tempSelectedLevels.length})</button></div>)}
                             </div>
                         )}
                         {isCategoryModalOpen && (
-                            <div className={`fixed inset-0 z-[9999] flex flex-col transition-all animate-slideIn ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
-                                <div className={`p-4 border-b flex justify-between items-center flex-none shadow-sm ${isDarkMode ? 'border-gray-800 bg-gray-900' : 'border-gray-100 bg-white'}`}>
-                                    <h3 className="text-xl font-bold flex items-center gap-2"><Icon path={iconPaths.filter} size={24}/> Wybierz temat</h3>
-                                    <button onClick={closeCategoryModal} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><Icon path={iconPaths.close} size={28}/></button>
+                            <div className="fixed inset-0 z-[9999] flex flex-col animate-slideIn glass-panel">
+                                <div className={`p-5 flex justify-between items-center flex-none ${theme.controlsBg}`}>
+                                    <h3 className={`text-xl font-bold flex items-center gap-3 ${theme.headerText}`}><Icon path={iconPaths.filter} size={24}/> Wybierz temat</h3>
+                                    <button onClick={closeCategoryModal} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"><Icon path={iconPaths.close} size={28}/></button>
                                 </div>
-                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs sm:text-sm text-center font-medium border-b border-blue-100 dark:border-blue-900/30">Kliknij <strong>nazwę</strong>, aby wybrać jeden. Kliknij <strong>kwadracik</strong>, aby zaznaczyć wiele.</div>
-                                <div className="flex-1 overflow-y-auto p-2 sm:p-4 custom-scrollbar"><div className="flex flex-col gap-2 pb-20">{availableCategories.map(cat => { const isSelected = tempSelectedCategories.includes(cat); return (<div key={cat} className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all duration-150 select-none ${isSelected ? 'item-multi-selected' : (isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700')}`}><div className="flex-1 py-2 font-bold text-lg active:scale-95 transition-transform cursor-pointer" onClick={() => handleSingleSelectCategory(cat)}>{cat}</div><div className="pl-4 py-2 cursor-pointer active:scale-90 transition-transform text-gray-400 hover:text-emerald-500" onClick={(e) => handleMultiToggleCategory(e, cat)}>{isSelected ? <div className="text-emerald-500"><Icon path={iconPaths.checkSquare} size={32} /></div> : <Icon path={iconPaths.square} size={32} />}</div></div>); })}</div></div>
-                                {tempSelectedCategories.length > 0 && (<div className={`p-4 border-t flex-none z-10 animate-slideUp ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}><button onClick={confirmMultiCategorySelection} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all text-lg flex items-center justify-center gap-2"><Icon path={iconPaths.check} /> Zatwierdź wybrane ({tempSelectedCategories.length})</button></div>)}
+                                <div className="p-4 text-xs sm:text-sm text-center font-medium opacity-70">Kliknij <strong>nazwę</strong>, aby wybrać jeden. Kliknij <strong>kwadracik</strong>, aby zaznaczyć wiele.</div>
+                                <div className="flex-1 overflow-y-auto p-2 sm:p-4 custom-scrollbar"><div className="flex flex-col gap-2 pb-20">{availableCategories.map(cat => { const isSelected = tempSelectedCategories.includes(cat); return (<div key={cat} className={`flex items-center justify-between p-3 px-4 rounded-2xl border-2 transition-all duration-200 select-none shadow-sm ${isSelected ? 'item-multi-selected' : `${theme.buttonBg} border-transparent`}`}><div className="flex-1 py-1 font-bold text-lg active:scale-95 transition-transform cursor-pointer" onClick={() => handleSingleSelectCategory(cat)}>{cat}</div><div className="pl-4 py-2 cursor-pointer active:scale-90 transition-transform text-gray-400 hover:text-accent" onClick={(e) => handleMultiToggleCategory(e, cat)}>{isSelected ? <div className="text-accent"><Icon path={iconPaths.checkSquare} size={32} /></div> : <Icon path={iconPaths.square} size={32} />}</div></div>); })}</div></div>
+                                {tempSelectedCategories.length > 0 && (<div className="p-4 flex-none z-10 animate-slideUp"><button onClick={confirmMultiCategorySelection} className={`w-full ${theme.accentBtnBg} font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-3`}><Icon path={iconPaths.check} /> Zatwierdź wybrane ({tempSelectedCategories.length})</button></div>)}
                             </div>
                         )}
 
-                        <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-0 mb-2">
+                        {/* --- HEADER (Glassmorphism) --- */}
+                        <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-4 mt-2 mb-4 p-4 rounded-3xl glass-panel shadow-sm z-10">
                             <div className="w-full relative flex items-center justify-center min-h-[48px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-md transition-colors-all duration-700 ${isDarkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-indigo-600 hover:bg-gray-50'}`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className="sm:w-6 sm:h-6" /></div></button>
+                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-3 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={22} className={isDarkMode ? "text-yellow-400" : "text-primary"} /></div></button>
                                 </div>
-                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-xl sm:text-3xl font-extrabold flex items-center gap-2 ${theme.headerText} text-center transition-colors-all duration-700 cursor-pointer select-none active:scale-95`}><Icon path={iconPaths.layers} size={24} className="sm:w-8 sm:h-8" /> Fiszki WOJTUKIEWICZ</h1>
+                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-xl sm:text-2xl font-black flex items-center gap-3 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={28} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
                             </div>
-                            <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
-                                <div onClick={openLevelModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md border-l-4 ${selectedLevels.length > 0 ? 'border-indigo-500' : 'border-indigo-400'} flex flex-col justify-center transition-colors-all duration-700 cursor-pointer active:scale-95 hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase block mb-0.5 sm:mb-1 ${theme.subText} transition-colors-all duration-700`}>Poziom</label><div className={`w-full bg-transparent font-bold text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getLevelLabel()}</div></div>
-                                <div onClick={openCategoryModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-md border-l-4 ${selectedCategories.length > 0 ? 'border-emerald-500' : (isDarkMode ? 'border-indigo-600' : 'border-indigo-400')} flex flex-col justify-center transition-colors-all duration-700 cursor-pointer active:scale-95 hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 sm:mb-1 flex items-center gap-1 ${theme.subText} transition-colors-all duration-700`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3"/> Temat</label><div className={`w-full bg-transparent font-bold text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getCategoryLabel()}</div></div>
+                            <div className="w-full grid grid-cols-2 gap-3 sm:gap-4">
+                                <div onClick={openLevelModal} className={`${theme.controlsBg} px-4 py-3 rounded-2xl shadow-sm border-l-[6px] ${selectedLevels.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase block mb-1 ${theme.subText} tracking-wider`}>Poziom</label><div className={`w-full bg-transparent font-bold text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getLevelLabel()}</div></div>
+                                <div onClick={openCategoryModal} className={`${theme.controlsBg} px-4 py-3 rounded-2xl shadow-sm border-l-[6px] ${selectedCategories.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase mb-1 flex items-center gap-1 ${theme.subText} tracking-wider`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3 opacity-70"/> Temat</label><div className={`w-full bg-transparent font-bold text-sm sm:text-base whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getCategoryLabel()}</div></div>
                             </div>
-                            <div className={`${theme.counterBg} px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm border border-white/10 font-semibold whitespace-nowrap ${theme.counterText} transition-colors-all duration-700 w-full sm:w-auto text-center mt-2`}>
+                            <div className={`${theme.counterBg} px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap ${theme.counterText} shadow-sm w-auto text-center mt-1 flex items-center gap-2`}>
+                                <Icon path={iconPaths.barChart} size={14} className="opacity-60"/>
                                 {viewAllSentences && sentencesListToRender.length > 0 ? (() => { const currentS = sentencesListToRender[speakingSentenceIndex]; const currentWordNum = currentS ? currentS.wordIndex + 1 : 1; return `Słowo: ${currentWordNum} / ${currentWordIds.length}`; })() : (currentWordIds.length > 0 ? `${isFinished ? currentWordIds.length : currentIndex + 1} / ${currentWordIds.length}` : '0 / 0')}
                             </div>
                         </header>
 
+                        {/* --- MAIN CARD AREA --- */}
                         {isFinished ? (
-                                <div className="w-full max-w-md flex-1 min-h-[250px] mb-4 z-10 flex flex-col items-center justify-center animate-popIn">
-                                <div className={`w-full p-8 rounded-3xl shadow-2xl flex flex-col items-center justify-center text-center ${theme.cardFrontBg} ${isDarkMode ? 'border border-gray-700' : ''} transition-colors-all duration-700`}>
-                                    <div className={`mb-6 p-6 rounded-full ${isDarkMode ? 'bg-yellow-500/20' : 'bg-yellow-100'} transition-colors-all duration-700`}><Icon path={iconPaths.trophy} size={64} className="text-yellow-500" /></div>
-                                    <h2 className={`text-3xl font-black mb-2 ${theme.cardFrontText} transition-colors-all duration-700`}>Gratulacje!</h2>
-                                    <p className={`text-lg mb-8 ${theme.subText} transition-colors-all duration-700`}>Brawo, skończyłeś całą kategorię!</p>
-                                    <button onClick={handleReset} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg active:scale-95 transition-all text-lg flex items-center gap-2"><Icon path={iconPaths.rotate} size={24} /> Zacznij od nowa</button>
+                                <div className="w-full max-w-md flex-1 min-h-[300px] mb-6 z-10 flex flex-col items-center justify-center animate-popIn perspective-1000">
+                                <div className={`w-full p-10 rounded-[32px] flex flex-col items-center justify-center text-center ${theme.cardFrontBg} transition-all duration-500`}>
+                                    <div className={`mb-8 p-8 rounded-full bg-yellow-100 dark:bg-yellow-900/30 shadow-inner animate-bounce-slow`}><Icon path={iconPaths.trophy} size={80} className="text-yellow-500 drop-shadow-sm" /></div>
+                                    <h2 className={`text-4xl font-black mb-3 ${theme.cardFrontText} tracking-tight`}>Gratulacje!</h2>
+                                    <p className={`text-xl mb-10 ${theme.subText} font-medium`}>Brawo, skończyłeś całą kategorię!</p>
+                                    <button onClick={handleReset} className={`${theme.accentBtnBg} py-4 px-10 rounded-2xl text-xl flex items-center gap-3`}>
+                                        <div className="animate-spin-three"><Icon path={iconPaths.rotate} size={24} /></div> Zacznij od nowa
+                                    </button>
                                 </div>
                                 </div>
                         ) : (
                             <>
-                                <div className="relative w-full max-w-md flex-1 min-h-[250px] mb-4 z-10 perspective-1000">
-                                    <div className={`relative w-full h-full shadow-2xl rounded-2xl cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-700 ease-in-out'}`} style={{ transform: `rotateY(${rotation}deg) rotateX(${rotationX}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
+                                <div className="relative w-full max-w-md flex-1 min-h-[300px] mb-6 z-0 perspective-1000">
+                                    <div className={`relative w-full h-full rounded-[32px] cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-500 ease-out-back'}`} style={{ transform: `rotateY(${rotation}deg) rotateX(${rotationX}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
                                         
-                                        {/* --- FRONT SIDE (0deg & 360deg & 180deg-flipped) --- */}
-                                        <div className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardFrontBg} ${isDarkMode ? 'border-gray-600' : 'border-indigo-200'} transition-colors-all duration-700`} style={{ transform: 'rotateY(0deg)' }}>
+                                        {/* --- FRONT SIDE --- */}
+                                        <div className={`absolute inset-0 w-full h-full rounded-[32px] flex flex-col items-center justify-center p-6 sm:p-8 backface-hidden ${theme.cardFrontBg} transition-colors-all duration-500`} style={{ transform: 'rotateY(0deg)' }}>
                                             {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
+                                                // --- ZDANIA (Front) ---
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative">
-                                                    <div className="flex justify-between items-center mb-2 sm:mb-3 border-b pb-2 border-gray-200/20 flex-none relative">
-                                                        <h3 className={`font-bold flex items-center gap-2 text-sm sm:text-base ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'} transition-colors-all duration-700`}><Icon path={iconPaths.book} size={16} className="sm:w-[18px] sm:h-[18px]"/> Zdania</h3>
-                                                        <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`mx-auto flex items-center gap-2 px-3 py-1 rounded-full hover:bg-black/5 active:scale-95 transition-all ${viewAllSentences ? 'text-emerald-500' : 'text-indigo-400'}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
-                                                            <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={20} className="sm:w-6 sm:h-6" /></div><span className="text-xs sm:text-sm font-bold uppercase whitespace-nowrap">All words</span>
-                                                        </button>
-                                                        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                                                            <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-100 border-gray-300"} transition-colors-all duration-700`}>
-                                                                <Icon path={iconPaths.clock} size={12} className={`${isDarkMode ? "text-gray-400" : "text-indigo-500"} transition-colors-all duration-700`}/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[110px] sm:w-[150px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} transition-colors-all duration-700`}><option value="Base" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>{t}</option>))}<option value="mixed" className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}>Mix czasów</option></select>
+                                                    <div className="flex justify-between items-center mb-4 border-b border-gray-200/10 pb-3 flex-none relative">
+                                                        <h3 className={`font-bold flex items-center gap-2 text-lg ${theme.headerText}`}><Icon path={iconPaths.book} size={20} className="text-accent"/> Zdania</h3>
+                                                        
+                                                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                                                             <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-full tactile-button ${viewAllSentences ? 'bg-accent text-white shadow-accent/30' : theme.buttonBg}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
+                                                                <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={18} /></div><span className="text-xs font-bold uppercase whitespace-nowrap">All</span>
+                                                            </button>
+
+                                                            <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 ${theme.controlsBg} ${theme.controlsBorder}`}>
+                                                                <Icon path={iconPaths.clock} size={14} className="text-accent opacity-80"/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-xs font-bold outline-none w-[100px] sm:w-[120px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <ul className="space-y-3 sm:space-y-4 text-base sm:text-lg text-left overflow-y-auto pr-1 custom-scrollbar flex-1 pb-4">{sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (<li key={i} ref={el => itemRefs.current[i] = el} className={`flex flex-col gap-1 transition-transform duration-300 origin-left pl-1 ${activeSentenceIndex === i ? 'scale-110 z-10' : 'scale-100 z-0'}`}><div className="flex gap-2 leading-snug"><span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-700'} transition-colors-all duration-700`}>{highlightTargetWord(s.en, viewAllSentences ? s.word : (displayData ? displayData.word : ''))}</span></div>{s.pl && tense !== 'Beginner' && (<div className={`pl-6 text-sm sm:text-base italic ${theme.subText} transition-colors-all duration-700`}>({s.pl})</div>)}</li>)) : <li className="text-center opacity-50 italic mt-4">Brak przykładowych zdań dla tego czasu</li>}</ul>
+                                                    <ul className="space-y-4 text-lg text-left overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4 relative -mr-2 pl-2">{sentencesListToRender.length > 0 ? sentencesListToRender.map((s, i) => (<li key={i} ref={el => itemRefs.current[i] = el} className={`flex flex-col gap-2 transition-all duration-300 origin-left rounded-xl p-3 ${activeSentenceIndex === i ? 'scale-105 z-10 bg-accent/10 shadow-sm -ml-2' : 'scale-100 z-0'}`}><div className="flex gap-2 leading-snug font-medium"><span className={`${isDarkMode ? 'text-slate-200' : 'text-primary-dark'} transition-colors-all duration-500`}>{highlightTargetWord(s.en, viewAllSentences ? s.word : (displayData ? displayData.word : ''))}</span></div>{s.pl && tense !== 'Beginner' && (<div className={`pl-4 text-base italic ${theme.subText} border-l-2 border-accent/30`}>{s.pl}</div>)}</li>)) : <li className="text-center opacity-50 italic mt-10 flex flex-col items-center gap-4"><Icon path={iconPaths.filter} size={40} className="opacity-30" />Brak zdań dla tego czasu</li>}</ul>
                                                     
-                                                    {/* --- PHONETIC & PAUSE DURATION CONTAINER --- */}
-                                                    <div className="relative w-full mt-2 flex justify-center items-center flex-none">
-                                                        <div className="absolute left-0">
-                                                            <button onClick={showGrammarInfo} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all ${isDarkMode ? 'bg-transparent text-emerald-600 hover:bg-white/10' : 'bg-transparent text-emerald-800 hover:bg-black/5'}`}>
-                                                                <Icon path={iconPaths.infoCircle} size={18} />
+                                                    <div className="relative w-full mt-4 flex justify-between items-center flex-none p-3 rounded-2xl bg-black/5 dark:bg-white/5">
+                                                            <button onClick={showGrammarInfo} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold ${theme.buttonBg}`}>
+                                                                <Icon path={iconPaths.infoCircle} size={18} className="text-accent"/> Gramatyka
                                                             </button>
-                                                        </div>
-                                                        <div className={`font-mono text-lg sm:text-xl font-bold opacity-80 ${theme.subText} transition-colors-all duration-700`}>{currentPhoneticToDisplay}</div>
-                                                        <div className="absolute right-0">
-                                                            <button onClick={togglePauseDuration} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all ${isDarkMode ? 'bg-transparent text-emerald-600 hover:bg-white/10' : 'bg-transparent text-emerald-800 hover:bg-black/5'}`}>
-                                                                <Icon path={iconPaths.runningMan} size={18} />
-                                                                <span>{pauseDuration}</span>
+                                                        
+                                                        <div className={`font-mono text-xl font-bold opacity-70 ${theme.subText} tracking-wider`}>{currentPhoneticToDisplay}</div>
+                                                        
+                                                            <button onClick={togglePauseDuration} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold ${theme.buttonBg}`}>
+                                                                <Icon path={iconPaths.runningMan} size={18} className={pauseDuration !== 0 ? "text-accent" : "opacity-50"} />
+                                                                <span className={pauseDuration !== 0 ? "text-accent" : "opacity-50"}>{pauseDuration > 0 ? `+${pauseDuration}` : pauseDuration}</span>
                                                             </button>
-                                                        </div>
                                                     </div>
                                                 </div>
                                             ) : (cardSide === 5 || (prevCardSide === 5 && cardSide !== 1 && cardSide !== 3)) ? (
-                                                <div className="w-full h-full flex flex-col animate-fadeIn relative rotate-180"> {/* rotate-180 fixes inverted text */}
-                                                    <div className="flex-none mb-2 border-b border-gray-200/20 pb-2">
-                                                        <h3 className="text-lg font-bold flex items-center gap-2"><Icon path={iconPaths.infoCircle} size={20}/> Word Info</h3>
+                                                // --- WORD INFO (Front - rotated) ---
+                                                <div className="w-full h-full flex flex-col animate-fadeIn relative rotate-180">
+                                                    <div className="flex-none mb-4 border-b border-gray-200/10 pb-3">
+                                                        <h3 className={`text-xl font-bold flex items-center gap-3 ${theme.headerText}`}><Icon path={iconPaths.infoCircle} size={24} className="text-accent"/> Word Info</h3>
                                                     </div>
-                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-sm sm:text-base leading-relaxed pr-1">
+                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-lg leading-relaxed pr-4 -mr-4 relative">
+                                                        <div className="p-2">
                                                         {displayData && displayData.wordInfo ? (
-                                                            <div className="whitespace-pre-line text-lg">{displayData.wordInfo}</div>
+                                                            <div className="whitespace-pre-line font-medium text-primary-dark dark:text-slate-200">{displayData.wordInfo}</div>
                                                         ) : (
-                                                            <div className="italic opacity-70 text-center mt-10">Brak dodatkowych informacji (word_info).</div>
+                                                            <div className="italic opacity-60 text-center mt-20 flex flex-col items-center gap-4"><Icon path={iconPaths.fileText} size={48} className="opacity-30" />Brak dodatkowych informacji.</div>
                                                         )}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-none mt-4 w-full">
-                                                        <button onClick={showTranslation} className="w-full bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 text-current font-bold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
-                                                            <Icon path={iconPaths.rotate} size={18}/> Wróć do tłumaczenia
+                                                    <div className="flex-none mt-6 w-full">
+                                                        <button onClick={showTranslation} className={`w-full ${theme.buttonBg} font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-3`}>
+                                                            <Icon path={iconPaths.rotate} size={22}/> Wróć do tłumaczenia
                                                         </button>
                                                     </div>
                                                 </div>
                                             ) : (
+                                                // --- STANDARDOWY FRONT (Słówko) ---
                                                 <>
-                                                    <div className={`absolute top-4 left-4 sm:top-6 sm:left-6 text-[10px] sm:text-xs font-bold uppercase flex flex-wrap items-center gap-1 sm:gap-2 max-w-full overflow-hidden ${theme.subText} transition-colors-all duration-700`}><span className="truncate max-w-[80px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span></div>
-                                                    <button onClick={(e) => { e.stopPropagation(); setIsPlToEn(!isPlToEn); }} className={`absolute top-4 right-4 sm:top-6 sm:right-6 px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold border transition-all active:scale-95 flex items-center gap-1 ${isDarkMode ? 'border-indigo-500 text-indigo-300 hover:bg-gray-700' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}>
-                                                    <Icon path={iconPaths.swap} size={14} className="sm:w-4 sm:h-4"/> {isPlToEn ? "PL ➔ EN" : "EN ➔ PL"}
+                                                    <div className={`absolute top-6 left-6 text-xs font-bold uppercase flex flex-wrap items-center gap-2 ${theme.subText} tracking-wider`}><span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 backdrop-blur-md truncate max-w-[120px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span></div>
+                                                    <button onClick={(e) => { e.stopPropagation(); setIsPlToEn(!isPlToEn); }} className={`absolute top-6 right-6 px-4 py-2 rounded-full text-xs font-bold border ${theme.controlsBorder} ${theme.buttonBg} flex items-center gap-2 shadow-sm group`}>
+                                                    <Icon path={iconPaths.swap} size={16} className="text-accent group-hover:rotate-180 transition-transform duration-300"/> {isPlToEn ? "PL ➔ EN" : "EN ➔ PL"}
                                                     </button>
-                                                    <div className="flex-1 flex items-center justify-center w-full px-2">
-                                                        <h2 className={`${getWordSizeClass(isPlToEn ? (displayData ? displayData.translation : '') : (displayData ? displayData.word : ''))} font-black text-center break-words leading-tight ${theme.cardFrontText} transition-colors-all duration-700`}>
-                                                            {displayData ? (isPlToEn ? displayData.translation : displayData.word) : 'Loading...'}
+                                                    <div className="flex-1 flex items-center justify-center w-full px-4">
+                                                        <h2 className={`${getWordSizeClass(isPlToEn ? (displayData ? displayData.translation : '') : (displayData ? displayData.word : ''))} font-black text-center break-words leading-tight ${theme.cardFrontText} drop-shadow-sm tracking-tight`}>
+                                                            {displayData ? (isPlToEn ? displayData.translation : displayData.word) : '...'}
                                                         </h2>
                                                     </div>
-                                                    <div className={`absolute bottom-4 sm:bottom-6 text-[10px] sm:text-xs flex items-center gap-1 sm:gap-2 font-medium ${theme.subText} transition-colors-all duration-700`}><Icon path={iconPaths.rotate} size={12} className="sm:w-[14px] sm:h-[14px]"/> Kliknij, aby obrócić</div>
+                                                    <div className={`absolute bottom-6 text-xs flex items-center gap-2 font-bold uppercase ${theme.subText} opacity-60 tracking-widest animate-pulse`}><Icon path={iconPaths.rotate} size={14}/> Kliknij, aby obrócić</div>
                                                 </>
                                             )}
                                         </div>
 
-                                        {/* --- BACK SIDE (180deg & 540deg) --- */}
-                                        <div className={`absolute inset-0 w-full h-full text-white rounded-2xl flex flex-col items-center justify-center p-4 sm:p-6 backface-hidden border-b-4 ${theme.cardBackBg} ${isDarkMode ? 'border-indigo-950' : 'border-indigo-800'} transition-colors-all duration-700`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
+                                        {/* --- BACK SIDE --- */}
+                                        <div className={`absolute inset-0 w-full h-full rounded-[32px] flex flex-col items-center justify-center p-6 sm:p-8 backface-hidden ${theme.cardBackBg} transition-colors-all duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
                                             {(cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? (
+                                                // --- GRAMATYKA (Tył - rotated X) ---
                                                 <div className="w-full h-full flex flex-col animate-fadeIn relative">
-                                                    <div className="flex-none mb-2 border-b border-white/20 pb-2">
-                                                        <h3 className="text-lg font-bold flex items-center gap-2"><Icon path={iconPaths.infoCircle} size={20}/> Gramatyka</h3>
+                                                    <div className="flex-none mb-4 border-b border-white/10 pb-3">
+                                                        <h3 className="text-xl font-bold flex items-center gap-3 text-accent-light"><Icon path={iconPaths.infoCircle} size={24}/> Gramatyka</h3>
                                                     </div>
-                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-sm sm:text-base leading-relaxed pr-1">
+                                                    <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-lg leading-relaxed pr-4 -mr-4 relative">
+                                                         <div className="p-2">
                                                         {displayData && displayData.infoText ? (
-                                                            <div className="whitespace-pre-line">{displayData.infoText}</div>
+                                                            <div className="whitespace-pre-line font-medium">{displayData.infoText}</div>
                                                         ) : (
-                                                            <div className="italic opacity-70 text-center mt-10">Brak informacji dla wybranego czasu.<br/>Sprawdź kolumnę '{tense === 'mixed' ? 'Base' : tense}_info' w Excelu.</div>
+                                                            <div className="italic opacity-60 text-center mt-20 flex flex-col items-center gap-4"><Icon path={iconPaths.fileText} size={48} className="opacity-30" />Brak informacji gramatycznych dla tego czasu.</div>
                                                         )}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-none mt-4 w-full">
-                                                        <button onClick={showSentences} className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
-                                                            <Icon path={iconPaths.rotate} size={18}/> Wróć do zdań
+                                                    <div className="flex-none mt-6 w-full">
+                                                        <button onClick={showSentences} className="w-full bg-white/10 hover:bg-white/20 tactile-button text-white font-bold py-4 rounded-2xl text-lg flex items-center justify-center gap-3">
+                                                            <Icon path={iconPaths.book} size={22}/> Wróć do zdań
                                                         </button>
                                                     </div>
                                                 </div>
                                             ) : (
+                                                // --- TŁUMACZENIE (Tył) ---
                                                 <>
-                                                    {/* --- ELEMENTY POZYCJONOWANE ABSOLUTNIE --- */}
-                                                    <div className="absolute top-4 right-4 sm:top-6 sm:right-6 text-[10px] sm:text-xs font-bold text-indigo-200 uppercase">
+                                                    <div className="absolute top-6 right-6 text-xs font-bold text-accent-light uppercase tracking-wider px-3 py-1 rounded-full bg-white/10 backdrop-blur-md shadow-inner">
                                                         {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
                                                     </div>
 
-                                                    {/* PRZYCISK INFO W LEWYM DOLNYM ROGU FISZKI */}
-                                                    <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6">
-                                                        <button onClick={showBeginnerInfo} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition-all ${isDarkMode ? 'bg-transparent text-emerald-600 hover:bg-white/10' : 'bg-transparent text-emerald-200 hover:bg-white/10'}`}>
-                                                            <Icon path={iconPaths.infoCircle} size={18} />
+                                                    <div className="absolute bottom-6 left-6">
+                                                        <button onClick={showBeginnerInfo} className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 tactile-button text-accent-light shadow-sm transition-all group">
+                                                            <Icon path={iconPaths.infoCircle} size={20} className="group-hover:scale-110 transition-transform"/> <span className="hidden sm:inline">Word Info</span>
                                                         </button>
                                                     </div>
 
-                                                    {/* GŁÓWNA ZAWARTOŚĆ */}
-                                                    <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-bold mb-3 sm:mb-4 text-center leading-tight break-words max-w-full`}>
+                                                    <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-black mb-6 text-center leading-tight break-words max-w-full tracking-tight drop-shadow-md`}>
                                                         {displayData ? (isPlToEn ? displayData.word : displayData.translation) : ''}
                                                     </h2>
 
-                                                    {/* KONTENER WYMOWY (BEZ PRZYCISKU INFO) */}
-                                                    <div className="relative w-full flex justify-center items-center flex-none mb-4">
-                                                        <div className={`bg-white/20 px-5 sm:px-7 py-2 sm:py-3 rounded-full font-mono ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : ''}</div>
+                                                    <div className="relative w-full flex justify-center items-center flex-none mb-8">
+                                                        <div className={`bg-black/20 px-8 py-3 rounded-2xl font-mono font-bold shadow-inner text-accent-light ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : '---'}</div>
                                                     </div>
 
-                                                    <button onClick={showSentences} className={`font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg active:scale-95 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-indigo-700 hover:bg-indigo-50'}`}><Icon path={iconPaths.book} size={18} className="sm:w-5 sm:h-5"/> {tense === 'Base' ? 'Zdania (Base)' : `Zdania (${tense})`}</button>
+                                                    <button onClick={showSentences} className={`font-bold py-3 px-8 rounded-2xl shadow-lg ${theme.buttonBg} flex items-center gap-3 text-lg transition-all hover:scale-105`}>
+                                                        <Icon path={iconPaths.book} size={22} className="text-accent"/> {tense === 'Base' ? 'Zdania' : `Zdania (${tense})`}
+                                                    </button>
                                                 </>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="w-full max-w-md flex-none space-y-3 z-20 mb-2">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={handlePrev} className={`${theme.buttonBg} ${theme.buttonHover} ${theme.buttonText} font-bold py-4 rounded-xl shadow-sm border ${theme.controlsBorder} flex justify-center gap-2 active:scale-95 transition-colors-all duration-700 text-sm`}><Icon path={iconPaths.left} className="w-5 h-5" /> Poprzednia</button>
-                                        <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex justify-center gap-2 active:scale-95 transition-colors duration-300 text-sm">Następna <Icon path={iconPaths.right} className="w-5 h-5" /></button>
+                                {/* --- CONTROLS BOTTOM --- */}
+                                <div className="w-full max-w-md flex-none space-y-4 z-20 mb-2 glass-panel p-4 rounded-[32px] shadow-soft-xl">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button onClick={handlePrev} className={`${theme.buttonBg} font-bold py-4 rounded-2xl flex justify-center items-center gap-3 text-base group`}><Icon path={iconPaths.left} className="w-6 h-6 text-accent group-hover:-translate-x-1 transition-transform" /> Poprzednia</button>
+                                        <button onClick={handleNext} className={`${theme.buttonBg} font-bold py-4 rounded-2xl flex justify-center items-center gap-3 text-base group`}>Następna <Icon path={iconPaths.right} className="w-6 h-6 text-accent group-hover:translate-x-1 transition-transform" /></button>
                                     </div>
-                                    <button onClick={handleBottomBtnClick} className={`w-full text-lg font-bold py-4 rounded-xl shadow-xl active:scale-95 flex justify-center gap-3 border-b-4 transition-colors duration-300 ${isSpeaking && !isPaused ? "bg-emerald-400 border-emerald-600" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white"}`}>
+                                    <button onClick={handleBottomBtnClick} className={`w-full text-xl font-bold py-5 rounded-2xl shadow-lg flex justify-center items-center gap-4 transition-all duration-300 hover:scale-[1.02] active:scale-100 ${isSpeaking && !isPaused ? "bg-red-500 hover:bg-red-600 text-white tactile-button shadow-red-500/30" : theme.accentBtnBg}`}>
                                         {cardSide === 3 || cardSide === 5
                                             ? (
                                                 <>
-                                                    {isSpeaking && !isPaused ? <Icon path={iconPaths.pause} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.play} size={24} className="sm:w-6 sm:h-6"/>}
+                                                    {isSpeaking && !isPaused ? <Icon path={iconPaths.pause} size={28} className="animate-pulse"/> : <Icon path={iconPaths.play} size={28} className="ml-1"/>}
                                                     {isSpeaking && !isPaused ? "Pauza" : (isPaused ? "Wznów" : "Czytaj zdania")}
                                                 </>
                                             ) 
                                             : (cardSide === 4 ? (
                                                 <>
-                                                    <Icon path={iconPaths.rotate} size={24} className="sm:w-6 sm:h-6"/> Wróć do zdań
+                                                    <Icon path={iconPaths.book} size={28}/> Wróć do zdań
                                                 </>
                                             ) : (
                                                 <>
-                                                    {isSpeaking ? <Icon path={iconPaths.volX} size={24} className="sm:w-6 sm:h-6"/> : <Icon path={iconPaths.vol} size={24} className="sm:w-6 sm:h-6"/>}
+                                                    {isSpeaking ? <Icon path={iconPaths.volX} size={28} className="animate-pulse"/> : <Icon path={iconPaths.vol} size={28}/>}
                                                     {isSpeaking ? "Odtwarzanie..." : "Czytaj wymowę"}
                                                 </>
                                             ))
