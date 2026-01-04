@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Compact Header</title>
+    <title>Fiszki WOJTUKIEWICZ - Premium Design</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -1159,46 +1159,21 @@
                             </div>
                         )}
 
-                        <header className="w-full max-w-lg flex-none flex flex-col gap-1.5 mt-0.5 mb-2 p-1.5 rounded-xl glass-panel shadow-sm z-10">
-                            {/* Top Row: Theme - Title - Counter */}
-                            <div className="w-full flex items-center justify-between">
-                                {/* Theme Toggle */}
-                                <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-1.5 rounded-lg shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md flex-none`}>
-                                    <div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={16} className={isDarkMode ? "text-yellow-400" : "text-primary"} /></div>
-                                </button>
-
-                                {/* Title */}
-                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-base sm:text-lg font-black flex items-center gap-1.5 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform truncate px-2`}>
-                                    <Icon path={iconPaths.layers} size={18} className="text-accent flex-none" />
-                                    <span className="truncate">Fiszki WOJTUKIEWICZ</span>
-                                </h1>
-
-                                {/* Counter */}
-                                <div className={`${theme.counterBg} px-2 py-1 rounded-lg text-[10px] sm:text-xs font-bold whitespace-nowrap ${theme.counterText} shadow-sm flex items-center gap-1 flex-none`}>
-                                    <Icon path={iconPaths.barChart} size={12} className="opacity-60"/>
-                                    {viewAllSentences && sentencesListToRender.length > 0 ?
-                                        (() => { const currentS = sentencesListToRender[speakingSentenceIndex]; const currentWordNum = currentS ? currentS.wordIndex + 1 : 1; return `${currentWordNum}/${currentWordIds.length}`; })()
-                                        : (currentWordIds.length > 0 ? `${isFinished ? currentWordIds.length : currentIndex + 1}/${currentWordIds.length}` : '0/0')
-                                    }
+                        {/* --- HEADER (Glassmorphism) --- */}
+                        <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-1 mb-3 p-3 rounded-2xl glass-panel shadow-sm z-10">
+                            <div className="w-full relative flex items-center justify-center min-h-[40px]">
+                                <div className="absolute left-0">
+                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className={isDarkMode ? "text-yellow-400" : "text-primary"} /></div></button>
                                 </div>
+                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
                             </div>
-
-                            {/* Bottom Row: Selectors */}
-                            <div className="w-full grid grid-cols-2 gap-2">
-                                {/* Level */}
-                                <div onClick={openLevelModal} className={`${theme.controlsBg} px-2 py-1 rounded-lg shadow-sm border-l-[3px] ${selectedLevels.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}>
-                                    <div className="flex items-center justify-between">
-                                        <label className={`text-[9px] font-bold uppercase ${theme.subText} tracking-wider`}>Poziom</label>
-                                        <div className={`bg-transparent font-bold text-xs whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getLevelLabel()}</div>
-                                    </div>
-                                </div>
-                                {/* Category */}
-                                <div onClick={openCategoryModal} className={`${theme.controlsBg} px-2 py-1 rounded-lg shadow-sm border-l-[3px] ${selectedCategories.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}>
-                                    <div className="flex items-center justify-between">
-                                        <label className={`text-[9px] font-bold uppercase flex items-center gap-1 ${theme.subText} tracking-wider`}><Icon path={iconPaths.tag} size={8} className="opacity-70"/> Temat</label>
-                                        <div className={`bg-transparent font-bold text-xs whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getCategoryLabel()}</div>
-                                    </div>
-                                </div>
+                            <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
+                                <div onClick={openLevelModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-sm border-l-[4px] ${selectedLevels.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase block mb-0.5 ${theme.subText} tracking-wider`}>Poziom</label><div className={`w-full bg-transparent font-bold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getLevelLabel()}</div></div>
+                                <div onClick={openCategoryModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-sm border-l-[4px] ${selectedCategories.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 flex items-center gap-1 ${theme.subText} tracking-wider`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3 opacity-70"/> Temat</label><div className={`w-full bg-transparent font-bold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getCategoryLabel()}</div></div>
+                            </div>
+                            <div className={`${theme.counterBg} px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap ${theme.counterText} shadow-sm w-auto text-center mt-0.5 flex items-center gap-2`}>
+                                <Icon path={iconPaths.barChart} size={14} className="opacity-60"/>
+                                {viewAllSentences && sentencesListToRender.length > 0 ? (() => { const currentS = sentencesListToRender[speakingSentenceIndex]; const currentWordNum = currentS ? currentS.wordIndex + 1 : 1; return `Słowo: ${currentWordNum} / ${currentWordIds.length}`; })() : (currentWordIds.length > 0 ? `${isFinished ? currentWordIds.length : currentIndex + 1} / ${currentWordIds.length}` : '0 / 0')}
                             </div>
                         </header>
 
