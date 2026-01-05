@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Pale Button</title>
+    <title>Fiszki WOJTUKIEWICZ - Color Logic</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -50,7 +50,6 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* --- STARY STYL PRZYCISKÓW (ZACHOWANY DLA KOMPATYBILNOŚCI) --- */
         .tactile-button {
             transition: all 0.2s ease;
             box-shadow: 0 3px 5px -1px rgb(0 0 0 / 0.1), 0 2px 3px -2px rgb(0 0 0 / 0.1), inset 0 1px 1px rgba(255,255,255,0.2);
@@ -60,15 +59,14 @@
             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* --- NOWY STYL 3D DLA FISZKI (Statyczny, "gruby") --- */
+        /* --- STYL 3D DLA FISZKI --- */
         .card-3d-look {
-            /* Głęboki cień + jasna krawędź góra + ciemna krawędź dół (grubość) */
             box-shadow:
                 0 20px 25px -5px rgb(0 0 0 / 0.15),
                 0 8px 10px -6px rgb(0 0 0 / 0.1),
-                inset 0 1px 0 rgba(255,255,255, 0.3), /* Highlight góra */
-                0 4px 0 rgba(0,0,0,0.1); /* Grubość na dole */
-            border-bottom: 1px solid rgba(0,0,0,0.05); /* Subtelna krawędź */
+                inset 0 1px 0 rgba(255,255,255, 0.3), 
+                0 4px 0 rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         .dark .card-3d-look {
             box-shadow:
@@ -77,13 +75,13 @@
                 0 4px 0 rgba(0,0,0,0.3);
         }
 
-        /* --- NOWY STYL 3D DLA KONTROLEK (Wybór poziomu - nagłówek) --- */
+        /* --- STYL 3D DLA KONTROLEK --- */
         .control-3d {
             transition: all 0.15s ease;
             box-shadow:
                 0 4px 6px -1px rgb(0 0 0 / 0.1),
-                inset 0 1px 0 rgba(255,255,255, 0.4), /* Wyraźny highlight */
-                0 3px 0 rgba(0,0,0,0.1); /* Grubość przycisku */
+                inset 0 1px 0 rgba(255,255,255, 0.4),
+                0 3px 0 rgba(0,0,0,0.1);
             transform: translateY(0);
         }
         .dark .control-3d {
@@ -93,12 +91,11 @@
                 0 3px 0 rgba(0,0,0,0.3);
         }
         .control-3d:active {
-            transform: translateY(3px); /* Wciśnięcie o grubość cienia */
+            transform: translateY(3px);
             box-shadow: 
                 0 1px 2px 0 rgb(0 0 0 / 0.05),
-                inset 0 2px 4px rgba(0,0,0,0.1); /* Cień wewnątrz po wciśnięciu */
+                inset 0 2px 4px rgba(0,0,0,0.1);
         }
-
 
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
@@ -153,7 +150,6 @@
             color: #ccfbf1 !important;
         }
 
-        /* --- ANIMACJA TASOWANIA (SHAKE) --- */
         @keyframes cardShake {
             0% { transform: translate(0, 0) rotate(0deg); }
             10% { transform: translate(-3px, -2px) rotate(-1deg); }
@@ -1219,6 +1215,16 @@
                 if (loading) return <div className="h-[100dvh] flex flex-col items-center justify-center p-4"><div className="text-4xl mb-4 animate-spin text-accent"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold text-primary-light dark:text-slate-300 animate-pulse">Wczytywanie bazy słów...</div></div>;
                 if (fileError) return <div className="h-[100dvh] flex flex-col items-center justify-center p-8 text-center"><div className="text-5xl mb-6">⚠️</div><div className="text-2xl font-bold mb-4 text-red-500">Problem z bazą danych</div><pre className="mb-8 text-sm bg-red-50 p-6 rounded-2xl text-left overflow-auto max-w-full whitespace-pre-wrap border border-red-100 shadow-inner">{fileError}</pre><button onClick={() => location.reload()} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg tactile-button transition">Odśwież stronę</button></div>;
 
+                // --- NOWA LOGIKA ZMIANY KOLORÓW W LIGHT MODE ---
+                const isSide5Active = cardSide === 5 || (prevCardSide === 5 && cardSide !== 1 && cardSide !== 3);
+                const isSide4Active = cardSide === 4 || (prevCardSide === 4 && cardSide !== 1);
+
+                // Front BG (Sides 1, 3, 5). Side 5 in Light Mode gets Dark BG (like Side 2)
+                const effectiveFrontBg = (!isDarkMode && isSide5Active) ? theme.cardBackBg : theme.cardFrontBg;
+                
+                // Back BG (Sides 2, 4). Side 4 in Light Mode gets Light BG (like Side 3)
+                const effectiveBackBg = (!isDarkMode && isSide4Active) ? theme.cardFrontBg : theme.cardBackBg;
+
                 return (
                     <div className="h-[100dvh] flex flex-col items-center pt-1 pb-2 px-3 font-sans relative overflow-hidden noselect">
                         {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
@@ -1295,7 +1301,8 @@
                                         <div className={`relative w-full h-full rounded-[24px] cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-500 ease-out-back'}`} style={{ transform: `rotateY(${rotation}deg) rotateX(${rotationX}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
                                             
                                             {/* --- FRONT SIDE --- */}
-                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${theme.cardFrontBg} transition-colors-all duration-500`} style={{ transform: 'rotateY(0deg)' }}>
+                                            {/* Zastosowanie obliczonego effectiveFrontBg */}
+                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveFrontBg} transition-colors-all duration-500`} style={{ transform: 'rotateY(0deg)' }}>
                                                 {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
                                                     // --- ZDANIA (Front) ---
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
@@ -1341,7 +1348,8 @@
                                                         <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-base leading-relaxed pr-2 -mr-2 relative">
                                                             <div className="p-1">
                                                             {displayData && displayData.wordInfo ? (
-                                                                <div className="whitespace-pre-line font-medium text-primary-dark dark:text-slate-200">{displayData.wordInfo}</div>
+                                                                // POPRAWKA KOLORU TEKSTU DLA WORD INFO W LIGHT MODE
+                                                                <div className={`whitespace-pre-line font-medium ${(!isDarkMode && isSide5Active) ? 'text-slate-200' : 'text-primary-dark'} dark:text-slate-200`}>{displayData.wordInfo}</div>
                                                             ) : (
                                                                 <div className="italic opacity-60 text-center mt-16 flex flex-col items-center gap-3"><Icon path={iconPaths.fileText} size={40} className="opacity-30" />Brak dodatkowych informacji.</div>
                                                             )}
@@ -1371,24 +1379,27 @@
                                             </div>
 
                                             {/* --- BACK SIDE --- */}
-                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${theme.cardBackBg} transition-colors-all duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
+                                            {/* Zastosowanie obliczonego effectiveBackBg */}
+                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveBackBg} transition-colors-all duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
                                                 {(cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? (
                                                     // --- GRAMATYKA (Tył - rotated X) ---
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
                                                         <div className="flex-none mb-3 border-b border-white/10 pb-2">
-                                                            <h3 className="text-lg font-bold flex items-center gap-2 text-accent-light"><Icon path={iconPaths.infoCircle} size={20}/> Gramatyka</h3>
+                                                            {/* POPRAWKA NAGŁÓWKA GRAMATYKI W LIGHT MODE */}
+                                                            <h3 className={`text-lg font-bold flex items-center gap-2 ${(!isDarkMode && isSide4Active) ? 'text-accent' : 'text-accent-light'}`}><Icon path={iconPaths.infoCircle} size={20}/> Gramatyka</h3>
                                                         </div>
                                                         <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-base leading-relaxed pr-2 -mr-2 relative">
                                                             <div className="p-1">
                                                             {displayData && displayData.infoText ? (
-                                                                <div className="whitespace-pre-line font-medium">{displayData.infoText}</div>
+                                                                // POPRAWKA TEKSTU GRAMATYKI W LIGHT MODE
+                                                                <div className={`whitespace-pre-line font-medium ${(!isDarkMode && isSide4Active) ? 'text-primary-dark' : ''}`}>{displayData.infoText}</div>
                                                             ) : (
                                                                 <div className="italic opacity-60 text-center mt-16 flex flex-col items-center gap-3"><Icon path={iconPaths.fileText} size={40} className="opacity-30" />Brak informacji gramatycznych dla tego czasu.</div>
                                                             )}
                                                             </div>
                                                         </div>
                                                         <div className="flex-none mt-4 w-full">
-                                                            <button onClick={showSentences} className="w-full bg-white/10 hover:bg-white/20 tactile-button text-white font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2">
+                                                            <button onClick={showSentences} className={`w-full ${(!isDarkMode && isSide4Active) ? theme.buttonBg : 'bg-white/10 hover:bg-white/20 tactile-button text-white'} font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2`}>
                                                                 <Icon path={iconPaths.book} size={20}/> Wróć do zdań
                                                             </button>
                                                         </div>
