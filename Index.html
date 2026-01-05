@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Final Style</title>
+    <title>Fiszki WOJTUKIEWICZ - Pale Button</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -1320,7 +1320,7 @@
                                                         <div className="relative w-full mt-3 flex justify-between items-center flex-none p-2 rounded-xl bg-black/5 dark:bg-white/5">
                                                                 
                                                                 {/* PRZYCISK ALL (TERAZ TUTAJ) */}
-                                                                <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${viewAllSentences ? 'bg-accent text-white shadow-accent/30' : theme.buttonBg}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
+                                                                <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${viewAllSentences ? 'bg-accent/15 text-accent border border-accent/20 shadow-none' : theme.buttonBg}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
                                                                     <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={16} /></div><span className="text-[10px] font-bold uppercase whitespace-nowrap">All</span>
                                                                 </button>
                                                             
