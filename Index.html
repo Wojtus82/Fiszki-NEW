@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fiszki WOJTUKIEWICZ - Final</title>
+    <title>Fiszki WOJTUKIEWICZ - 3D Style</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -50,6 +50,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
+        /* --- STARY STYL PRZYCISKÓW (ZACHOWANY DLA KOMPATYBILNOŚCI) --- */
         .tactile-button {
             transition: all 0.2s ease;
             box-shadow: 0 3px 5px -1px rgb(0 0 0 / 0.1), 0 2px 3px -2px rgb(0 0 0 / 0.1), inset 0 1px 1px rgba(255,255,255,0.2);
@@ -58,6 +59,46 @@
             transform: scale(0.97);
             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        /* --- NOWY STYL 3D DLA FISZKI (Statyczny, "gruby") --- */
+        .card-3d-look {
+            /* Głęboki cień + jasna krawędź góra + ciemna krawędź dół (grubość) */
+            box-shadow:
+                0 20px 25px -5px rgb(0 0 0 / 0.15),
+                0 8px 10px -6px rgb(0 0 0 / 0.1),
+                inset 0 1px 0 rgba(255,255,255, 0.3), /* Highlight góra */
+                0 4px 0 rgba(0,0,0,0.1); /* Grubość na dole */
+            border-bottom: 1px solid rgba(0,0,0,0.05); /* Subtelna krawędź */
+        }
+        .dark .card-3d-look {
+            box-shadow:
+                0 20px 25px -5px rgb(0 0 0 / 0.3),
+                inset 0 1px 0 rgba(255,255,255, 0.1),
+                0 4px 0 rgba(0,0,0,0.3);
+        }
+
+        /* --- NOWY STYL 3D DLA KONTROLEK (Wybór poziomu, czasu - klikalne) --- */
+        .control-3d {
+            transition: all 0.15s ease;
+            box-shadow:
+                0 4px 6px -1px rgb(0 0 0 / 0.1),
+                inset 0 1px 0 rgba(255,255,255, 0.4), /* Wyraźny highlight */
+                0 3px 0 rgba(0,0,0,0.1); /* Grubość przycisku */
+            transform: translateY(0);
+        }
+        .dark .control-3d {
+             box-shadow:
+                0 4px 6px -1px rgb(0 0 0 / 0.2),
+                inset 0 1px 0 rgba(255,255,255, 0.1),
+                0 3px 0 rgba(0,0,0,0.3);
+        }
+        .control-3d:active {
+            transform: translateY(3px); /* Wciśnięcie o grubość cienia */
+            box-shadow: 
+                0 1px 2px 0 rgb(0 0 0 / 0.05),
+                inset 0 2px 4px rgba(0,0,0,0.1); /* Cień wewnątrz po wciśnięciu */
+        }
+
 
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
@@ -74,7 +115,6 @@
         @keyframes spinThreeTimes { 0% { transform: rotate(0deg); } 100% { transform: rotate(1080deg); } }
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
-        /* --- PRZYWRÓCONA ANIMACJA STARTOWA --- */
         @keyframes startUpShake {
             0% { transform: scale(1) rotate(0deg); }
             15% { transform: scale(1.6) rotate(-25deg); }
@@ -88,7 +128,7 @@
         .startup-anim {
             display: inline-block;
             transform-origin: center center;
-            animation: startUpShake 1.5s ease-in-out 2; /* 2 powtórzenia */
+            animation: startUpShake 1.5s ease-in-out 2; 
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -1137,14 +1177,14 @@
                     subText: 'text-slate-400',
                     selectText: 'text-slate-200 font-medium',
                     
-                    // Controls (Buttons, Selects)
-                    controlsBg: 'bg-primary-dark/50 backdrop-blur-md border-primary-light/20',
-                    controlsBorder: 'border-primary-light/30',
+                    // Controls (Buttons, Selects) - UPDATED 3D
+                    controlsBg: 'bg-primary-dark border-primary-light/20 control-3d',
+                    controlsBorder: '', /* Border handled by 3D class */
                     
-                    // Card Styles
-                    cardFrontBg: 'bg-primary-dark shadow-soft-xl shadow-black/50 border-primary-light/10',
+                    // Card Styles - UPDATED 3D
+                    cardFrontBg: 'bg-primary-dark card-3d-look border-primary-light/10',
                     cardFrontText: 'text-slate-100',
-                    cardBackBg: 'bg-primary-dark shadow-soft-xl shadow-black/50 border-primary-light/10',
+                    cardBackBg: 'bg-primary-dark card-3d-look border-primary-light/10',
                     
                     // Interactive Elements
                     buttonBg: 'bg-primary-light/20 hover:bg-primary-light/30 tactile-button text-slate-200',
@@ -1159,14 +1199,14 @@
                     subText: 'text-slate-500',
                     selectText: 'text-primary-dark font-medium',
 
-                     // Controls (Buttons, Selects)
-                    controlsBg: 'bg-white/70 backdrop-blur-md border-slate-200/50 shadow-sm',
-                    controlsBorder: 'border-slate-300',
+                     // Controls (Buttons, Selects) - UPDATED 3D
+                    controlsBg: 'bg-white border-slate-200/50 control-3d',
+                    controlsBorder: '', /* Border handled by 3D class */
 
-                    // Card Styles
-                    cardFrontBg: 'bg-paper-light shadow-soft-xl border border-slate-100',
+                    // Card Styles - UPDATED 3D
+                    cardFrontBg: 'bg-paper-light card-3d-look border border-slate-100',
                     cardFrontText: 'text-primary-dark',
-                    cardBackBg: 'bg-primary text-slate-100 shadow-soft-xl',
+                    cardBackBg: 'bg-primary text-slate-100 card-3d-look',
                     
                     // Interactive Elements
                     buttonBg: 'bg-white hover:bg-slate-50 tactile-button text-primary-dark',
@@ -1186,7 +1226,7 @@
                         {/* --- MODALE (Glassmorphism) --- */}
                         {isLevelModalOpen && (
                             <div className="fixed inset-0 z-[9999] flex flex-col animate-slideIn glass-panel">
-                                <div className={`p-4 flex justify-between items-center flex-none ${theme.controlsBg}`}>
+                                <div className={`p-4 flex justify-between items-center flex-none ${theme.controlsBg.replace('control-3d', '')}`}>
                                     <h3 className={`text-lg font-bold flex items-center gap-2 ${theme.headerText}`}><Icon path={iconPaths.barChart} size={22}/> Wybierz poziom</h3>
                                     <button onClick={closeLevelModal} className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"><Icon path={iconPaths.close} size={24}/></button>
                                 </div>
@@ -1197,7 +1237,7 @@
                         )}
                         {isCategoryModalOpen && (
                             <div className="fixed inset-0 z-[9999] flex flex-col animate-slideIn glass-panel">
-                                <div className={`p-4 flex justify-between items-center flex-none ${theme.controlsBg}`}>
+                                <div className={`p-4 flex justify-between items-center flex-none ${theme.controlsBg.replace('control-3d', '')}`}>
                                     <h3 className={`text-lg font-bold flex items-center gap-2 ${theme.headerText}`}><Icon path={iconPaths.filter} size={22}/> Wybierz temat</h3>
                                     <button onClick={closeCategoryModal} className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"><Icon path={iconPaths.close} size={24}/></button>
                                 </div>
@@ -1216,8 +1256,8 @@
                                 <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
                             </div>
                             <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
-                                <div onClick={openLevelModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-sm border-l-[4px] ${selectedLevels.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase block mb-0.5 ${theme.subText} tracking-wider`}>Poziom</label><div className={`w-full bg-transparent font-bold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getLevelLabel()}</div></div>
-                                <div onClick={openCategoryModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl shadow-sm border-l-[4px] ${selectedCategories.length > 0 ? 'border-accent' : 'border-primary-light/50'} flex flex-col justify-center transition-all cursor-pointer tactile-button hover:opacity-90`}><label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 flex items-center gap-1 ${theme.subText} tracking-wider`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3 opacity-70"/> Temat</label><div className={`w-full bg-transparent font-bold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getCategoryLabel()}</div></div>
+                                <div onClick={openLevelModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl flex flex-col justify-center cursor-pointer active:scale-95 hover:brightness-95`}><label className={`text-[10px] sm:text-xs font-bold uppercase block mb-0.5 ${theme.subText} tracking-wider`}>Poziom</label><div className={`w-full bg-transparent font-bold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getLevelLabel()}</div></div>
+                                <div onClick={openCategoryModal} className={`${theme.controlsBg} px-3 py-2 rounded-xl flex flex-col justify-center cursor-pointer active:scale-95 hover:brightness-95`}><label className={`text-[10px] sm:text-xs font-bold uppercase mb-0.5 flex items-center gap-1 ${theme.subText} tracking-wider`}><Icon path={iconPaths.tag} size={10} className="sm:w-3 sm:h-3 opacity-70"/> Temat</label><div className={`w-full bg-transparent font-bold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis ${theme.selectText}`}>{getCategoryLabel()}</div></div>
                             </div>
                             <div className={`${theme.counterBg} px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap ${theme.counterText} shadow-sm w-auto text-center mt-0.5 flex items-center gap-2`}>
                                 <Icon path={iconPaths.barChart} size={14} className="opacity-60"/>
@@ -1243,7 +1283,7 @@
                                     
                                     {/* --- WARUNEK TASOWANIA --- */}
                                     {isShuffling ? (
-                                        <div className={`w-full h-full rounded-[24px] flex flex-col items-center justify-center p-6 text-center shadow-xl animate-card-shake ${theme.cardFrontBg} border border-white/20`}>
+                                        <div className={`w-full h-full rounded-[24px] flex flex-col items-center justify-center p-6 text-center animate-card-shake ${theme.cardFrontBg}`}>
                                             <div className="mb-4 animate-spin text-accent">
                                                 <Icon path={iconPaths.rotate} size={48} />
                                             </div>
@@ -1268,7 +1308,8 @@
                                                                     <Icon path={iconPaths.infoCircle} size={16} className="text-accent"/> <span className="text-[10px] font-bold uppercase">Gramatyka</span>
                                                                 </button>
 
-                                                                <div className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${theme.controlsBg} ${theme.controlsBorder}`}>
+                                                                {/* --- 3D TENSE SELECTOR --- */}
+                                                                <div className={`px-2 py-1 rounded-lg flex items-center gap-1 ${theme.controlsBg} active:scale-95 transition-transform`}>
                                                                     <Icon path={iconPaths.clock} size={12} className="text-accent opacity-80"/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-[10px] font-bold outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
                                                                 </div>
                                                             </div>
