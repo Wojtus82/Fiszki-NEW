@@ -1310,7 +1310,8 @@
 
                                                                 {/* --- 3D TENSE SELECTOR --- */}
                                                                 <div className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
-                                                                    <Icon path={iconPaths.clock} size={12} className="text-accent opacity-80"/><select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-[10px] font-bold outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
+                                                                    <Icon path={iconPaths.clock} size={16} className="text-accent"/>
+                                                                    <select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-[10px] font-bold uppercase outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
                                                                 </div>
                                                             </div>
                                                         </div>
