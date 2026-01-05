@@ -1195,7 +1195,7 @@
                     subText: 'text-slate-500',
                     selectText: 'text-primary-dark font-medium',
 
-                     // Controls (Buttons, Selects) - UPDATED 3D
+                      // Controls (Buttons, Selects) - UPDATED 3D
                     controlsBg: 'bg-white border-slate-200/50 control-3d',
                     controlsBorder: '', /* Border handled by 3D class */
 
@@ -1302,7 +1302,7 @@
                                             
                                             {/* --- FRONT SIDE --- */}
                                             {/* Zastosowanie obliczonego effectiveFrontBg */}
-                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveFrontBg} transition-colors-all duration-500`} style={{ transform: 'rotateY(0deg)' }}>
+                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveFrontBg} transition-colors duration-500`} style={{ transform: 'rotateY(0deg)' }}>
                                                 {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
                                                     // --- ZDANIA (Front) ---
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
@@ -1343,7 +1343,8 @@
                                                     // --- WORD INFO (Front - rotated) ---
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative rotate-180">
                                                         <div className="flex-none mb-3 border-b border-gray-200/10 pb-2">
-                                                            <h3 className={`text-lg font-bold flex items-center gap-2 ${theme.headerText}`}><Icon path={iconPaths.infoCircle} size={20} className="text-accent"/> Word Info</h3>
+                                                            {/* ZMIANA 1: Zielony nagłówek "Word Info" */}
+                                                            <h3 className={`text-lg font-bold flex items-center gap-2 text-accent-light`}><Icon path={iconPaths.infoCircle} size={20} className="text-accent"/> Word Info</h3>
                                                         </div>
                                                         <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-base leading-relaxed pr-2 -mr-2 relative">
                                                             <div className="p-1">
@@ -1356,7 +1357,8 @@
                                                             </div>
                                                         </div>
                                                         <div className="flex-none mt-4 w-full">
-                                                            <button onClick={showTranslation} className={`w-full ${theme.buttonBg} font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2`}>
+                                                            {/* ZMIANA 2: Przycisk w stylu ciemnym dla Side 5 */}
+                                                            <button onClick={showTranslation} className={`w-full bg-primary-light/20 hover:bg-primary-light/30 tactile-button text-slate-200 font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2`}>
                                                                 <Icon path={iconPaths.rotate} size={20}/> Wróć do tłumaczenia
                                                             </button>
                                                         </div>
@@ -1380,7 +1382,7 @@
 
                                             {/* --- BACK SIDE --- */}
                                             {/* Zastosowanie obliczonego effectiveBackBg */}
-                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveBackBg} transition-colors-all duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
+                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveBackBg} transition-colors duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
                                                 {(cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? (
                                                     // --- GRAMATYKA (Tył - rotated X) ---
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
