@@ -1012,11 +1012,8 @@
                                 tempQueue.push({ text: displayData.wordInfo, lang: 'en-US' }); 
                             }
                         } else {
-                            if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
-                                pushMixedSentence(displayData.sentences[0].en);
-                            } else {
-                                tempQueue.push({ text: displayData.word, lang: 'en-US' });
-                            }
+                            // --- ZMIANA TUTAJ: ZAWSZE CZYTAJ TYLKO SŁOWO NA GŁÓWNEJ KARCIE ---
+                            tempQueue.push({ text: displayData.word, lang: 'en-US' });
                         }
                         fullQueue = tempQueue;
                         queueRef.current = tempQueue;
