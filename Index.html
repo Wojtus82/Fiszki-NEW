@@ -199,6 +199,26 @@
         try {
             const { useState, useEffect, useMemo, useRef } = React;
 
+            // --- HELPERY DO LOCAL STORAGE ---
+            const getStorage = (key, defaultValue) => {
+                try {
+                    const saved = localStorage.getItem(key);
+                    if (saved === null) return defaultValue;
+                    return JSON.parse(saved);
+                } catch (e) {
+                    console.warn("Błąd odczytu localStorage dla klucza:", key);
+                    return defaultValue;
+                }
+            };
+
+            const setStorage = (key, value) => {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                } catch (e) {
+                    console.warn("Błąd zapisu localStorage:", key);
+                }
+            };
+
             const Icon = ({ path, size = 24, className="" }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
             );
@@ -301,18 +321,19 @@
                 const [loading, setLoading] = useState(true);
                 const [fileError, setFileError] = useState(null);
 
-                // --- STATES FOR LEVEL SELECTION ---
-                const [selectedLevels, setSelectedLevels] = useState(['A1']); 
+                // --- STATES FOR LEVEL SELECTION (PERSISTED) ---
+                const [selectedLevels, setSelectedLevels] = useState(() => getStorage('fc-levels', ['A1'])); 
                 const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
                 const [tempSelectedLevels, setTempSelectedLevels] = useState([]);
                 const availableLevels = ['A1', 'A2', 'B1', 'B2'];
 
-                // --- STATES FOR CATEGORY SELECTION ---
-                const [selectedCategories, setSelectedCategories] = useState([]); 
+                // --- STATES FOR CATEGORY SELECTION (PERSISTED) ---
+                const [selectedCategories, setSelectedCategories] = useState(() => getStorage('fc-cats', [])); 
                 const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
                 const [tempSelectedCategories, setTempSelectedCategories] = useState([]); 
                 
-                const [tense, setTense] = useState('Base');
+                // --- STATES FOR TENSE (PERSISTED) ---
+                const [tense, setTense] = useState(() => getStorage('fc-tense', 'Base'));
                 
                 const [availableCategories, setAvailableCategories] = useState([]);
                 const [currentWordIds, setCurrentWordIds] = useState([]);
@@ -322,20 +343,19 @@
                 const [cardSide, setCardSide] = useState(1);
                 const [prevCardSide, setPrevCardSide] = useState(1);
                 
-                // DODANO: Obrót w osi X (góra-dół)
                 const [rotationX, setRotationX] = useState(0);
-
                 const [rotation, setRotation] = useState(0);
                 const [noTransition, setNoTransition] = useState(false);
                 
                 const [isSpeaking, setIsSpeaking] = useState(false);
                 const [isPaused, setIsPaused] = useState(false);
 
-                // --- NOWY STAN: TASOWANIE ---
                 const [isShuffling, setIsShuffling] = useState(false);
 
-                const [isPlToEn, setIsPlToEn] = useState(false);
+                // --- STATE FOR TRANSLATION DIRECTION (PERSISTED) ---
+                const [isPlToEn, setIsPlToEn] = useState(() => getStorage('fc-plEn', false));
 
+                // --- STATE FOR DARK MODE (PERSISTED) ---
                 const [isDarkMode, setIsDarkMode] = useState(() => {
                     const savedTheme = localStorage.getItem('flashcards-theme');
                     return savedTheme === 'dark';
@@ -349,14 +369,13 @@
                 
                 const [speakingSentenceIndex, setSpeakingSentenceIndex] = useState(0);
                 
-                // --- PAUSE DURATION STATE ---
-                const [pauseDuration, setPauseDuration] = useState(0);
+                // --- PAUSE DURATION STATE (PERSISTED) ---
+                const [pauseDuration, setPauseDuration] = useState(() => getStorage('fc-pause', 0));
 
                 const [voices, setVoices] = useState([]);
                 const [selectedVoice, setSelectedVoice] = useState(null);
                 const [selectedPlVoice, setSelectedPlVoice] = useState(null);
 
-                // --- TOUCH & SWIPE LOGIC STATE ---
                 const [touchStart, setTouchStart] = useState(null); 
                 const [touchEnd, setTouchEnd] = useState(null);
                 const minSwipeDistance = 50;
@@ -372,14 +391,19 @@
                 const lastTapRef = useRef(0);
                 const tapCountRef = useRef(0);
 
+                // --- SAVE SETTINGS TO LOCAL STORAGE ---
                 useEffect(() => {
                     localStorage.setItem('flashcards-theme', isDarkMode ? 'dark' : 'light');
-                    if (isDarkMode) {
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
-                    }
+                    if (isDarkMode) document.documentElement.classList.add('dark');
+                    else document.documentElement.classList.remove('dark');
                 }, [isDarkMode]);
+
+                useEffect(() => { setStorage('fc-levels', selectedLevels); }, [selectedLevels]);
+                useEffect(() => { setStorage('fc-cats', selectedCategories); }, [selectedCategories]);
+                useEffect(() => { setStorage('fc-tense', tense); }, [tense]);
+                useEffect(() => { setStorage('fc-plEn', isPlToEn); }, [isPlToEn]);
+                useEffect(() => { setStorage('fc-pause', pauseDuration); }, [pauseDuration]);
+
 
                 useEffect(() => {
                     const startTimer = setTimeout(() => {
@@ -445,19 +469,15 @@
                             const firstSheetName = workbook.SheetNames[0];
                             const worksheet = workbook.Sheets[firstSheetName];
                             
-                            // Load data
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
-                                console.log('Wczytane klucze:', Object.keys(jsonData[0]));
-
                                 const tenseColumns = [
                                     "Beginner", "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
                                     "Questions"
                                 ];
 
-                                // === SZUKANIE OPISÓW GRAMATYKI ===
                                 const foundGrammar = {};
                                 const allTensesToCheck = ['Base', ...tenseColumns];
 
@@ -483,15 +503,13 @@
                                     const word = row.word ? String(row.word).trim() : "";
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
-                                    
-                                    // WCZYTYWANIE KOLUMNY word_info
                                     const wordInfo = row.word_info ? String(row.word_info).trim() : "";
 
                                     const baseSentences = extractSentencesFromCell(row.base);
                                     processedData.push({
                                         id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
                                         phonetic: phonetic, tense: 'Base', sentencesList: baseSentences,
-                                        wordInfo: wordInfo // ZAPISANIE DANYCH
+                                        wordInfo: wordInfo
                                     });
 
                                     tenseColumns.forEach(tenseName => {
@@ -504,7 +522,7 @@
                                                 processedData.push({
                                                     id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
                                                     phonetic: phonetic, tense: tenseName, sentencesList: tenseSentences,
-                                                    wordInfo: wordInfo // Dodane też tutaj, chociaż główne pobieranie idzie z Base
+                                                    wordInfo: wordInfo 
                                                 });
                                             }
                                         }
@@ -532,14 +550,13 @@
                     const cats = [...new Set(filteredRows.map(row => row.category))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
                     setAvailableCategories(cats);
                     
-                    setSelectedCategories([]);
-                    setTempSelectedCategories([]);
+                    setSelectedCategories(prevCats => prevCats.filter(cat => cats.includes(cat)));
+                    
                 }, [selectedLevels, fullDatabase]);
 
                 useEffect(() => {
                     if (!fullDatabase.length) return;
                     
-                    // --- URUCHOMIENIE TASOWANIA ---
                     setIsShuffling(true);
 
                     const uniqueIds = [...new Set(fullDatabase.filter(row => {
@@ -554,7 +571,6 @@
                     setIsFinished(false);
                     resetCard();
 
-                    // --- WYŁĄCZENIE TASOWANIA PO ANIMACJI ---
                     const timer = setTimeout(() => {
                         setIsShuffling(false);
                     }, 1500);
@@ -718,7 +734,7 @@
                         phonetic: mainInfoRow.phonetic, 
                         sentences: sentences, 
                         infoText: infoText,
-                        wordInfo: mainInfoRow.wordInfo // PRZEKAZANIE DANYCH Word Info
+                        wordInfo: mainInfoRow.wordInfo 
                     };
                 };
 
@@ -737,7 +753,6 @@
                     return displayData ? displayData.phonetic : "";
                 }, [viewAllSentences, activeSentenceIndex, speakingSentenceIndex, sentencesListToRender, displayData]);
 
-                // --- ZMODYFIKOWANA LOGIKA GESTÓW ---
                 const handleStart = (clientX, clientY) => { 
                     setTouchEnd(null); 
                     setTouchStart({ x: clientX, y: clientY }); 
@@ -753,8 +768,6 @@
                     const distanceX = touchStart.x - touchEnd.x;
                     const distanceY = touchStart.y - touchEnd.y;
 
-                    // WYKRYWANIE SCROLLA PIONOWEGO:
-                    // Jeśli ruch w pionie (Y) jest większy niż w poziomie (X), ignorujemy zmianę karty.
                     if (Math.abs(distanceY) > Math.abs(distanceX)) {
                         setTouchStart(null); setTouchEnd(null);
                         return;
@@ -772,7 +785,6 @@
                 const onMouseDown = (e) => handleStart(e.clientX, e.clientY);
                 const onMouseMove = (e) => { if(touchStart) handleMove(e.clientX, e.clientY); };
                 const onMouseUp = () => {
-                    // Logic check inside handleEnd handles distance, so we just call it
                     handleEnd(); 
                 };
                 const onMouseLeave = () => { setTouchStart(null); setTouchEnd(null); };
@@ -800,7 +812,7 @@
                     setPrevCardSide(cardSide); 
                     setCardSide(1); 
                     setRotation(0); 
-                    setRotationX(0); // Reset X rotation
+                    setRotationX(0); 
                     cancelSpeech(); 
                     setViewAllSentences(false);
                     setTimeout(() => setNoTransition(false), 50); 
@@ -850,7 +862,7 @@
                     }
                     else if (cardSide === 3) { showTranslation(); }
                     else if (cardSide === 4) { showSentences(); }
-                    else if (cardSide === 5) { showTranslation(); } // Click on side 5 returns to side 2
+                    else if (cardSide === 5) { showTranslation(); } 
                 };
 
                 const showSentences = (e) => { 
@@ -885,8 +897,6 @@
                     cancelSpeech();
                     setPrevCardSide(cardSide);
                     setCardSide(5);
-                    // From Side 2 (Y=180), we flip X (180). 
-                    // Wrapper becomes Y=180, X=180.
                     setRotation(180); 
                     setRotationX(180); 
                 };
@@ -894,7 +904,6 @@
                 const togglePauseDuration = (e) => {
                     e.stopPropagation();
                     setPauseDuration(prev => {
-                        // Cycle: -2 -> -1 -> 0 -> 1 -> 2 -> -2
                         if (prev >= 2) return -2;
                         return prev + 1;
                     });
@@ -949,7 +958,7 @@
                                     tempQueue.push({
                                         text: part,
                                         isSentence: true, 
-                                        visualIndex: vIndex,
+                                        visualIndex: vIndex, 
                                         globalIndex: gIndex,
                                         lang: isEnWord ? 'en-US' : 'pl-PL',
                                         forceVoice: isEnWord ? selectedVoice : selectedPlVoice
@@ -998,12 +1007,8 @@
                                 tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
                             });
                         } else if (cardSide === 5) {
-                            // CZYTANIE TREŚCI Z Word Info (dawniej Beginner)
-                            // Zakładamy, że to tekst, który czytamy po angielsku (chyba że wykryjemy inny język, ale default en-US)
                             if (displayData.wordInfo) {
                                 tempQueue.push({ text: displayData.wordInfo, lang: 'en-US' }); 
-                            } else {
-                                // Fallback empty
                             }
                         } else {
                             if (tense !== 'Base' && tense !== 'mixed' && displayData.sentences.length > 0) {
@@ -1015,7 +1020,6 @@
                         fullQueue = tempQueue;
                         queueRef.current = tempQueue;
                         
-                        // FIX: Only reset index if NOT resuming.
                         if (!resume) queueIndexRef.current = 0;
                     }
 
@@ -1107,7 +1111,6 @@
                     });
                 };
 
-                // --- NOWY EFEKT: ZMIANA PAUZY W TRAKCIE CZYTANIA ---
                 useEffect(() => {
                     if (isSpeaking && !isPaused) {
                         pausedIntentionally.current = true;
@@ -1166,23 +1169,18 @@
                     );
                 };
 
-                // Updated Premium Theme Objects
                 const theme = isDarkMode ? {
-                    // Dark Mode Premium
                     headerText: 'text-slate-300 tracking-wide',
                     subText: 'text-slate-400',
                     selectText: 'text-slate-200 font-medium',
                     
-                    // Controls (Buttons, Selects) - UPDATED 3D
                     controlsBg: 'bg-primary-dark border-primary-light/20 control-3d',
-                    controlsBorder: '', /* Border handled by 3D class */
+                    controlsBorder: '', 
                     
-                    // Card Styles - UPDATED 3D
                     cardFrontBg: 'bg-primary-dark card-3d-look border-primary-light/10',
                     cardFrontText: 'text-slate-100',
                     cardBackBg: 'bg-primary-dark card-3d-look border-primary-light/10',
                     
-                    // Interactive Elements
                     buttonBg: 'bg-primary-light/20 hover:bg-primary-light/30 tactile-button text-slate-200',
                     accentBtnBg: 'bg-accent-dark hover:bg-accent tactile-button text-white shadow-lg shadow-accent-dark/30',
                     
@@ -1190,21 +1188,17 @@
                     counterText: 'text-slate-300'
 
                 } : {
-                    // Light Mode Premium
                     headerText: 'text-primary-dark tracking-wide',
                     subText: 'text-slate-500',
                     selectText: 'text-primary-dark font-medium',
 
-                      // Controls (Buttons, Selects) - UPDATED 3D
                     controlsBg: 'bg-white border-slate-200/50 control-3d',
-                    controlsBorder: '', /* Border handled by 3D class */
+                    controlsBorder: '',
 
-                    // Card Styles - UPDATED 3D
                     cardFrontBg: 'bg-paper-light card-3d-look border border-slate-100',
                     cardFrontText: 'text-primary-dark',
                     cardBackBg: 'bg-primary text-slate-100 card-3d-look',
                     
-                    // Interactive Elements
                     buttonBg: 'bg-white hover:bg-slate-50 tactile-button text-primary-dark',
                     accentBtnBg: 'bg-accent hover:bg-accent-light tactile-button text-white shadow-lg shadow-accent/30',
 
@@ -1215,21 +1209,17 @@
                 if (loading) return <div className="h-[100dvh] flex flex-col items-center justify-center p-4"><div className="text-4xl mb-4 animate-spin text-accent"><Icon path={iconPaths.layers} size={48} /></div><div className="text-lg font-semibold text-primary-light dark:text-slate-300 animate-pulse">Wczytywanie bazy słów...</div></div>;
                 if (fileError) return <div className="h-[100dvh] flex flex-col items-center justify-center p-8 text-center"><div className="text-5xl mb-6">⚠️</div><div className="text-2xl font-bold mb-4 text-red-500">Problem z bazą danych</div><pre className="mb-8 text-sm bg-red-50 p-6 rounded-2xl text-left overflow-auto max-w-full whitespace-pre-wrap border border-red-100 shadow-inner">{fileError}</pre><button onClick={() => location.reload()} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg tactile-button transition">Odśwież stronę</button></div>;
 
-                // --- NOWA LOGIKA ZMIANY KOLORÓW W LIGHT MODE ---
                 const isSide5Active = cardSide === 5 || (prevCardSide === 5 && cardSide !== 1 && cardSide !== 3);
                 const isSide4Active = cardSide === 4 || (prevCardSide === 4 && cardSide !== 1);
 
-                // Front BG (Sides 1, 3, 5). Side 5 in Light Mode gets Dark BG (like Side 2)
                 const effectiveFrontBg = (!isDarkMode && isSide5Active) ? theme.cardBackBg : theme.cardFrontBg;
                 
-                // Back BG (Sides 2, 4). Side 4 in Light Mode gets Light BG (like Side 3)
                 const effectiveBackBg = (!isDarkMode && isSide4Active) ? theme.cardFrontBg : theme.cardBackBg;
 
                 return (
                     <div className="h-[100dvh] flex flex-col items-center pt-1 pb-2 px-3 font-sans relative overflow-hidden noselect">
                         {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
                         
-                        {/* --- MODALE (Glassmorphism) --- */}
                         {isLevelModalOpen && (
                             <div className="fixed inset-0 z-[9999] flex flex-col animate-slideIn glass-panel">
                                 <div className={`p-4 flex justify-between items-center flex-none ${theme.controlsBg.replace('control-3d', '')}`}>
@@ -1253,7 +1243,6 @@
                             </div>
                         )}
 
-                        {/* --- HEADER (Glassmorphism) --- */}
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-1 mb-3 p-3 rounded-2xl glass-panel shadow-sm z-10">
                             <div className="w-full relative flex items-center justify-center min-h-[40px]">
                                 <div className="absolute left-0">
@@ -1271,7 +1260,6 @@
                             </div>
                         </header>
 
-                        {/* --- MAIN CARD AREA --- */}
                         {isFinished ? (
                                 <div className="w-full max-w-md flex-1 min-h-[300px] mb-3 z-10 flex flex-col items-center justify-center animate-popIn perspective-1000">
                                 <div className={`w-full p-6 rounded-[24px] flex flex-col items-center justify-center text-center ${theme.cardFrontBg} transition-all duration-500`}>
@@ -1287,7 +1275,6 @@
                             <>
                                 <div className="relative w-full max-w-md flex-1 min-h-[300px] mb-3 z-0 perspective-1000">
                                     
-                                    {/* --- WARUNEK TASOWANIA --- */}
                                     {isShuffling ? (
                                         <div className={`w-full h-full rounded-[24px] flex flex-col items-center justify-center p-6 text-center animate-card-shake ${theme.cardFrontBg}`}>
                                             <div className="mb-4 animate-spin text-accent">
@@ -1300,22 +1287,17 @@
                                     ) : (
                                         <div className={`relative w-full h-full rounded-[24px] cursor-pointer transform-style-3d ${noTransition ? '' : 'transition-transform duration-500 ease-out-back'}`} style={{ transform: `rotateY(${rotation}deg) rotateX(${rotationX}deg)` }} onClick={handleCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}>
                                             
-                                            {/* --- FRONT SIDE --- */}
-                                            {/* Zastosowanie obliczonego effectiveFrontBg */}
                                             <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveFrontBg} transition-colors duration-500`} style={{ transform: 'rotateY(0deg)' }}>
                                                 {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
-                                                    // --- ZDANIA (Front) ---
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
                                                         <div className="flex justify-between items-center mb-3 border-b border-gray-200/10 pb-2 flex-none relative">
                                                             <h3 className={`font-bold flex items-center gap-2 text-base ${theme.headerText}`}><Icon path={iconPaths.book} size={18} className="text-accent"/> Zdania</h3>
                                                             
-                                                            {/* PRZYCISK GRAMATYKA (TERAZ TUTAJ) */}
                                                             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                                                 <button onClick={showGrammarInfo} className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
                                                                     <Icon path={iconPaths.infoCircle} size={16} className="text-accent"/> <span className="text-[10px] font-bold uppercase">Gramatyka</span>
                                                                 </button>
 
-                                                                {/* --- 3D TENSE SELECTOR --- */}
                                                                 <div className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
                                                                     <Icon path={iconPaths.clock} size={16} className="text-accent"/>
                                                                     <select value={tense} onChange={(e) => setTense(e.target.value)} className={`bg-transparent text-[10px] !font-bold uppercase outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
@@ -1326,7 +1308,6 @@
                                                         
                                                         <div className="relative w-full mt-3 flex justify-between items-center flex-none p-2 rounded-xl bg-black/5 dark:bg-white/5">
                                                                 
-                                                                {/* PRZYCISK ALL (TERAZ TUTAJ) */}
                                                                 <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${viewAllSentences ? 'bg-accent/15 text-accent border border-accent/20 shadow-none' : theme.buttonBg}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
                                                                     <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={16} /></div><span className="text-[10px] font-bold uppercase whitespace-nowrap">All</span>
                                                                 </button>
@@ -1340,16 +1321,13 @@
                                                         </div>
                                                     </div>
                                                 ) : (cardSide === 5 || (prevCardSide === 5 && cardSide !== 1 && cardSide !== 3)) ? (
-                                                    // --- WORD INFO (Front - rotated) ---
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative rotate-180">
                                                         <div className="flex-none mb-3 border-b border-gray-200/10 pb-2">
-                                                            {/* ZMIANA 1: Zielony nagłówek "Word Info" */}
                                                             <h3 className={`text-lg font-bold flex items-center gap-2 text-accent-light`}><Icon path={iconPaths.infoCircle} size={20} className="text-accent"/> Word Info</h3>
                                                         </div>
                                                         <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-base leading-relaxed pr-2 -mr-2 relative">
                                                             <div className="p-1">
                                                             {displayData && displayData.wordInfo ? (
-                                                                // POPRAWKA KOLORU TEKSTU DLA WORD INFO W LIGHT MODE
                                                                 <div className={`whitespace-pre-line font-medium ${(!isDarkMode && isSide5Active) ? 'text-slate-200' : 'text-primary-dark'} dark:text-slate-200`}>{displayData.wordInfo}</div>
                                                             ) : (
                                                                 <div className="italic opacity-60 text-center mt-16 flex flex-col items-center gap-3"><Icon path={iconPaths.fileText} size={40} className="opacity-30" />Brak dodatkowych informacji.</div>
@@ -1357,14 +1335,12 @@
                                                             </div>
                                                         </div>
                                                         <div className="flex-none mt-4 w-full">
-                                                            {/* ZMIANA 2: Przycisk w stylu ciemnym dla Side 5 */}
                                                             <button onClick={showTranslation} className={`w-full bg-primary-light/20 hover:bg-primary-light/30 tactile-button text-slate-200 font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2`}>
                                                                 <Icon path={iconPaths.rotate} size={20}/> Wróć do tłumaczenia
                                                             </button>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    // --- STANDARDOWY FRONT (Słówko) ---
                                                     <>
                                                         <div className={`absolute top-4 left-4 text-xs font-bold uppercase flex flex-wrap items-center gap-2 ${theme.subText} tracking-wider`}><span className="px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 backdrop-blur-md truncate max-w-[100px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span></div>
                                                         <button onClick={(e) => { e.stopPropagation(); setIsPlToEn(!isPlToEn); }} className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold border ${theme.controlsBorder} ${theme.buttonBg} flex items-center gap-1 shadow-sm group`}>
@@ -1380,20 +1356,15 @@
                                                 )}
                                             </div>
 
-                                            {/* --- BACK SIDE --- */}
-                                            {/* Zastosowanie obliczonego effectiveBackBg */}
                                             <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveBackBg} transition-colors duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
                                                 {(cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? (
-                                                    // --- GRAMATYKA (Tył - rotated X) ---
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
                                                         <div className="flex-none mb-3 border-b border-white/10 pb-2">
-                                                            {/* POPRAWKA NAGŁÓWKA GRAMATYKI W LIGHT MODE */}
                                                             <h3 className={`text-lg font-bold flex items-center gap-2 ${(!isDarkMode && isSide4Active) ? 'text-accent' : 'text-accent-light'}`}><Icon path={iconPaths.infoCircle} size={20}/> Gramatyka</h3>
                                                         </div>
                                                         <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-base leading-relaxed pr-2 -mr-2 relative">
                                                             <div className="p-1">
                                                             {displayData && displayData.infoText ? (
-                                                                // POPRAWKA TEKSTU GRAMATYKI W LIGHT MODE
                                                                 <div className={`whitespace-pre-line font-medium ${(!isDarkMode && isSide4Active) ? 'text-primary-dark' : ''}`}>{displayData.infoText}</div>
                                                             ) : (
                                                                 <div className="italic opacity-60 text-center mt-16 flex flex-col items-center gap-3"><Icon path={iconPaths.fileText} size={40} className="opacity-30" />Brak informacji gramatycznych dla tego czasu.</div>
@@ -1407,7 +1378,6 @@
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    // --- TŁUMACZENIE (Tył) ---
                                                     <>
                                                         <div className="absolute top-4 right-4 text-xs font-bold text-accent-light uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md shadow-inner">
                                                             {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
@@ -1436,7 +1406,6 @@
                                         </div>
                                     )}
                                 </div>
-                                {/* --- CONTROLS BOTTOM --- */}
                                 <div className="w-full max-w-md flex-none space-y-3 z-20 mb-1 glass-panel p-3 rounded-[24px] shadow-soft-xl">
                                     <div className="grid grid-cols-2 gap-3">
                                         <button onClick={handlePrev} className={`${theme.buttonBg} font-bold py-3 rounded-xl flex justify-center items-center gap-2 text-sm group`}><Icon path={iconPaths.left} className="w-5 h-5 text-accent group-hover:-translate-x-1 transition-transform" /> Poprzednia</button>
