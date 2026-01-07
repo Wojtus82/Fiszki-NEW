@@ -47,10 +47,10 @@
     <style>
         /* --- CSS VARIABLES FOR THEMES --- */
         :root {
-            /* Domyślny Teal (RGB values for Tailwind opacity support) */
-            --accent-main: 13 148 136;  /* #0d9488 */
-            --accent-light: 20 184 166; /* #14b8a6 */
-            --accent-dark: 15 118 110;  /* #0f766e */
+            /* Domyślny Teal */
+            --accent-main: 13 148 136;  
+            --accent-light: 20 184 166; 
+            --accent-dark: 15 118 110;  
         }
 
         body {
@@ -81,42 +81,25 @@
             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* --- STYL 3D DLA FISZKI --- */
         .card-3d-look {
-            box-shadow:
-                0 20px 25px -5px rgb(0 0 0 / 0.15),
-                0 8px 10px -6px rgb(0 0 0 / 0.1),
-                inset 0 1px 0 rgba(255,255,255, 0.3), 
-                0 4px 0 rgba(0,0,0,0.1);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1), inset 0 1px 0 rgba(255,255,255, 0.3), 0 4px 0 rgba(0,0,0,0.1);
             border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         .dark .card-3d-look {
-            box-shadow:
-                0 20px 25px -5px rgb(0 0 0 / 0.3),
-                inset 0 1px 0 rgba(255,255,255, 0.1),
-                0 4px 0 rgba(0,0,0,0.3);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), inset 0 1px 0 rgba(255,255,255, 0.1), 0 4px 0 rgba(0,0,0,0.3);
         }
 
-        /* --- STYL 3D DLA KONTROLEK --- */
         .control-3d {
             transition: all 0.15s ease;
-            box-shadow:
-                0 4px 6px -1px rgb(0 0 0 / 0.1),
-                inset 0 1px 0 rgba(255,255,255, 0.4),
-                0 3px 0 rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), inset 0 1px 0 rgba(255,255,255, 0.4), 0 3px 0 rgba(0,0,0,0.1);
             transform: translateY(0);
         }
         .dark .control-3d {
-             box-shadow:
-                0 4px 6px -1px rgb(0 0 0 / 0.2),
-                inset 0 1px 0 rgba(255,255,255, 0.1),
-                0 3px 0 rgba(0,0,0,0.3);
+             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2), inset 0 1px 0 rgba(255,255,255, 0.1), 0 3px 0 rgba(0,0,0,0.3);
         }
         .control-3d:active {
             transform: translateY(3px);
-            box-shadow: 
-                0 1px 2px 0 rgb(0 0 0 / 0.05),
-                inset 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), inset 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .perspective-1000 { perspective: 1000px; }
@@ -135,20 +118,9 @@
         .animate-spin-three { animation: spinThreeTimes 3s ease-in-out; }
 
         @keyframes startUpShake {
-            0% { transform: scale(1) rotate(0deg); }
-            15% { transform: scale(1.6) rotate(-25deg); }
-            30% { transform: scale(2.2) rotate(25deg); }
-            45% { transform: scale(1.6) rotate(-25deg); }
-            60% { transform: scale(1.2) rotate(25deg); }
-            75% { transform: scale(1.1) rotate(-10deg); }
-            100% { transform: scale(1) rotate(0deg); }
+            0% { transform: scale(1) rotate(0deg); } 15% { transform: scale(1.6) rotate(-25deg); } 30% { transform: scale(2.2) rotate(25deg); } 45% { transform: scale(1.6) rotate(-25deg); } 60% { transform: scale(1.2) rotate(25deg); } 75% { transform: scale(1.1) rotate(-10deg); } 100% { transform: scale(1) rotate(0deg); }
         }
-
-        .startup-anim {
-            display: inline-block;
-            transform-origin: center center;
-            animation: startUpShake 1.5s ease-in-out 2; 
-        }
+        .startup-anim { display: inline-block; transform-origin: center center; animation: startUpShake 1.5s ease-in-out 2; }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -157,7 +129,6 @@
         
         #error-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.98); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; color: #991b1b; padding: 20px; text-align: center; }
         .no-tap-highlight { -webkit-tap-highlight-color: transparent; }
-        
         .noselect { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
         .item-multi-selected {
@@ -173,21 +144,9 @@
         }
 
         @keyframes cardShake {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            10% { transform: translate(-3px, -2px) rotate(-1deg); }
-            20% { transform: translate(3px, 2px) rotate(1deg); }
-            30% { transform: translate(-3px, 2px) rotate(0deg); }
-            40% { transform: translate(3px, -2px) rotate(1deg); }
-            50% { transform: translate(-2px, 2px) rotate(-1deg); }
-            60% { transform: translate(2px, -2px) rotate(0deg); }
-            70% { transform: translate(-2px, 1px) rotate(1deg); }
-            80% { transform: translate(2px, -1px) rotate(-1deg); }
-            90% { transform: translate(-1px, 2px) rotate(0deg); }
-            100% { transform: translate(0, 0) rotate(0deg); }
+            0% { transform: translate(0, 0) rotate(0deg); } 10% { transform: translate(-3px, -2px) rotate(-1deg); } 20% { transform: translate(3px, 2px) rotate(1deg); } 30% { transform: translate(-3px, 2px) rotate(0deg); } 40% { transform: translate(3px, -2px) rotate(1deg); } 50% { transform: translate(-2px, 2px) rotate(-1deg); } 60% { transform: translate(2px, -2px) rotate(0deg); } 70% { transform: translate(-2px, 1px) rotate(1deg); } 80% { transform: translate(2px, -1px) rotate(-1deg); } 90% { transform: translate(-1px, 2px) rotate(0deg); } 100% { transform: translate(0, 0) rotate(0deg); }
         }
-        .animate-card-shake {
-            animation: cardShake 0.4s ease-in-out infinite;
-        }
+        .animate-card-shake { animation: cardShake 0.4s ease-in-out infinite; }
     </style>
 </head>
 <body class="m-0 text-slate-700 dark:text-slate-200 no-tap-highlight overflow-hidden transition-colors duration-500">
@@ -282,7 +241,6 @@
                 settings: <><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></>
             };
 
-            // Definicje kolorów (RGB string) dla Tailwind
             const themeColors = {
                 teal:  { main: '13 148 136', light: '20 184 166', dark: '15 118 110', name: 'Domyślny' },
                 blue:  { main: '37 99 235',  light: '59 130 246', dark: '29 78 216', name: 'Niebieski' },
@@ -435,7 +393,6 @@
                 // --- APPLY THEME COLOR ---
                 useEffect(() => {
                     const t = themeColors[themeColor] || themeColors.teal;
-                    // Ustawianie zmiennych CSS w roocie dokumentu
                     document.documentElement.style.setProperty('--accent-main', t.main);
                     document.documentElement.style.setProperty('--accent-light', t.light);
                     document.documentElement.style.setProperty('--accent-dark', t.dark);
@@ -481,54 +438,66 @@
                     }
                 }, []);
 
-                // --- LOGIKA WYBORU GŁOSU Z UWZGLĘDNIENIEM US/GB ---
+                // --- POPRAWIONA LOGIKA WYBORU GŁOSU (STRICT REGION FIRST) ---
                 useEffect(() => {
-                    if (voices.length > 0) {
-                        const findBestVoice = (langPrefix, preferredNames, variant) => {
-                            // Filtrujemy po prefixie (np. 'en')
-                            let langVoices = voices.filter(v => v.lang.startsWith(langPrefix));
-                            
-                            if (langVoices.length === 0) return null;
+                    if (voices.length === 0) return;
 
-                            // Jeśli to angielski, filtrujemy dodatkowo po wariancie (US vs GB/UK)
-                            if (langPrefix === 'en') {
-                                if (variant === 'US') {
-                                    const usVoices = langVoices.filter(v => v.lang === 'en-US' || v.name.includes("US") || v.name.includes("United States"));
-                                    if (usVoices.length > 0) langVoices = usVoices;
-                                } else if (variant === 'GB') {
-                                    const gbVoices = langVoices.filter(v => v.lang === 'en-GB' || v.lang === 'en-UK' || v.name.includes("UK") || v.name.includes("Great Britain"));
-                                    if (gbVoices.length > 0) langVoices = gbVoices;
-                                }
+                    const findSpecificVoice = (targetLangPrefix, variant) => {
+                        const allLangVoices = voices.filter(v => v.lang.startsWith(targetLangPrefix));
+
+                        let regionVoices = [];
+                        
+                        if (targetLangPrefix === 'en') {
+                            if (variant === 'GB') {
+                                // Najpierw szukaj głosów stricte GB
+                                regionVoices = allLangVoices.filter(v => 
+                                    v.lang.replace('_', '-').includes('GB') || 
+                                    v.name.includes('UK') || 
+                                    v.name.includes('Great Britain')
+                                );
+                            } else {
+                                // Domyślnie US
+                                regionVoices = allLangVoices.filter(v => 
+                                    v.lang.replace('_', '-').includes('US') || 
+                                    v.name.includes('United States')
+                                );
                             }
+                        } else {
+                            regionVoices = allLangVoices;
+                        }
 
-                            // 1. Priorytet: Online / Premium (Google, Microsoft Online, Apple Enhanced)
-                            const onlineOrPremium = langVoices.find(v => 
-                                v.name.includes("Google") || 
-                                v.name.includes("Online") || 
-                                v.name.includes("Natural") || 
-                                v.name.includes("Premium") ||
-                                v.name.includes("Enhanced")
-                            );
-                            if (onlineOrPremium) return onlineOrPremium;
+                        // Jeśli nie ma żadnego głosu dla danego regionu, bierzemy wszystkie dostępne dla języka
+                        if (regionVoices.length === 0) regionVoices = allLangVoices;
 
-                            // 2. Priorytet: Preferowane lokalne
-                            for (const name of preferredNames) {
-                                const found = langVoices.find(v => v.name.includes(name));
-                                if (found) return found;
-                            }
+                        // Teraz szukamy najlepszej jakości w obrębie przefiltrowanej grupy
+                        const premiumVoice = regionVoices.find(v => 
+                            v.name.includes("Google") || 
+                            v.name.includes("Natural") || 
+                            v.name.includes("Online") || 
+                            v.name.includes("Premium") || 
+                            v.name.includes("Enhanced")
+                        );
 
-                            // 3. Fallback
-                            return langVoices[0];
-                        };
+                        if (premiumVoice) return premiumVoice;
 
-                        // Wybór głosu angielskiego zależnie od wariantu
-                        const bestEn = findBestVoice('en', ['Samantha', 'Zira', 'Daniel', 'Arthur'], voiceVariant);
-                        if (bestEn) setSelectedVoice(bestEn);
+                        // Preferowane imiona (fallback dla offline)
+                        const preferredNames = variant === 'GB' 
+                            ? ['Daniel', 'Arthur', 'Martha', 'Amy'] 
+                            : ['Samantha', 'Karen', 'Rishi', 'Moira']; 
 
-                        const bestPl = findBestVoice('pl', ['Paulina', 'Zosia', 'Maja', 'Krzysztof'], null);
-                        if (bestPl) setSelectedPlVoice(bestPl);
-                    }
-                }, [voices, voiceVariant]); // Zależność od voiceVariant przeładuje głos po zmianie w menu
+                        const nameMatch = regionVoices.find(v => preferredNames.some(name => v.name.includes(name)));
+                        if (nameMatch) return nameMatch;
+
+                        return regionVoices[0];
+                    };
+
+                    const bestEn = findSpecificVoice('en', voiceVariant);
+                    if (bestEn) setSelectedVoice(bestEn);
+
+                    const bestPl = findSpecificVoice('pl', null);
+                    if (bestPl) setSelectedPlVoice(bestPl);
+
+                }, [voices, voiceVariant]);
 
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
@@ -1262,7 +1231,7 @@
                     cardBackBg: 'bg-primary-dark card-3d-look border-primary-light/10',
                     
                     buttonBg: 'bg-primary-light/20 hover:bg-primary-light/30 tactile-button text-slate-200',
-                    accentBtnBg: 'bg-accent hover:bg-accent-light tactile-button text-white shadow-lg shadow-accent/30',
+                    accentBtnBg: 'bg-accent-dark hover:bg-accent tactile-button text-white shadow-lg shadow-accent-dark/30',
                     
                     counterBg: 'bg-primary-dark/30 backdrop-blur-md',
                     counterText: 'text-slate-300'
