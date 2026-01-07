@@ -43,7 +43,6 @@
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <style>
-        /* Domyślne wartości zmiennych (zostaną nadpisane przez React) */
         :root {
             --accent-main: 13 148 136;  
             --accent-light: 20 184 166; 
@@ -1146,7 +1145,7 @@
                                                         className={`p-3 rounded-xl border-2 flex items-center gap-3 transition-all ${themeColor === key ? 'border-current bg-white dark:bg-white/5' : 'border-transparent bg-gray-50 dark:bg-white/5 opacity-70 hover:opacity-100'}`}
                                                         style={{ color: `rgb(${themeColors[key].main})` }}
                                                     >
-                                                        <div className="w-6 h-6 rounded-full shadow-sm" style={{ backgroundColor: `rgb(${themeColors[key].main})` }}></div>
+                                                        <div className="w-6 h-6 rounded-full shadow-sm flex-none" style={{ backgroundColor: `rgb(${themeColors[key].main})` }}></div>
                                                         <span className="font-bold text-sm text-slate-700 dark:text-slate-200">{themeColors[key].name}</span>
                                                     </button>
                                                 ))}
