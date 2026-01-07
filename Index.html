@@ -144,7 +144,7 @@
             color: rgb(var(--accent-light)) !important;
         }
 
-        /* Styl dla suwaka (Range Input) - POPRAWIONY KONTRAST */
+        /* Styl dla suwaka (Range Input) */
         input[type=range] {
             -webkit-appearance: none; 
             background: transparent; 
@@ -163,7 +163,7 @@
             width: 100%;
             height: 4px;
             cursor: pointer;
-            background: #94a3b8; /* Ciemniejszy szary dla widoczności w trybie jasnym */
+            background: #94a3b8; 
             border-radius: 2px;
         }
         .dark input[type=range]::-webkit-slider-runnable-track {
@@ -660,9 +660,9 @@
 
                 const openLevelModal = () => { setTempSelectedLevels([...selectedLevels]); setIsLevelModalOpen(true); };
                 const closeLevelModal = () => setIsLevelModalOpen(false);
-                const handleSingleSelectLevel = (lvl) => { setSelectedLevels([lvl]); setTempSelectedLevels([lvl]); closeLevelModal(); };
+                const handleSingleSelectLevel = (lvl) => { setSelectedLevels([lvl]); setTempSelectedLevels([lvl]); setSelectedCategories([]); closeLevelModal(); };
                 const handleMultiToggleLevel = (e, lvl) => { e.stopPropagation(); setTempSelectedLevels(prev => { if (prev.includes(lvl)) return prev.filter(l => l !== lvl); return [...prev, lvl]; }); };
-                const confirmMultiLevelSelection = () => { if (tempSelectedLevels.length === 0) { alert("Musisz wybrać przynajmniej jeden poziom."); return; } setSelectedLevels([...tempSelectedLevels]); closeLevelModal(); };
+                const confirmMultiLevelSelection = () => { if (tempSelectedLevels.length === 0) { alert("Musisz wybrać przynajmniej jeden poziom."); return; } setSelectedLevels([...tempSelectedLevels]); setSelectedCategories([]); closeLevelModal(); };
                 const getLevelLabel = () => { if (selectedLevels.length === 0) return "Brak"; if (selectedLevels.length === 1) return selectedLevels[0]; return `${selectedLevels.length} wybrane`; };
 
                 const availableTenses = useMemo(() => {
