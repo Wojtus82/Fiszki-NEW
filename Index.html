@@ -380,10 +380,11 @@
                 });
 
                 const [isMenuOpen, setIsMenuOpen] = useState(false);
+                const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
+
                 const [voiceVariant, setVoiceVariant] = useState(() => getStorage('fc-voice', 'US')); 
                 const [themeColor, setThemeColor] = useState(() => getStorage('fc-color', 'teal'));
                 
-                // --- NEW FEATURES STATES ---
                 const [speechRate, setSpeechRate] = useState(() => getStorage('fc-rate', 1.0));
                 const [autoPlay, setAutoPlay] = useState(() => getStorage('fc-autoplay', false));
 
