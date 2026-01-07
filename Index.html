@@ -139,6 +139,32 @@
             color: rgb(var(--accent-light)) !important;
         }
 
+        /* Styl dla suwaka (Range Input) */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: rgb(var(--accent-main));
+            cursor: pointer;
+            margin-top: -8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        .dark input[type=range]::-webkit-slider-runnable-track {
+            background: #475569;
+        }
+
         @keyframes cardShake {
             0% { transform: translate(0, 0) rotate(0deg); } 10% { transform: translate(-3px, -2px) rotate(-1deg); } 20% { transform: translate(3px, 2px) rotate(1deg); } 30% { transform: translate(-3px, 2px) rotate(0deg); } 40% { transform: translate(3px, -2px) rotate(1deg); } 50% { transform: translate(-2px, 2px) rotate(-1deg); } 60% { transform: translate(2px, -2px) rotate(0deg); } 70% { transform: translate(-2px, 1px) rotate(1deg); } 80% { transform: translate(2px, -1px) rotate(-1deg); } 90% { transform: translate(-1px, 2px) rotate(0deg); } 100% { transform: translate(0, 0) rotate(0deg); }
         }
@@ -233,7 +259,10 @@
                 infoCircle: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
                 fileText: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></>,
                 menu: <><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></>,
-                settings: <><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></>
+                settings: <><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></>,
+                reset: <><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></>,
+                rabbit: <><path d="M12 2c-3.5 0-6.5 2-8 5 3 0 6-1 8-5z"/><path d="M12 2c3.5 0 6.5 2 8 5-3 0-6-1-8-5z"/><circle cx="12" cy="14" r="8"/><circle cx="12" cy="14" r="3" fill="currentColor" opacity="0.3"/></>,
+                autoPlay: <><polygon points="5 3 19 12 5 21 5 3"></polygon><path d="M2 2v20"></path></>
             };
 
             const themeColors = {
@@ -345,6 +374,10 @@
                 const [voiceVariant, setVoiceVariant] = useState(() => getStorage('fc-voice', 'US')); 
                 const [themeColor, setThemeColor] = useState(() => getStorage('fc-color', 'teal'));
                 
+                // --- NEW FEATURES STATES ---
+                const [speechRate, setSpeechRate] = useState(() => getStorage('fc-rate', 1.0));
+                const [autoPlay, setAutoPlay] = useState(() => getStorage('fc-autoplay', false));
+
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
 
@@ -393,6 +426,8 @@
                 useEffect(() => { setStorage('fc-plEn', isPlToEn); }, [isPlToEn]);
                 useEffect(() => { setStorage('fc-pause', pauseDuration); }, [pauseDuration]);
                 useEffect(() => { setStorage('fc-voice', voiceVariant); }, [voiceVariant]);
+                useEffect(() => { setStorage('fc-rate', speechRate); }, [speechRate]);
+                useEffect(() => { setStorage('fc-autoplay', autoPlay); }, [autoPlay]);
 
                 useEffect(() => {
                     const startTimer = setTimeout(() => {
@@ -426,7 +461,6 @@
                         
                         if (targetLangPrefix === 'en') {
                             if (variant === 'GB') {
-                                // STRICT GB FILTER
                                 regionVoices = allLangVoices.filter(v => 
                                     v.lang.replace('_', '-').toLowerCase().includes('gb') || 
                                     v.lang.replace('_', '-').toLowerCase().includes('uk') || 
@@ -435,7 +469,6 @@
                                     v.name.includes('United Kingdom')
                                 );
                             } else {
-                                // STRICT US FILTER
                                 regionVoices = allLangVoices.filter(v => 
                                     v.lang.replace('_', '-').toLowerCase().includes('us') || 
                                     v.name.includes('United States')
@@ -590,6 +623,24 @@
                     return () => clearTimeout(timer);
                 }, [selectedCategories, selectedLevels, fullDatabase]);
 
+                // --- AUTOPLAY LOGIC ---
+                useEffect(() => {
+                    if (autoPlay && !isFinished && !loading && currentWordIds.length > 0 && !isShuffling) {
+                        // Wait for card animation
+                        const timer = setTimeout(() => {
+                            handleSpeak();
+                        }, 600);
+                        return () => clearTimeout(timer);
+                    }
+                }, [currentIndex, isFinished, autoPlay, isShuffling]);
+
+                const handleFactoryReset = () => {
+                    if (confirm("Czy na pewno chcesz przywrócić ustawienia domyślne? Wszystkie Twoje preferencje zostaną skasowane.")) {
+                        localStorage.clear();
+                        location.reload();
+                    }
+                };
+
                 const openCategoryModal = () => { setTempSelectedCategories([...selectedCategories]); setIsCategoryModalOpen(true); };
                 const closeCategoryModal = () => setIsCategoryModalOpen(false);
                 const handleSingleSelectCategory = (cat) => { setSelectedCategories([cat]); setTempSelectedCategories([cat]); closeCategoryModal(); };
@@ -694,8 +745,6 @@
                     const isMixedLangMode = tense === 'Początkujący' || tense === 'Beginner';
                     const targetWord = displayData.word ? displayData.word.split('(')[0].trim() : "";
 
-                    // --- KLUCZOWA POPRAWKA DLA GB/US ---
-                    // Definiujemy dynamicznie kod języka, który będzie przypisany do wypowiedzi
                     const targetEnLang = voiceVariant === 'GB' ? 'en-GB' : 'en-US';
 
                     let fullQueue = [];
@@ -717,7 +766,7 @@
                                     isSentence: true, 
                                     visualIndex: vIndex, 
                                     globalIndex: gIndex,
-                                    lang: isMixedLangMode ? 'pl-PL' : targetEnLang // Użycie dynamicznego języka
+                                    lang: isMixedLangMode ? 'pl-PL' : targetEnLang 
                                 });
                             } else {
                                 const escapedTarget = targetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -734,7 +783,7 @@
                                         isSentence: true, 
                                         visualIndex: vIndex, 
                                         globalIndex: gIndex,
-                                        lang: isEnWord ? targetEnLang : 'pl-PL', // Użycie dynamicznego języka
+                                        lang: isEnWord ? targetEnLang : 'pl-PL', 
                                         forceVoice: isEnWord ? selectedVoice : selectedPlVoice
                                     });
                                 });
@@ -752,8 +801,6 @@
                                 }
                                 const rowTargetWord = s.word ? s.word.split('(')[0].trim() : "";
                                 if (isMixedLangMode && rowTargetWord) {
-                                    // (Kod mixed mode pominięty dla czytelności, działa analogicznie)
-                                    // ...
                                     pushMixedSentence(s.en, index, index);
                                 } else {
                                     pushMixedSentence(s.en, index, index);
@@ -771,7 +818,6 @@
                                 tempQueue.push({ text: displayData.wordInfo, lang: targetEnLang }); 
                             }
                         } else {
-                            // --- CZYTANIE SŁOWA (GB/US) ---
                             tempQueue.push({ text: displayData.word, lang: targetEnLang });
                         }
                         fullQueue = tempQueue;
@@ -797,23 +843,22 @@
                     queueToSpeak.forEach((item, i) => {
                         const u = new SpeechSynthesisUtterance(item.text);
                         
-                        // Przypisanie głosu
+                        // USTAWIENIE PRĘDKOŚCI Z SUWAKA
+                        u.rate = speechRate; 
+
                         if (item.forceVoice) {
                             u.voice = item.forceVoice;
-                            // Jeśli wymuszamy głos PL, ustawiamy lang PL, w przeciwnym razie dynamiczny EN
                             u.lang = item.forceVoice.lang.startsWith('pl') ? 'pl-PL' : targetEnLang;
                         } else if (item.lang) {
-                            u.lang = item.lang; // To będzie teraz en-GB lub en-US
+                            u.lang = item.lang; 
                             if (item.lang.startsWith('pl') && selectedPlVoice) u.voice = selectedPlVoice;
-                            // Jeśli język to EN (US lub GB), przypisz wybrany głos
                             if (item.lang.startsWith('en') && selectedVoice) {
                                 u.voice = selectedVoice;
-                                // DLA PEWNOŚCI: Nadpisz lang w utterance językiem z obiektu voice, 
-                                // jeśli jest dostępny, aby uniknąć konfliktów.
-                                if (selectedVoice.lang) u.lang = selectedVoice.lang;
+                                // TO KLUCZOWE DLA GB:
+                                if (selectedVoice.lang && selectedVoice.lang.includes('GB')) u.lang = 'en-GB';
+                                else if (selectedVoice.lang) u.lang = selectedVoice.lang;
                             }
                         } else {
-                            // Fallback
                             if (isMixedLangMode) {
                                 u.lang = 'pl-PL';
                                 if (selectedPlVoice) u.voice = selectedPlVoice;
@@ -822,8 +867,6 @@
                                 if (selectedVoice) u.voice = selectedVoice;
                             }
                         }
-
-                        u.rate = 0.85;
 
                         if (item.isPause) {
                             u.volume = 0; 
@@ -837,7 +880,11 @@
                             u.text = txt;
                             u.rate = r;
                         }
-                        if (u.lang.startsWith('en') && isMixedLangMode) { u.rate = 0.7; }
+                        
+                        // Jeśli mixed mode i język angielski, nieco zwolnij (chyba że użytkownik ustawił swoją prędkość)
+                        if (u.lang.startsWith('en') && isMixedLangMode) { 
+                             // Opcjonalnie: u.rate = speechRate * 0.8; 
+                        }
 
                         u.onstart = () => {
                             if (isPausedRef.current) return;
@@ -884,7 +931,7 @@
                         queueRef.current = [];
                         handleSpeak(true);
                     }
-                }, [pauseDuration]);
+                }, [pauseDuration, speechRate]);
 
                 const cancelSpeech = () => { 
                     isPausedRef.current = false;
@@ -1010,17 +1057,55 @@
                                             </div>
                                         </div>
 
-                                        {/* 2. Tryb Ciemny */}
+                                        {/* 2. Prędkość Mowy */}
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between">
+                                                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Prędkość mowy</label>
+                                                <span className="text-xs font-bold text-accent">{speechRate}x</span>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min="0.5" 
+                                                max="1.5" 
+                                                step="0.1" 
+                                                value={speechRate} 
+                                                onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                                            />
+                                            <div className="flex justify-between text-[10px] text-gray-400 font-medium px-1">
+                                                <span>Wolno</span>
+                                                <span>Normalnie</span>
+                                                <span>Szybko</span>
+                                            </div>
+                                        </div>
+
+                                        {/* 3. Auto-play */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${autoPlay ? 'bg-accent/20 text-accent' : 'bg-gray-100 text-gray-400 dark:bg-white/5'}`}>
+                                                    <Icon path={iconPaths.autoPlay} size={20} />
+                                                </div>
+                                                <span className="font-bold text-slate-700 dark:text-slate-200">Auto-czytanie</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => setAutoPlay(!autoPlay)} 
+                                                className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 relative ${autoPlay ? 'bg-accent' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${autoPlay ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                            </button>
+                                        </div>
+
+                                        {/* 4. Tryb Ciemny */}
                                         <div className="flex items-center justify-between">
                                             <span className="font-bold text-slate-700 dark:text-slate-200">Tryb ciemny</span>
-                                            <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 relative ${isDarkMode ? 'bg-accent' : 'bg-gray-300'}`}>
-                                                <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isDarkMode ? 'translate-x-6' : 'translate-x-0'}`}>
-                                                    <Icon path={isDarkMode ? iconPaths.moon : iconPaths.sun} size={14} className={isDarkMode ? 'text-accent' : 'text-gray-400'}/>
+                                            <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 relative ${isDarkMode ? 'bg-accent' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`}>
+                                                    <Icon path={isDarkMode ? iconPaths.moon : iconPaths.sun} size={12} className={isDarkMode ? 'text-accent' : 'text-gray-400'}/>
                                                 </div>
                                             </button>
                                         </div>
 
-                                        {/* 3. Kierunek Tłumaczenia */}
+                                        {/* 5. Kierunek Tłumaczenia */}
                                         <div className="space-y-3">
                                             <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Kierunek</label>
                                             <div className="flex flex-col gap-2">
@@ -1035,7 +1120,7 @@
                                             </div>
                                         </div>
 
-                                        {/* 4. Czas */}
+                                        {/* 6. Czas */}
                                         <div className="space-y-3">
                                             <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Wybrany czas</label>
                                             <select value={tense} onChange={(e) => setTense(e.target.value)} className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-accent">
@@ -1045,7 +1130,7 @@
                                             </select>
                                         </div>
 
-                                        {/* 5. Kolory Motywu */}
+                                        {/* 7. Kolory Motywu */}
                                         <div className="space-y-3">
                                             <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Kolor motywu</label>
                                             <div className="grid grid-cols-2 gap-3">
@@ -1063,9 +1148,16 @@
                                             </div>
                                         </div>
 
+                                        {/* 8. Reset */}
+                                        <div className="pt-4 border-t border-gray-100 dark:border-white/5">
+                                            <button onClick={handleFactoryReset} className="w-full py-3 px-4 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors">
+                                                <Icon path={iconPaths.reset} size={20} /> Przywróć ustawienia fabryczne
+                                            </button>
+                                        </div>
+
                                     </div>
                                     <div className="p-5 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-black/20">
-                                        <div className="text-xs text-center text-slate-400">Wersja 2.1 • Fiszki WOJTUKIEWICZ</div>
+                                        <div className="text-xs text-center text-slate-400">Wersja 2.3 • Fiszki WOJTUKIEWICZ</div>
                                     </div>
                                 </div>
                             </div>
