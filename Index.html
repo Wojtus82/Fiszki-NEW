@@ -417,6 +417,7 @@
                     return () => clearTimeout(startTimer);
                 }, []);
 
+                // --- ŁADOWANIE GŁOSÓW (ZAWSZE POTRZEBNE ONVOICESCHANGED DLA CHROME) ---
                 useEffect(() => {
                     const loadVoices = () => {
                         const availableVoices = window.speechSynthesis.getVoices();
@@ -428,22 +429,37 @@
                     }
                 }, []);
 
+                // --- LOGIKA WYBORU GŁOSU (PRIORYTET ONLINE) ---
                 useEffect(() => {
                     if (voices.length > 0) {
-                        const bestVoice = 
-                            voices.find(v => v.name.includes("Google US English")) ||
-                            voices.find(v => v.name.includes("Google UK English Female")) ||
-                            voices.find(v => v.name.includes("Samantha")) || 
-                            voices.find(v => v.name.includes("Zira")) ||
-                            voices.find(v => v.lang === 'en-US' && v.name.includes("Natural")) ||
-                            voices.find(v => v.lang === 'en-US') ||
-                            voices.find(v => v.lang.startsWith('en'));
-                        if (bestVoice) setSelectedVoice(bestVoice);
-                        
-                        const bestPl = 
-                                voices.find(v => v.name.includes("Google Polski")) ||
-                                voices.find(v => v.lang === 'pl-PL' && v.name.includes("Paulina")) ||
-                                voices.find(v => v.lang === 'pl-PL');
+                        const findBestVoice = (langPrefix, preferredNames) => {
+                            const langVoices = voices.filter(v => v.lang.startsWith(langPrefix));
+                            if (langVoices.length === 0) return null;
+
+                            // 1. Priorytet: Online / Premium (Google, Microsoft Online, Apple Enhanced)
+                            const onlineOrPremium = langVoices.find(v => 
+                                v.name.includes("Google") || 
+                                v.name.includes("Online") || 
+                                v.name.includes("Natural") || 
+                                v.name.includes("Premium") ||
+                                v.name.includes("Enhanced")
+                            );
+                            if (onlineOrPremium) return onlineOrPremium;
+
+                            // 2. Priorytet: Preferowane lokalne
+                            for (const name of preferredNames) {
+                                const found = langVoices.find(v => v.name.includes(name));
+                                if (found) return found;
+                            }
+
+                            // 3. Fallback
+                            return langVoices[0];
+                        };
+
+                        const bestEn = findBestVoice('en', ['Samantha', 'Zira', 'Daniel', 'Arthur']);
+                        if (bestEn) setSelectedVoice(bestEn);
+
+                        const bestPl = findBestVoice('pl', ['Paulina', 'Zosia', 'Maja', 'Krzysztof']);
                         if (bestPl) setSelectedPlVoice(bestPl);
                     }
                 }, [voices]);
@@ -1012,7 +1028,7 @@
                                 tempQueue.push({ text: displayData.wordInfo, lang: 'en-US' }); 
                             }
                         } else {
-                            // --- ZMIANA TUTAJ: ZAWSZE CZYTAJ TYLKO SŁOWO NA GŁÓWNEJ KARCIE ---
+                            // --- ZMIANA: CZYTAJ TYLKO SŁOWO NA GŁÓWNEJ KARCIE ---
                             tempQueue.push({ text: displayData.word, lang: 'en-US' });
                         }
                         fullQueue = tempQueue;
