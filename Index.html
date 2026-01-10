@@ -574,13 +574,18 @@
                                     const rawCat = row.category ? String(row.category).trim() : "Inne";
                                     const word = row.word ? String(row.word).trim() : "";
                                     const translation = row.translation ? String(row.translation).trim() : "";
-                                    const phonetic = row.phonetic ? String(row.phonetic).trim() : "";
+                                    
+                                    // ZMIANA: Pobieranie różnych wymów
+                                    const p_us = row.US_phonetic ? String(row.US_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
+                                    const p_gb = row.GB_phonetic ? String(row.GB_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
+                                    
                                     const wordInfo = row.word_info ? String(row.word_info).trim() : "";
 
                                     const baseSentences = extractSentencesFromCell(row.base);
                                     processedData.push({
                                         id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
-                                        phonetic: phonetic, tense: 'Base', sentencesList: baseSentences,
+                                        usPhonetic: p_us, gbPhonetic: p_gb,
+                                        tense: 'Base', sentencesList: baseSentences,
                                         wordInfo: wordInfo
                                     });
 
@@ -592,7 +597,8 @@
                                             if (tenseSentences.length > 0) {
                                                 processedData.push({
                                                     id: id, level: rawLevel, category: rawCat, word: word, translation: translation,
-                                                    phonetic: phonetic, tense: tenseName, sentencesList: tenseSentences,
+                                                    usPhonetic: p_us, gbPhonetic: p_gb,
+                                                    tense: tenseName, sentencesList: tenseSentences,
                                                     wordInfo: wordInfo 
                                                 });
                                             }
@@ -688,10 +694,13 @@
                         const wordRows = fullDatabase.filter(row => row.id === id && selectedLevels.includes(row.level) && (selectedCategories.length === 0 || selectedCategories.includes(row.category)));
                         let rowsToProcess = [];
                         if (tense === 'mixed') rowsToProcess = wordRows.filter(r => r.tense !== 'Base'); else rowsToProcess = wordRows.filter(r => r.tense === tense);
-                        rowsToProcess.forEach(row => { if (row.sentencesList && row.sentencesList.length > 0) { row.sentencesList.forEach(s => { sentences.push({ ...s, word: row.word, wordIndex: idx, phonetic: row.phonetic }); }); } });
+                        rowsToProcess.forEach(row => { if (row.sentencesList && row.sentencesList.length > 0) { 
+                            const activePhonetic = voiceVariant === 'GB' ? row.gbPhonetic : row.usPhonetic;
+                            row.sentencesList.forEach(s => { sentences.push({ ...s, word: row.word, wordIndex: idx, phonetic: activePhonetic }); }); 
+                        } });
                     });
                     return sentences;
-                }, [viewAllSentences, currentWordIds, fullDatabase, tense, selectedLevels, selectedCategories]);
+                }, [viewAllSentences, currentWordIds, fullDatabase, tense, selectedLevels, selectedCategories, voiceVariant]);
 
                 useEffect(() => { itemRefs.current = []; setSpeakingSentenceIndex(0); }, [allCategorySentences, viewAllSentences]);
 
@@ -708,7 +717,11 @@
                     if (tense === 'mixed') { const allVariations = validRows.filter(row => row.tense !== 'Base'); allVariations.forEach(row => { if (row.sentencesList) sentences.push(...row.sentencesList); }); sentences = sentences.sort(() => Math.random() - 0.5).slice(0, 5); } else if (tense === 'Base') { if (baseRow && baseRow.sentencesList) sentences = baseRow.sentencesList; } else { const activeRow = validRows.find(row => row.tense === tense); if (activeRow && activeRow.sentencesList) sentences = activeRow.sentencesList; }
                     const t = (tense === 'mixed') ? 'Base' : tense;
                     const infoText = grammarData[t] || "";
-                    return { word: mainInfoRow.word, translation: mainInfoRow.translation, phonetic: mainInfoRow.phonetic, sentences: sentences, infoText: infoText, wordInfo: mainInfoRow.wordInfo };
+                    
+                    // ZMIANA: Wybór wymowy
+                    const activePhonetic = voiceVariant === 'GB' ? mainInfoRow.gbPhonetic : mainInfoRow.usPhonetic;
+
+                    return { word: mainInfoRow.word, translation: mainInfoRow.translation, phonetic: activePhonetic, sentences: sentences, infoText: infoText, wordInfo: mainInfoRow.wordInfo };
                 };
 
                 const displayData = getDisplayData();
