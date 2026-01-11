@@ -586,7 +586,9 @@
                                     const p_us = row.US_phonetic ? String(row.US_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     const p_gb = row.GB_phonetic ? String(row.GB_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     
-                                    const wordInfo = row.word_info ? String(row.word_info).trim() : "";
+                                    // ZMIANA: Zamiana <br> na \n
+                                    let wordInfo = row.word_info ? String(row.word_info).trim() : "";
+                                    wordInfo = wordInfo.replace(/<br\s*\/?>/gi, '\n');
 
                                     const baseSentences = extractSentencesFromCell(row.base);
                                     processedData.push({
