@@ -353,7 +353,9 @@
                 const [selectedLevels, setSelectedLevels] = useState(() => getStorage('fc-levels', ['A1'])); 
                 const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
                 const [tempSelectedLevels, setTempSelectedLevels] = useState([]);
-                const availableLevels = ['A1', 'A2', 'B1', 'B2'];
+                
+                // ZMIANA: Dynamiczne poziomy (startowo puste)
+                const [availableLevels, setAvailableLevels] = useState([]); 
 
                 const [selectedCategories, setSelectedCategories] = useState(() => getStorage('fc-cats', [])); 
                 const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -548,6 +550,12 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
+                                // ZMIANA: Dynamiczne wykrywanie poziomów
+                                const extractedLevels = [...new Set(jsonData.map(row => row.level ? String(row.level).trim() : "Inne"))]
+                                    .filter(l => l !== "")
+                                    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                                setAvailableLevels(extractedLevels);
+
                                 const tenseColumns = [
                                     "Beginner", "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
@@ -575,7 +583,6 @@
                                     const word = row.word ? String(row.word).trim() : "";
                                     const translation = row.translation ? String(row.translation).trim() : "";
                                     
-                                    // ZMIANA: Pobieranie różnych wymów
                                     const p_us = row.US_phonetic ? String(row.US_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     const p_gb = row.GB_phonetic ? String(row.GB_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     
@@ -718,7 +725,6 @@
                     const t = (tense === 'mixed') ? 'Base' : tense;
                     const infoText = grammarData[t] || "";
                     
-                    // ZMIANA: Wybór wymowy
                     const activePhonetic = voiceVariant === 'GB' ? mainInfoRow.gbPhonetic : mainInfoRow.usPhonetic;
 
                     return { word: mainInfoRow.word, translation: mainInfoRow.translation, phonetic: activePhonetic, sentences: sentences, infoText: infoText, wordInfo: mainInfoRow.wordInfo };
