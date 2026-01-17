@@ -396,9 +396,6 @@
                 const [speechRate, setSpeechRate] = useState(() => getStorage('fc-rate', 1.0));
                 const [autoPlay, setAutoPlay] = useState(() => getStorage('fc-autoplay', false));
 
-                // NOWY STAN DO WYBORU KONKRETNEGO GŁOSU
-                const [specificVoiceURI, setSpecificVoiceURI] = useState(() => getStorage('fc-specific-voice', ''));
-
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
 
@@ -449,9 +446,6 @@
                 useEffect(() => { setStorage('fc-voice', voiceVariant); }, [voiceVariant]);
                 useEffect(() => { setStorage('fc-rate', speechRate); }, [speechRate]);
                 useEffect(() => { setStorage('fc-autoplay', autoPlay); }, [autoPlay]);
-                
-                // Zapisywanie wybranego konkretnego głosu
-                useEffect(() => { setStorage('fc-specific-voice', specificVoiceURI); }, [specificVoiceURI]);
 
                 useEffect(() => {
                     const startTimer = setTimeout(() => {
@@ -478,23 +472,6 @@
                 useEffect(() => {
                     if (voices.length === 0) return;
 
-                    // 1. Sprawdź, czy użytkownik wybrał konkretny głos z listy
-                    if (specificVoiceURI) {
-                        const userVoice = voices.find(v => v.voiceURI === specificVoiceURI);
-                        if (userVoice) {
-                            // Jeśli głos pasuje do jakiegokolwiek angielskiego (by nie mieszać z PL)
-                            if (userVoice.lang.startsWith('en')) {
-                                setSelectedVoice(userVoice);
-                            }
-                            // Niezależnie ustaw polski
-                            const bestPl = voices.find(v => v.lang.startsWith('pl'));
-                            if (bestPl) setSelectedPlVoice(bestPl);
-                            
-                            return; 
-                        }
-                    }
-
-                    // 2. Automatyczny wybór (gdy brak specificVoiceURI lub nie znaleziono)
                     const findSpecificVoice = (targetLangPrefix, variant) => {
                         const allLangVoices = voices.filter(v => v.lang.startsWith(targetLangPrefix));
 
@@ -547,7 +524,7 @@
                     const bestPl = findSpecificVoice('pl', null);
                     if (bestPl) setSelectedPlVoice(bestPl);
 
-                }, [voices, voiceVariant, specificVoiceURI]);
+                }, [voices, voiceVariant]);
 
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
@@ -1128,19 +1105,13 @@
                                                 <button onClick={() => setVoiceVariant('GB')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${voiceVariant === 'GB' ? 'bg-white dark:bg-primary-light shadow-sm text-accent' : 'text-slate-500 hover:text-slate-700'}`}>GB 🇬🇧</button>
                                             </div>
                                             
-                                            {/* DROPDOWN DO WYBORU KONKRETNEGO GŁOSU */}
-                                            <select 
-                                                onChange={(e) => setSpecificVoiceURI(e.target.value)} 
-                                                value={specificVoiceURI}
-                                                className="w-full mt-2 p-2 rounded-lg text-xs bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-slate-200 outline-none focus:border-accent"
-                                            >
-                                                <option value="">Automatyczny (Polecany)</option>
-                                                {voices.filter(v => v.lang.startsWith('en')).map(v => (
-                                                    <option key={v.voiceURI} value={v.voiceURI}>
-                                                        {v.lang.includes('GB') || v.lang.includes('UK') ? '🇬🇧' : (v.lang.includes('US') ? '🇺🇸' : '🏳️')} {v.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            {/* PRZYCISK DO OTWARCIA USTAWIEŃ TTS W ANDROIDZIE */}
+                                            <a href="intent:#Intent;action=com.android.settings.TTS_SETTINGS;end" className="block w-full text-center py-2 mt-2 rounded-lg text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors no-underline">
+                                                ⚙️ Ustawienia głosu (Android)
+                                            </a>
+                                            <p className="text-[10px] text-gray-400 text-center px-1">
+                                                Kliknij, aby wybrać konkretny wariant głosu w systemie.
+                                            </p>
                                         </div>
 
                                         {/* 2. Prędkość Mowy */}
@@ -1447,11 +1418,7 @@
                                                             {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
                                                         </div>
 
-                                                        <div className="absolute bottom-4 left-4">
-                                                            <button onClick={showBeginnerInfo} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 tactile-button text-accent-light shadow-sm transition-all group">
-                                                                <Icon path={iconPaths.infoCircle} size={16} className="group-hover:scale-110 transition-transform"/> <span className="hidden sm:inline">Word Info</span>
-                                                            </button>
-                                                        </div>
+                                                        {/* USUNIĘTY PRZYCISK "I" (Word Info) Z DRUGIEJ STRONY FISZKI */}
 
                                                         <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-black mb-4 text-center leading-tight break-words max-w-full tracking-tight drop-shadow-md`}>
                                                             {displayData ? (isPlToEn ? displayData.word : displayData.translation) : ''}
