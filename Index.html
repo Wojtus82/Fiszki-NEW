@@ -482,7 +482,7 @@
                     if (specificVoiceURI) {
                         const userVoice = voices.find(v => v.voiceURI === specificVoiceURI);
                         // Upewnij się, że wybrany głos pasuje do aktualnej flagi (US/GB)
-                        if (userVoice && userVoice.lang.includes(voiceVariant === 'GB' ? 'GB' : 'US') ) {
+                        if (userVoice && (userVoice.lang.includes(voiceVariant === 'GB' ? 'GB' : 'US') || userVoice.lang.includes(voiceVariant === 'GB' ? 'UK' : 'US'))) {
                             setSelectedVoice(userVoice);
                             
                             // Ustaw też polski (niezależnie)
@@ -1500,4 +1500,4 @@
         } catch (err) { document.getElementById('error-overlay').style.display = 'flex'; document.getElementById('error-message').textContent = err.toString(); }
     </script>
 </body>
-</html> 
+</html>
