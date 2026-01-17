@@ -481,20 +481,20 @@
                     // 1. Sprawdź, czy użytkownik wybrał konkretny głos z listy
                     if (specificVoiceURI) {
                         const userVoice = voices.find(v => v.voiceURI === specificVoiceURI);
-                        // Upewnij się, że wybrany głos pasuje do aktualnej flagi (US/GB)
-                        if (userVoice && (userVoice.lang.includes(voiceVariant === 'GB' ? 'GB' : 'US') || userVoice.lang.includes(voiceVariant === 'GB' ? 'UK' : 'US'))) {
-                            setSelectedVoice(userVoice);
-                            
-                            // Ustaw też polski (niezależnie)
+                        if (userVoice) {
+                            // Jeśli głos pasuje do jakiegokolwiek angielskiego (by nie mieszać z PL)
+                            if (userVoice.lang.startsWith('en')) {
+                                setSelectedVoice(userVoice);
+                            }
+                            // Niezależnie ustaw polski
                             const bestPl = voices.find(v => v.lang.startsWith('pl'));
                             if (bestPl) setSelectedPlVoice(bestPl);
                             
-                            return; // Mamy wybrany głos, kończymy
+                            return; 
                         }
-                        // Jeśli głos nie pasuje do flagi (np. zmieniono flagę), przejdź do auto-wyboru
                     }
 
-                    // 2. Automatyczny wybór (stara logika)
+                    // 2. Automatyczny wybór (gdy brak specificVoiceURI lub nie znaleziono)
                     const findSpecificVoice = (targetLangPrefix, variant) => {
                         const allLangVoices = voices.filter(v => v.lang.startsWith(targetLangPrefix));
 
@@ -1135,9 +1135,9 @@
                                                 className="w-full mt-2 p-2 rounded-lg text-xs bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-slate-200 outline-none focus:border-accent"
                                             >
                                                 <option value="">Automatyczny (Polecany)</option>
-                                                {voices.filter(v => v.lang.includes(voiceVariant === 'GB' ? 'GB' : 'US') || v.lang.includes(voiceVariant === 'GB' ? 'UK' : 'US')).map(v => (
+                                                {voices.filter(v => v.lang.startsWith('en')).map(v => (
                                                     <option key={v.voiceURI} value={v.voiceURI}>
-                                                        {v.name}
+                                                        {v.lang.includes('GB') || v.lang.includes('UK') ? '🇬🇧' : (v.lang.includes('US') ? '🇺🇸' : '🏳️')} {v.name}
                                                     </option>
                                                 ))}
                                             </select>
@@ -1445,6 +1445,12 @@
                                                     <>
                                                         <div className="absolute top-4 right-4 text-xs font-bold text-accent-light uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md shadow-inner">
                                                             {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
+                                                        </div>
+
+                                                        <div className="absolute bottom-4 left-4">
+                                                            <button onClick={showBeginnerInfo} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 tactile-button text-accent-light shadow-sm transition-all group">
+                                                                <Icon path={iconPaths.infoCircle} size={16} className="group-hover:scale-110 transition-transform"/> <span className="hidden sm:inline">Word Info</span>
+                                                            </button>
                                                         </div>
 
                                                         <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-black mb-4 text-center leading-tight break-words max-w-full tracking-tight drop-shadow-md`}>
