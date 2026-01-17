@@ -396,6 +396,9 @@
                 const [speechRate, setSpeechRate] = useState(() => getStorage('fc-rate', 1.0));
                 const [autoPlay, setAutoPlay] = useState(() => getStorage('fc-autoplay', false));
 
+                // NOWY STAN DO WYBORU KONKRETNEGO GŁOSU
+                const [specificVoiceURI, setSpecificVoiceURI] = useState(() => getStorage('fc-specific-voice', ''));
+
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
 
@@ -446,6 +449,9 @@
                 useEffect(() => { setStorage('fc-voice', voiceVariant); }, [voiceVariant]);
                 useEffect(() => { setStorage('fc-rate', speechRate); }, [speechRate]);
                 useEffect(() => { setStorage('fc-autoplay', autoPlay); }, [autoPlay]);
+                
+                // Zapisywanie wybranego konkretnego głosu
+                useEffect(() => { setStorage('fc-specific-voice', specificVoiceURI); }, [specificVoiceURI]);
 
                 useEffect(() => {
                     const startTimer = setTimeout(() => {
@@ -472,6 +478,23 @@
                 useEffect(() => {
                     if (voices.length === 0) return;
 
+                    // 1. Sprawdź, czy użytkownik wybrał konkretny głos z listy
+                    if (specificVoiceURI) {
+                        const userVoice = voices.find(v => v.voiceURI === specificVoiceURI);
+                        // Upewnij się, że wybrany głos pasuje do aktualnej flagi (US/GB)
+                        if (userVoice && userVoice.lang.includes(voiceVariant === 'GB' ? 'GB' : 'US') ) {
+                            setSelectedVoice(userVoice);
+                            
+                            // Ustaw też polski (niezależnie)
+                            const bestPl = voices.find(v => v.lang.startsWith('pl'));
+                            if (bestPl) setSelectedPlVoice(bestPl);
+                            
+                            return; // Mamy wybrany głos, kończymy
+                        }
+                        // Jeśli głos nie pasuje do flagi (np. zmieniono flagę), przejdź do auto-wyboru
+                    }
+
+                    // 2. Automatyczny wybór (stara logika)
                     const findSpecificVoice = (targetLangPrefix, variant) => {
                         const allLangVoices = voices.filter(v => v.lang.startsWith(targetLangPrefix));
 
@@ -524,7 +547,7 @@
                     const bestPl = findSpecificVoice('pl', null);
                     if (bestPl) setSelectedPlVoice(bestPl);
 
-                }, [voices, voiceVariant]);
+                }, [voices, voiceVariant, specificVoiceURI]);
 
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
@@ -1104,6 +1127,20 @@
                                                 <button onClick={() => setVoiceVariant('US')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${voiceVariant === 'US' ? 'bg-white dark:bg-primary-light shadow-sm text-accent' : 'text-slate-500 hover:text-slate-700'}`}>US 🇺🇸</button>
                                                 <button onClick={() => setVoiceVariant('GB')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${voiceVariant === 'GB' ? 'bg-white dark:bg-primary-light shadow-sm text-accent' : 'text-slate-500 hover:text-slate-700'}`}>GB 🇬🇧</button>
                                             </div>
+                                            
+                                            {/* DROPDOWN DO WYBORU KONKRETNEGO GŁOSU */}
+                                            <select 
+                                                onChange={(e) => setSpecificVoiceURI(e.target.value)} 
+                                                value={specificVoiceURI}
+                                                className="w-full mt-2 p-2 rounded-lg text-xs bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-slate-200 outline-none focus:border-accent"
+                                            >
+                                                <option value="">Automatyczny (Polecany)</option>
+                                                {voices.filter(v => v.lang.includes(voiceVariant === 'GB' ? 'GB' : 'US') || v.lang.includes(voiceVariant === 'GB' ? 'UK' : 'US')).map(v => (
+                                                    <option key={v.voiceURI} value={v.voiceURI}>
+                                                        {v.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
 
                                         {/* 2. Prędkość Mowy */}
