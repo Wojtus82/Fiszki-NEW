@@ -277,7 +277,11 @@
                     autoPlay: <><polygon points="5 3 19 12 5 21 5 3"></polygon><path d="M2 2v20"></path></>,
                     chevronDown: <polyline points="6 9 12 15 18 9"></polyline>,
                     chevronUp: <polyline points="18 15 12 9 6 15"></polyline>,
-                    phoneOff: <><path d="M2 2l20 20"/><path d="M8.12 3H19a2 2 0 0 1 2 2v12.88"/><path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 1.57-.77"/></>
+                    phoneOff: <>
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                        <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="3" />
+                        <line x1="2" y1="2" x2="22" y2="22" />
+                    </>
                 };
 
                 const themeColors = {
