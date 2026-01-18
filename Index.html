@@ -346,8 +346,11 @@
                 const getPhoneticSizeClass = (text) => {
                     if (!text) return "text-3xl sm:text-4xl";
                     const len = text.length;
-                    if (len < 20) return "text-3xl sm:text-4xl";
-                    return "text-xl sm:text-2xl";
+                    if (len < 10) return "text-3xl sm:text-4xl";
+                    if (len < 20) return "text-2xl sm:text-3xl";
+                    if (len < 30) return "text-xl sm:text-2xl";
+                    if (len < 40) return "text-lg sm:text-xl";
+                    return "text-sm sm:text-base"; 
                 };
 
                 const [fullDatabase, setFullDatabase] = useState([]);
@@ -1348,10 +1351,12 @@
                                             <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveFrontBg} transition-colors duration-500`} style={{ transform: 'rotateY(0deg)' }}>
                                                 {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
-                                                        <div className="flex-none mb-3 border-b border-gray-200/10 pb-2 flex-none relative">
-                                                            <h3 className={`font-bold flex items-center gap-2 text-base ${theme.headerText}`}><Icon path={iconPaths.book} size={18} className="text-accent"/> Zdania</h3>
+                                                        <div className="flex flex-nowrap justify-between items-center mb-3 border-b border-gray-200/10 pb-2 flex-none relative w-full">
+                                                            <h3 className={`font-bold flex items-center gap-2 text-base ${theme.headerText} whitespace-nowrap`}>
+                                                                <Icon path={iconPaths.book} size={18} className="text-accent"/> Zdania
+                                                            </h3>
                                                             
-                                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                            <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                                                 <button onClick={showGrammarInfo} className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
                                                                     <Icon path={iconPaths.infoCircle} size={16} className="text-accent"/> <span className="text-[10px] font-bold uppercase">Gramatyka</span>
                                                                 </button>
@@ -1445,8 +1450,8 @@
                                                             {displayData ? (isPlToEn ? displayData.word : displayData.translation) : ''}
                                                         </h2>
 
-                                                        <div className="relative w-full flex justify-center items-center flex-none mb-6">
-                                                            <div className={`bg-black/20 px-6 py-2 rounded-xl font-mono font-bold shadow-inner text-accent-light ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : '---'}</div>
+                                                        <div className="relative w-full flex justify-center items-center flex-none mb-6 px-2">
+                                                            <div className={`bg-black/20 px-4 py-2 rounded-xl font-mono font-bold shadow-inner text-accent-light whitespace-nowrap overflow-hidden text-ellipsis max-w-full ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : '---'}</div>
                                                         </div>
 
                                                         <button onClick={showSentences} className={`font-bold py-2 px-6 rounded-xl shadow-lg ${theme.buttonBg} flex items-center gap-2 text-base transition-all hover:scale-105`}>
