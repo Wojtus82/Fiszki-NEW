@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#334155">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Fiszki WOJTUKIEWICZ - Color Logic</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -280,7 +277,7 @@
                     autoPlay: <><polygon points="5 3 19 12 5 21 5 3"></polygon><path d="M2 2v20"></path></>,
                     chevronDown: <polyline points="6 9 12 15 18 9"></polyline>,
                     chevronUp: <polyline points="18 15 12 9 6 15"></polyline>,
-                    eyeOff: <><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><line x1="2" y1="2" x2="22" y2="22"></line></>
+                    phoneOff: <><path d="M2 2l20 20"/><path d="M8.12 3H19a2 2 0 0 1 2 2v12.88"/><path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 1.57-.77"/></>
                 };
 
                 const themeColors = {
@@ -345,10 +342,8 @@
                 const getPhoneticSizeClass = (text) => {
                     if (!text) return "text-3xl sm:text-4xl";
                     const len = text.length;
-                    if (len < 15) return "text-3xl sm:text-4xl";
-                    if (len < 24) return "text-2xl sm:text-3xl";
-                    if (len < 32) return "text-xl sm:text-2xl";
-                    return "text-sm sm:text-base"; 
+                    if (len < 20) return "text-3xl sm:text-4xl";
+                    return "text-xl sm:text-2xl";
                 };
 
                 const [fullDatabase, setFullDatabase] = useState([]);
@@ -360,6 +355,7 @@
                 const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
                 const [tempSelectedLevels, setTempSelectedLevels] = useState([]);
                 
+                // ZMIANA: Dynamiczne poziomy (startowo puste)
                 const [availableLevels, setAvailableLevels] = useState([]); 
 
                 const [selectedCategories, setSelectedCategories] = useState(() => getStorage('fc-cats', [])); 
@@ -394,8 +390,6 @@
 
                 const [isMenuOpen, setIsMenuOpen] = useState(false);
                 const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
-
-                const [isHelpOpen, setIsHelpOpen] = useState(false);
 
                 const [voiceVariant, setVoiceVariant] = useState(() => getStorage('fc-voice', 'US')); 
                 const [themeColor, setThemeColor] = useState(() => getStorage('fc-color', 'teal'));
@@ -557,6 +551,7 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
+                                // ZMIANA: Dynamiczne wykrywanie poziomów
                                 const extractedLevels = [...new Set(jsonData.map(row => row.level ? String(row.level).trim() : "Inne"))]
                                     .filter(l => l !== "")
                                     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -592,6 +587,7 @@
                                     const p_us = row.US_phonetic ? String(row.US_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     const p_gb = row.GB_phonetic ? String(row.GB_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     
+                                    // ZMIANA: Zamiana <br> na \n
                                     let wordInfo = row.word_info ? String(row.word_info).trim() : "";
                                     wordInfo = wordInfo.replace(/<br\s*\/?>/gi, '\n');
 
@@ -659,8 +655,10 @@
                     return () => clearTimeout(timer);
                 }, [selectedCategories, selectedLevels, fullDatabase]);
 
+                // --- AUTOPLAY LOGIC ---
                 useEffect(() => {
                     if (autoPlay && !isFinished && !loading && currentWordIds.length > 0 && !isShuffling) {
+                        // Wait for card animation
                         const timer = setTimeout(() => {
                             handleSpeak();
                         }, 600);
@@ -757,19 +755,6 @@
                 const handleTripleTap = (callback) => { const now = new Date().getTime(); const timeDiff = now - lastTapRef.current; if (timeDiff < 400 && timeDiff > 0) { tapCountRef.current++; } else { tapCountRef.current = 1; } lastTapRef.current = now; if (tapCountRef.current === 3) { callback(); tapCountRef.current = 0; } };
                 const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { const lock = await navigator.wakeLock.request('screen'); wakeLockRef.current = lock; } catch (err) { console.log("Wake Lock error:", err); } } };
                 const releaseWakeLock = async () => { if (wakeLockRef.current) { try { await wakeLockRef.current.release(); wakeLockRef.current = null; } catch(err) {} } };
-                
-                // --- FULLSCREEN LOGIC ---
-                const toggleOled = (enable) => {
-                    setOledMode(enable);
-                    const elem = document.documentElement;
-                    if (enable) {
-                         if (elem.requestFullscreen) { elem.requestFullscreen().catch(err => console.log(err)); }
-                         else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
-                    } else {
-                         if (document.exitFullscreen) { document.exitFullscreen().catch(err => console.log(err)); }
-                         else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
-                    }
-                };
 
                 const resetCard = () => { setNoTransition(true); setPrevCardSide(cardSide); setCardSide(1); setRotation(0); setRotationX(0); cancelSpeech(); setViewAllSentences(false); setTimeout(() => setNoTransition(false), 50); };
                 const handleNext = () => { if (!currentWordIds.length || isFinished) return; setViewAllSentences(false); cancelSpeech(); if (currentIndex >= currentWordIds.length - 1) { setIsFinished(true); setNoTransition(true); setPrevCardSide(cardSide); setCardSide(1); setRotation(0); setRotationX(0); return; } setNoTransition(true); setPrevCardSide(cardSide); setCardSide(1); setRotation(0); setRotationX(0); setTimeout(() => { setNoTransition(false); setCurrentIndex((prev) => prev + 1); }, 50); };
@@ -1032,53 +1017,6 @@
                         : part
                     );
                 };
-                
-                // KOMPONENT INSTRUKCJI (Modal)
-                const Instructions = () => (
-                    <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn" onClick={() => setIsHelpOpen(false)}>
-                        <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
-                            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-slate-700/50">
-                                <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Jak zmienić głos?</h3>
-                                <button onClick={() => setIsHelpOpen(false)}><Icon path={iconPaths.close} /></button>
-                            </div>
-                            <div className="p-5 overflow-y-auto custom-scrollbar text-sm space-y-4 text-slate-600 dark:text-slate-300">
-                                <p>Aplikacja korzysta z głosów systemowych Androida. Aby wybrać konkretny wariant (np. "Głos IV"), musisz zmienić to w ustawieniach telefonu.</p>
-                                
-                                <div className="space-y-2">
-                                    <div className="font-bold text-accent">Krok 1:</div>
-                                    <p>Wejdź w <strong>Ustawienia</strong> telefonu i wyszukaj "Zamiana tekstu na mowę" (lub "Język i wprowadzanie").</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="font-bold text-accent">Krok 2:</div>
-                                    <p>Kliknij ikonę <strong>zębatki (⚙️)</strong> obok "Usługi głosowe Google".</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="font-bold text-accent">Krok 3:</div>
-                                    <p>Wybierz <strong>"Zainstaluj dane głosowe"</strong>.</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="font-bold text-accent">Krok 4:</div>
-                                    <p>Wybierz język (np. <em>Angielski (Stany Zjednoczone)</em>).</p>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                    <div className="font-bold text-accent">Krok 5:</div>
-                                    <p>Na liście (Głos I, Głos II...) zaznacz ten, który Ci się podoba. Aplikacja automatycznie zacznie go używać po odświeżeniu.</p>
-                                </div>
-
-                                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs">
-                                    <strong>Wskazówka:</strong> Głosy "Wielka Brytania" są często lepszej jakości niż "Stany Zjednoczone".
-                                </div>
-                            </div>
-                            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-slate-700/50">
-                                <button onClick={() => setIsHelpOpen(false)} className="w-full py-3 bg-accent text-white font-bold rounded-xl shadow-lg shadow-accent/30 tactile-button">Rozumiem</button>
-                            </div>
-                        </div>
-                    </div>
-                );
 
                 const theme = isDarkMode ? {
                     headerText: 'text-slate-300 tracking-wide',
@@ -1119,13 +1057,13 @@
 
                 if (loading) return (
                     <div className="h-[100dvh] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-                         {/* DUŻE LOGO W TLE PODCZAS ŁADOWANIA */}
-                         <img 
+                          {/* DUŻE LOGO W TLE PODCZAS ŁADOWANIA */}
+                          <img 
                             src={customLogoUrl} 
                             alt="Logo" 
                             className="w-48 h-auto sm:w-64 mb-8 animate-pulse opacity-90 drop-shadow-xl object-contain"
                             onError={(e) => e.target.style.display = 'none'}
-                         />
+                          />
                         
                         <div className="text-4xl mb-4 animate-spin text-accent"><Icon path={iconPaths.layers} size={48} /></div>
                         <div className="text-lg font-semibold text-primary-light dark:text-slate-300 animate-pulse">Wczytywanie bazy słów...</div>
@@ -1143,11 +1081,8 @@
 
                 return (
                     <div className="h-[100dvh] flex flex-col items-center pt-1 pb-2 px-3 font-sans relative overflow-hidden noselect">
-                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => toggleOled(false))}></div>)}
+                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
                         
-                        {/* --- OKNO INSTRUKCJI --- */}
-                        {isHelpOpen && <Instructions />}
-
                         {/* --- MENU USTAWIEŃ (RIGHT SLIDE-IN) --- */}
                         {isMenuOpen && (
                             <div className="fixed inset-0 z-[10000] flex justify-end">
@@ -1170,11 +1105,6 @@
                                                 <button onClick={() => setVoiceVariant('US')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${voiceVariant === 'US' ? 'bg-white dark:bg-primary-light shadow-sm text-accent' : 'text-slate-500 hover:text-slate-700'}`}>US 🇺🇸</button>
                                                 <button onClick={() => setVoiceVariant('GB')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${voiceVariant === 'GB' ? 'bg-white dark:bg-primary-light shadow-sm text-accent' : 'text-slate-500 hover:text-slate-700'}`}>GB 🇬🇧</button>
                                             </div>
-                                            
-                                            {/* PRZYCISK INSTRUKCJI ZAMIAST LISTY GŁOSÓW */}
-                                            <button onClick={() => setIsHelpOpen(true)} className="block w-full text-center py-3 mt-2 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                                                ❓ Jak zmienić głos? (Instrukcja)
-                                            </button>
                                         </div>
 
                                         {/* 2. Prędkość Mowy */}
@@ -1339,9 +1269,11 @@
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-1 mb-3 p-3 rounded-2xl glass-panel shadow-sm z-10">
                             <div className="w-full relative flex items-center justify-center min-h-[40px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => toggleOled(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md group`} title="Wyguś ekran (Tryb słuchania)"><Icon path={iconPaths.eyeOff} size={20} className="text-primary dark:text-slate-200 group-hover:opacity-70" /></button>
+                                    <button onClick={() => setOledMode(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md hover:bg-red-50 dark:hover:bg-red-900/20`}>
+                                         <Icon path={iconPaths.phoneOff} size={20} className="text-red-500 opacity-80" />
+                                    </button>
                                 </div>
-                                <h1 onClick={() => handleTripleTap(() => toggleOled(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
+                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
                                 <div className="absolute right-0">
                                      <button onClick={() => setIsMenuOpen(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}>
                                         <Icon path={iconPaths.menu} size={20} className={isDarkMode ? "text-slate-200" : "text-primary"} />
@@ -1481,17 +1413,12 @@
                                                             {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
                                                         </div>
 
-                                                        {/* USUNIĘTY PRZYCISK I Z TYŁU */}
-
                                                         <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-black mb-4 text-center leading-tight break-words max-w-full tracking-tight drop-shadow-md`}>
                                                             {displayData ? (isPlToEn ? displayData.word : displayData.translation) : ''}
                                                         </h2>
 
                                                         <div className="relative w-full flex justify-center items-center flex-none mb-6">
-                                                            {/* DODANO CSS: whitespace-nowrap, overflow-hidden, text-ellipsis */}
-                                                            <div className={`bg-black/20 px-6 py-2 rounded-xl font-mono font-bold shadow-inner text-accent-light whitespace-nowrap overflow-hidden text-ellipsis max-w-full ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>
-                                                                {displayData ? displayData.phonetic : '---'}
-                                                            </div>
+                                                            <div className={`bg-black/20 px-6 py-2 rounded-xl font-mono font-bold shadow-inner text-accent-light ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : '---'}</div>
                                                         </div>
 
                                                         <button onClick={showSentences} className={`font-bold py-2 px-6 rounded-xl shadow-lg ${theme.buttonBg} flex items-center gap-2 text-base transition-all hover:scale-105`}>
