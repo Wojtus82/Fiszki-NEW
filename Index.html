@@ -277,7 +277,7 @@
                     autoPlay: <><polygon points="5 3 19 12 5 21 5 3"></polygon><path d="M2 2v20"></path></>,
                     chevronDown: <polyline points="6 9 12 15 18 9"></polyline>,
                     chevronUp: <polyline points="18 15 12 9 6 15"></polyline>,
-                    eyeOff: <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.45 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></>
+                    eyeOff: <><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><line x1="2" y1="2" x2="22" y2="22"></line></>
                 };
 
                 const themeColors = {
@@ -339,13 +339,14 @@
                     return "text-lg sm:text-xl"; 
                 };
                 
+                // --- POPRAWIONA FUNKCJA ROZMIARU FONETYKI ---
                 const getPhoneticSizeClass = (text) => {
                     if (!text) return "text-3xl sm:text-4xl";
                     const len = text.length;
                     if (len < 15) return "text-3xl sm:text-4xl";
                     if (len < 24) return "text-2xl sm:text-3xl";
                     if (len < 32) return "text-xl sm:text-2xl";
-                    return "text-sm sm:text-base"; 
+                    return "text-sm sm:text-base"; // Bardziej agresywne zmniejszanie
                 };
 
                 const [fullDatabase, setFullDatabase] = useState([]);
@@ -400,8 +401,6 @@
                 const [speechRate, setSpeechRate] = useState(() => getStorage('fc-rate', 1.0));
                 const [autoPlay, setAutoPlay] = useState(() => getStorage('fc-autoplay', false));
 
-                const [specificVoiceURI, setSpecificVoiceURI] = useState(() => getStorage('fc-specific-voice', ''));
-
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
 
@@ -452,8 +451,6 @@
                 useEffect(() => { setStorage('fc-voice', voiceVariant); }, [voiceVariant]);
                 useEffect(() => { setStorage('fc-rate', speechRate); }, [speechRate]);
                 useEffect(() => { setStorage('fc-autoplay', autoPlay); }, [autoPlay]);
-                
-                useEffect(() => { setStorage('fc-specific-voice', specificVoiceURI); }, [specificVoiceURI]);
 
                 useEffect(() => {
                     const startTimer = setTimeout(() => {
@@ -479,18 +476,6 @@
 
                 useEffect(() => {
                     if (voices.length === 0) return;
-
-                    if (specificVoiceURI) {
-                        const userVoice = voices.find(v => v.voiceURI === specificVoiceURI);
-                        if (userVoice) {
-                            if (userVoice.lang.startsWith('en')) {
-                                setSelectedVoice(userVoice);
-                            }
-                            const bestPl = voices.find(v => v.lang.startsWith('pl'));
-                            if (bestPl) setSelectedPlVoice(bestPl);
-                            return; 
-                        }
-                    }
 
                     const findSpecificVoice = (targetLangPrefix, variant) => {
                         const allLangVoices = voices.filter(v => v.lang.startsWith(targetLangPrefix));
@@ -544,7 +529,7 @@
                     const bestPl = findSpecificVoice('pl', null);
                     if (bestPl) setSelectedPlVoice(bestPl);
 
-                }, [voices, voiceVariant, specificVoiceURI]);
+                }, [voices, voiceVariant]);
 
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
@@ -570,6 +555,7 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
+                                // ZMIANA: Dynamiczne wykrywanie poziomów
                                 const extractedLevels = [...new Set(jsonData.map(row => row.level ? String(row.level).trim() : "Inne"))]
                                     .filter(l => l !== "")
                                     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -605,6 +591,7 @@
                                     const p_us = row.US_phonetic ? String(row.US_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     const p_gb = row.GB_phonetic ? String(row.GB_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     
+                                    // ZMIANA: Zamiana <br> na \n
                                     let wordInfo = row.word_info ? String(row.word_info).trim() : "";
                                     wordInfo = wordInfo.replace(/<br\s*\/?>/gi, '\n');
 
@@ -672,8 +659,10 @@
                     return () => clearTimeout(timer);
                 }, [selectedCategories, selectedLevels, fullDatabase]);
 
+                // --- AUTOPLAY LOGIC ---
                 useEffect(() => {
                     if (autoPlay && !isFinished && !loading && currentWordIds.length > 0 && !isShuffling) {
+                        // Wait for card animation
                         const timer = setTimeout(() => {
                             handleSpeak();
                         }, 600);
