@@ -276,7 +276,8 @@
                     rabbit: <><path d="M12 2c-3.5 0-6.5 2-8 5 3 0 6-1 8-5z"/><path d="M12 2c3.5 0 6.5 2 8 5-3 0-6-1-8-5z"/><circle cx="12" cy="14" r="8"/><circle cx="12" cy="14" r="3" fill="currentColor" opacity="0.3"/></>,
                     autoPlay: <><polygon points="5 3 19 12 5 21 5 3"></polygon><path d="M2 2v20"></path></>,
                     chevronDown: <polyline points="6 9 12 15 18 9"></polyline>,
-                    chevronUp: <polyline points="18 15 12 9 6 15"></polyline>
+                    chevronUp: <polyline points="18 15 12 9 6 15"></polyline>,
+                    eyeOff: <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.45 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></>
                 };
 
                 const themeColors = {
@@ -338,14 +339,13 @@
                     return "text-lg sm:text-xl"; 
                 };
                 
-                // --- POPRAWIONA FUNKCJA ROZMIARU FONETYKI ---
                 const getPhoneticSizeClass = (text) => {
                     if (!text) return "text-3xl sm:text-4xl";
                     const len = text.length;
                     if (len < 15) return "text-3xl sm:text-4xl";
                     if (len < 24) return "text-2xl sm:text-3xl";
                     if (len < 32) return "text-xl sm:text-2xl";
-                    return "text-sm sm:text-base"; // Bardziej agresywne zmniejszanie
+                    return "text-sm sm:text-base"; 
                 };
 
                 const [fullDatabase, setFullDatabase] = useState([]);
@@ -400,6 +400,8 @@
                 const [speechRate, setSpeechRate] = useState(() => getStorage('fc-rate', 1.0));
                 const [autoPlay, setAutoPlay] = useState(() => getStorage('fc-autoplay', false));
 
+                const [specificVoiceURI, setSpecificVoiceURI] = useState(() => getStorage('fc-specific-voice', ''));
+
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
 
@@ -450,6 +452,8 @@
                 useEffect(() => { setStorage('fc-voice', voiceVariant); }, [voiceVariant]);
                 useEffect(() => { setStorage('fc-rate', speechRate); }, [speechRate]);
                 useEffect(() => { setStorage('fc-autoplay', autoPlay); }, [autoPlay]);
+                
+                useEffect(() => { setStorage('fc-specific-voice', specificVoiceURI); }, [specificVoiceURI]);
 
                 useEffect(() => {
                     const startTimer = setTimeout(() => {
@@ -475,6 +479,18 @@
 
                 useEffect(() => {
                     if (voices.length === 0) return;
+
+                    if (specificVoiceURI) {
+                        const userVoice = voices.find(v => v.voiceURI === specificVoiceURI);
+                        if (userVoice) {
+                            if (userVoice.lang.startsWith('en')) {
+                                setSelectedVoice(userVoice);
+                            }
+                            const bestPl = voices.find(v => v.lang.startsWith('pl'));
+                            if (bestPl) setSelectedPlVoice(bestPl);
+                            return; 
+                        }
+                    }
 
                     const findSpecificVoice = (targetLangPrefix, variant) => {
                         const allLangVoices = voices.filter(v => v.lang.startsWith(targetLangPrefix));
@@ -528,7 +544,7 @@
                     const bestPl = findSpecificVoice('pl', null);
                     if (bestPl) setSelectedPlVoice(bestPl);
 
-                }, [voices, voiceVariant]);
+                }, [voices, voiceVariant, specificVoiceURI]);
 
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
@@ -554,7 +570,6 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
-                                // ZMIANA: Dynamiczne wykrywanie poziomów
                                 const extractedLevels = [...new Set(jsonData.map(row => row.level ? String(row.level).trim() : "Inne"))]
                                     .filter(l => l !== "")
                                     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -590,7 +605,6 @@
                                     const p_us = row.US_phonetic ? String(row.US_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     const p_gb = row.GB_phonetic ? String(row.GB_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     
-                                    // ZMIANA: Zamiana <br> na \n
                                     let wordInfo = row.word_info ? String(row.word_info).trim() : "";
                                     wordInfo = wordInfo.replace(/<br\s*\/?>/gi, '\n');
 
@@ -658,10 +672,8 @@
                     return () => clearTimeout(timer);
                 }, [selectedCategories, selectedLevels, fullDatabase]);
 
-                // --- AUTOPLAY LOGIC ---
                 useEffect(() => {
                     if (autoPlay && !isFinished && !loading && currentWordIds.length > 0 && !isShuffling) {
-                        // Wait for card animation
                         const timer = setTimeout(() => {
                             handleSpeak();
                         }, 600);
@@ -1327,7 +1339,7 @@
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-1 mb-3 p-3 rounded-2xl glass-panel shadow-sm z-10">
                             <div className="w-full relative flex items-center justify-center min-h-[40px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}><div className={isStartAnimating ? "startup-anim" : ""}><Icon path={isDarkMode ? iconPaths.sun : iconPaths.moon} size={20} className={isDarkMode ? "text-yellow-400" : "text-primary"} /></div></button>
+                                    <button onClick={() => setOledMode(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md group`} title="Wyguś ekran (Tryb słuchania)"><Icon path={iconPaths.eyeOff} size={20} className="text-primary dark:text-slate-200 group-hover:opacity-70" /></button>
                                 </div>
                                 <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
                                 <div className="absolute right-0">
@@ -1527,4 +1539,4 @@
         } catch (err) { document.getElementById('error-overlay').style.display = 'flex'; document.getElementById('error-message').textContent = err.toString(); }
     </script>
 </body>
-</html> 
+</html>
