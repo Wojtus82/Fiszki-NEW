@@ -403,8 +403,6 @@
                 const [speechRate, setSpeechRate] = useState(() => getStorage('fc-rate', 1.0));
                 const [autoPlay, setAutoPlay] = useState(() => getStorage('fc-autoplay', false));
 
-                const [specificVoiceURI, setSpecificVoiceURI] = useState(() => getStorage('fc-specific-voice', ''));
-
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
 
@@ -455,8 +453,6 @@
                 useEffect(() => { setStorage('fc-voice', voiceVariant); }, [voiceVariant]);
                 useEffect(() => { setStorage('fc-rate', speechRate); }, [speechRate]);
                 useEffect(() => { setStorage('fc-autoplay', autoPlay); }, [autoPlay]);
-                
-                useEffect(() => { setStorage('fc-specific-voice', specificVoiceURI); }, [specificVoiceURI]);
 
                 useEffect(() => {
                     const startTimer = setTimeout(() => {
@@ -482,18 +478,6 @@
 
                 useEffect(() => {
                     if (voices.length === 0) return;
-
-                    if (specificVoiceURI) {
-                        const userVoice = voices.find(v => v.voiceURI === specificVoiceURI);
-                        if (userVoice) {
-                            if (userVoice.lang.startsWith('en')) {
-                                setSelectedVoice(userVoice);
-                            }
-                            const bestPl = voices.find(v => v.lang.startsWith('pl'));
-                            if (bestPl) setSelectedPlVoice(bestPl);
-                            return; 
-                        }
-                    }
 
                     const findSpecificVoice = (targetLangPrefix, variant) => {
                         const allLangVoices = voices.filter(v => v.lang.startsWith(targetLangPrefix));
@@ -547,7 +531,7 @@
                     const bestPl = findSpecificVoice('pl', null);
                     if (bestPl) setSelectedPlVoice(bestPl);
 
-                }, [voices, voiceVariant, specificVoiceURI]);
+                }, [voices, voiceVariant]);
 
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
@@ -573,7 +557,6 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
-                                // ZMIANA: Dynamiczne wykrywanie poziomów
                                 const extractedLevels = [...new Set(jsonData.map(row => row.level ? String(row.level).trim() : "Inne"))]
                                     .filter(l => l !== "")
                                     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -676,10 +659,8 @@
                     return () => clearTimeout(timer);
                 }, [selectedCategories, selectedLevels, fullDatabase]);
 
-                // --- AUTOPLAY LOGIC ---
                 useEffect(() => {
                     if (autoPlay && !isFinished && !loading && currentWordIds.length > 0 && !isShuffling) {
-                        // Wait for card animation
                         const timer = setTimeout(() => {
                             handleSpeak();
                         }, 600);
@@ -782,11 +763,9 @@
                     setOledMode(enable);
                     const elem = document.documentElement;
                     if (enable) {
-                         // Włącz fullscreen
                          if (elem.requestFullscreen) { elem.requestFullscreen().catch(err => console.log(err)); }
                          else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
                     } else {
-                         // Wyłącz fullscreen
                          if (document.exitFullscreen) { document.exitFullscreen().catch(err => console.log(err)); }
                          else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
                     }
