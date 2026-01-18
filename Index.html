@@ -277,11 +277,7 @@
                     autoPlay: <><polygon points="5 3 19 12 5 21 5 3"></polygon><path d="M2 2v20"></path></>,
                     chevronDown: <polyline points="6 9 12 15 18 9"></polyline>,
                     chevronUp: <polyline points="18 15 12 9 6 15"></polyline>,
-                    phoneOff: <>
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                        <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="3" />
-                        <line x1="2" y1="2" x2="22" y2="22" />
-                    </>
+                    smartphoneOff: <><rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="2" y1="2" x2="22" y2="22" /><line x1="12" y1="18" x2="12" y2="18" strokeWidth="2" /></>,
                 };
 
                 const themeColors = {
@@ -346,11 +342,8 @@
                 const getPhoneticSizeClass = (text) => {
                     if (!text) return "text-3xl sm:text-4xl";
                     const len = text.length;
-                    if (len < 10) return "text-3xl sm:text-4xl";
-                    if (len < 20) return "text-2xl sm:text-3xl";
-                    if (len < 30) return "text-xl sm:text-2xl";
-                    if (len < 40) return "text-lg sm:text-xl";
-                    return "text-sm sm:text-base"; 
+                    if (len < 20) return "text-3xl sm:text-4xl";
+                    return "text-xl sm:text-2xl";
                 };
 
                 const [fullDatabase, setFullDatabase] = useState([]);
@@ -362,7 +355,6 @@
                 const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
                 const [tempSelectedLevels, setTempSelectedLevels] = useState([]);
                 
-                // ZMIANA: Dynamiczne poziomy (startowo puste)
                 const [availableLevels, setAvailableLevels] = useState([]); 
 
                 const [selectedCategories, setSelectedCategories] = useState(() => getStorage('fc-cats', [])); 
@@ -431,30 +423,6 @@
                 
                 const lastTapRef = useRef(0);
                 const tapCountRef = useRef(0);
-
-                // --- NOWY USE EFFECT: FULLSCREEN DLA OLED MODE ---
-                useEffect(() => {
-                    if (oledMode) {
-                        // Wejście w tryb pełnoekranowy
-                        const elem = document.documentElement;
-                        if (elem.requestFullscreen) {
-                            elem.requestFullscreen().catch(err => console.log(err));
-                        } else if (elem.webkitRequestFullscreen) { /* Safari */
-                            elem.webkitRequestFullscreen();
-                        } else if (elem.msRequestFullscreen) { /* IE11 */
-                            elem.msRequestFullscreen();
-                        }
-                    } else {
-                        // Wyjście z trybu pełnoekranowego
-                        if (document.fullscreenElement || document.webkitFullscreenElement) {
-                            if (document.exitFullscreen) {
-                                document.exitFullscreen().catch(err => console.log(err));
-                            } else if (document.webkitExitFullscreen) { /* Safari */
-                                document.webkitExitFullscreen();
-                            }
-                        }
-                    }
-                }, [oledMode]);
 
                 useEffect(() => {
                     const t = themeColors[themeColor] || themeColors.teal;
@@ -582,7 +550,6 @@
                             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                             if (jsonData && jsonData.length > 0) {
-                                // ZMIANA: Dynamiczne wykrywanie poziomów
                                 const extractedLevels = [...new Set(jsonData.map(row => row.level ? String(row.level).trim() : "Inne"))]
                                     .filter(l => l !== "")
                                     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -618,7 +585,6 @@
                                     const p_us = row.US_phonetic ? String(row.US_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     const p_gb = row.GB_phonetic ? String(row.GB_phonetic).trim() : (row.phonetic ? String(row.phonetic).trim() : "");
                                     
-                                    // ZMIANA: Zamiana <br> na \n
                                     let wordInfo = row.word_info ? String(row.word_info).trim() : "";
                                     wordInfo = wordInfo.replace(/<br\s*\/?>/gi, '\n');
 
@@ -798,6 +764,17 @@
                 const showGrammarInfo = (e) => { if(e) e.stopPropagation(); cancelSpeech(); setPrevCardSide(cardSide); setCardSide(4); setRotation(360); setRotationX(180); };
                 const showBeginnerInfo = (e) => { if(e) e.stopPropagation(); cancelSpeech(); setPrevCardSide(cardSide); setCardSide(5); setRotation(180); setRotationX(180); };
                 const togglePauseDuration = (e) => { e.stopPropagation(); setPauseDuration(prev => { if (prev >= 2) return -2; return prev + 1; }); };
+                
+                // NOWA FUNKCJA - Wymuszenie OLED + Fullscreen
+                const toggleOledFullscreen = () => {
+                    setOledMode(true);
+                    const elem = document.documentElement;
+                    if (elem.requestFullscreen) {
+                        elem.requestFullscreen().catch(err => console.log(err));
+                    } else if (elem.webkitRequestFullscreen) { /* Safari */
+                        elem.webkitRequestFullscreen();
+                    }
+                };
 
                 const handleSpeak = (resume = false) => {
                     if (isFinished || !displayData || displayData.isEmpty) return;
@@ -1112,7 +1089,12 @@
 
                 return (
                     <div className="h-[100dvh] flex flex-col items-center pt-1 pb-2 px-3 font-sans relative overflow-hidden noselect">
-                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
+                        {/* ZMIANA: Wyjście z OLED + wyjście z Fullscreen przy potrójnym tapnięciu */}
+                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => { 
+                            setOledMode(false);
+                            if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
+                            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                        })}></div>)}
                         
                         {/* --- MENU USTAWIEŃ (RIGHT SLIDE-IN) --- */}
                         {isMenuOpen && (
@@ -1300,15 +1282,19 @@
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-1 mb-3 p-3 rounded-2xl glass-panel shadow-sm z-10">
                             <div className="w-full relative flex items-center justify-center min-h-[40px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => setOledMode(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md hover:bg-red-50 dark:hover:bg-red-900/20`}>
-                                         <Icon path={iconPaths.phoneOff} size={20} className="text-white opacity-80" />
+                                    {/* ZMIANA: Przycisk przekreślonego telefonu - włącza OLED i FULLSCREEN */}
+                                    <button onClick={toggleOledFullscreen} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}>
+                                        <div className={isStartAnimating ? "startup-anim" : ""}>
+                                            <Icon path={iconPaths.smartphoneOff} size={20} className={isDarkMode ? "text-slate-200" : "text-primary"} />
+                                        </div>
                                     </button>
                                 </div>
-                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
+                                {/* ZMIANA: Triple Tap na tytule też wymusza fullscreen (podobnie jak przycisk) */}
+                                <h1 onClick={() => handleTripleTap(toggleOledFullscreen)} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
                                 <div className="absolute right-0">
                                      <button onClick={() => setIsMenuOpen(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}>
                                         <Icon path={iconPaths.menu} size={20} className={isDarkMode ? "text-slate-200" : "text-primary"} />
-                                    </button>
+                                     </button>
                                 </div>
                             </div>
                             <div className="w-full grid grid-cols-2 gap-2 sm:gap-3">
@@ -1351,12 +1337,10 @@
                                             <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveFrontBg} transition-colors duration-500`} style={{ transform: 'rotateY(0deg)' }}>
                                                 {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
-                                                        <div className="flex flex-nowrap justify-between items-center mb-3 border-b border-gray-200/10 pb-2 flex-none relative w-full">
-                                                            <h3 className={`font-bold flex items-center gap-2 text-base ${theme.headerText} whitespace-nowrap`}>
-                                                                <Icon path={iconPaths.book} size={18} className="text-accent"/> Zdania
-                                                            </h3>
+                                                        <div className="flex justify-between items-center mb-3 border-b border-gray-200/10 pb-2 flex-none relative">
+                                                            <h3 className={`font-bold flex items-center gap-2 text-base ${theme.headerText}`}><Icon path={iconPaths.book} size={18} className="text-accent"/> Zdania</h3>
                                                             
-                                                            <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                                                 <button onClick={showGrammarInfo} className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
                                                                     <Icon path={iconPaths.infoCircle} size={16} className="text-accent"/> <span className="text-[10px] font-bold uppercase">Gramatyka</span>
                                                                 </button>
@@ -1450,8 +1434,8 @@
                                                             {displayData ? (isPlToEn ? displayData.word : displayData.translation) : ''}
                                                         </h2>
 
-                                                        <div className="relative w-full flex justify-center items-center flex-none mb-6 px-2">
-                                                            <div className={`bg-black/20 px-4 py-2 rounded-xl font-mono font-bold shadow-inner text-accent-light whitespace-nowrap overflow-hidden text-ellipsis max-w-full ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : '---'}</div>
+                                                        <div className="relative w-full flex justify-center items-center flex-none mb-6">
+                                                            <div className={`bg-black/20 px-6 py-2 rounded-xl font-mono font-bold shadow-inner text-accent-light ${getPhoneticSizeClass(displayData ? displayData.phonetic : '')}`}>{displayData ? displayData.phonetic : '---'}</div>
                                                         </div>
 
                                                         <button onClick={showSentences} className={`font-bold py-2 px-6 rounded-xl shadow-lg ${theme.buttonBg} flex items-center gap-2 text-base transition-all hover:scale-105`}>
