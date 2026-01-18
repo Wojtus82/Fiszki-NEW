@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#334155">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Fiszki WOJTUKIEWICZ - Color Logic</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -401,6 +404,8 @@
                 const [speechRate, setSpeechRate] = useState(() => getStorage('fc-rate', 1.0));
                 const [autoPlay, setAutoPlay] = useState(() => getStorage('fc-autoplay', false));
 
+                const [specificVoiceURI, setSpecificVoiceURI] = useState(() => getStorage('fc-specific-voice', ''));
+
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
 
@@ -451,6 +456,8 @@
                 useEffect(() => { setStorage('fc-voice', voiceVariant); }, [voiceVariant]);
                 useEffect(() => { setStorage('fc-rate', speechRate); }, [speechRate]);
                 useEffect(() => { setStorage('fc-autoplay', autoPlay); }, [autoPlay]);
+                
+                useEffect(() => { setStorage('fc-specific-voice', specificVoiceURI); }, [specificVoiceURI]);
 
                 useEffect(() => {
                     const startTimer = setTimeout(() => {
@@ -477,6 +484,20 @@
                 useEffect(() => {
                     if (voices.length === 0) return;
 
+                    // 1. Sprawdź, czy użytkownik wybrał konkretny głos z listy
+                    if (specificVoiceURI) {
+                        const userVoice = voices.find(v => v.voiceURI === specificVoiceURI);
+                        if (userVoice) {
+                            if (userVoice.lang.startsWith('en')) {
+                                setSelectedVoice(userVoice);
+                            }
+                            const bestPl = voices.find(v => v.lang.startsWith('pl'));
+                            if (bestPl) setSelectedPlVoice(bestPl);
+                            return; 
+                        }
+                    }
+
+                    // 2. Automatyczny wybór (gdy brak specificVoiceURI lub nie znaleziono)
                     const findSpecificVoice = (targetLangPrefix, variant) => {
                         const allLangVoices = voices.filter(v => v.lang.startsWith(targetLangPrefix));
 
@@ -529,7 +550,7 @@
                     const bestPl = findSpecificVoice('pl', null);
                     if (bestPl) setSelectedPlVoice(bestPl);
 
-                }, [voices, voiceVariant]);
+                }, [voices, voiceVariant, specificVoiceURI]);
 
                 const getColumnValue = (row, colName) => {
                     if (!row) return undefined;
@@ -759,6 +780,21 @@
                 const handleTripleTap = (callback) => { const now = new Date().getTime(); const timeDiff = now - lastTapRef.current; if (timeDiff < 400 && timeDiff > 0) { tapCountRef.current++; } else { tapCountRef.current = 1; } lastTapRef.current = now; if (tapCountRef.current === 3) { callback(); tapCountRef.current = 0; } };
                 const requestWakeLock = async () => { if ('wakeLock' in navigator) { try { const lock = await navigator.wakeLock.request('screen'); wakeLockRef.current = lock; } catch (err) { console.log("Wake Lock error:", err); } } };
                 const releaseWakeLock = async () => { if (wakeLockRef.current) { try { await wakeLockRef.current.release(); wakeLockRef.current = null; } catch(err) {} } };
+                
+                // --- FULLSCREEN LOGIC ---
+                const toggleOled = (enable) => {
+                    setOledMode(enable);
+                    const elem = document.documentElement;
+                    if (enable) {
+                         // Włącz fullscreen
+                         if (elem.requestFullscreen) { elem.requestFullscreen().catch(err => console.log(err)); }
+                         else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+                    } else {
+                         // Wyłącz fullscreen
+                         if (document.exitFullscreen) { document.exitFullscreen().catch(err => console.log(err)); }
+                         else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+                    }
+                };
 
                 const resetCard = () => { setNoTransition(true); setPrevCardSide(cardSide); setCardSide(1); setRotation(0); setRotationX(0); cancelSpeech(); setViewAllSentences(false); setTimeout(() => setNoTransition(false), 50); };
                 const handleNext = () => { if (!currentWordIds.length || isFinished) return; setViewAllSentences(false); cancelSpeech(); if (currentIndex >= currentWordIds.length - 1) { setIsFinished(true); setNoTransition(true); setPrevCardSide(cardSide); setCardSide(1); setRotation(0); setRotationX(0); return; } setNoTransition(true); setPrevCardSide(cardSide); setCardSide(1); setRotation(0); setRotationX(0); setTimeout(() => { setNoTransition(false); setCurrentIndex((prev) => prev + 1); }, 50); };
@@ -1132,7 +1168,7 @@
 
                 return (
                     <div className="h-[100dvh] flex flex-col items-center pt-1 pb-2 px-3 font-sans relative overflow-hidden noselect">
-                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => setOledMode(false))}></div>)}
+                        {oledMode && (<div className="fixed inset-0 bg-black z-[99999] cursor-pointer animate-fadeIn" onClick={() => handleTripleTap(() => toggleOled(false))}></div>)}
                         
                         {/* --- OKNO INSTRUKCJI --- */}
                         {isHelpOpen && <Instructions />}
@@ -1328,9 +1364,9 @@
                         <header className="w-full max-w-lg flex-none flex flex-col items-center space-y-3 mt-1 mb-3 p-3 rounded-2xl glass-panel shadow-sm z-10">
                             <div className="w-full relative flex items-center justify-center min-h-[40px]">
                                 <div className="absolute left-0">
-                                    <button onClick={() => setOledMode(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md group`} title="Wyguś ekran (Tryb słuchania)"><Icon path={iconPaths.eyeOff} size={20} className="text-primary dark:text-slate-200 group-hover:opacity-70" /></button>
+                                    <button onClick={() => toggleOled(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md group`} title="Wyguś ekran (Tryb słuchania)"><Icon path={iconPaths.eyeOff} size={20} className="text-primary dark:text-slate-200 group-hover:opacity-70" /></button>
                                 </div>
-                                <h1 onClick={() => handleTripleTap(() => setOledMode(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
+                                <h1 onClick={() => handleTripleTap(() => toggleOled(true))} className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.headerText} text-center cursor-pointer select-none active:scale-95 transition-transform`}><Icon path={iconPaths.layers} size={24} className="text-accent" /> Fiszki WOJTUKIEWICZ</h1>
                                 <div className="absolute right-0">
                                      <button onClick={() => setIsMenuOpen(true)} className={`p-2 rounded-full shadow-sm transition-all duration-300 ${theme.buttonBg} hover:shadow-md`}>
                                         <Icon path={iconPaths.menu} size={20} className={isDarkMode ? "text-slate-200" : "text-primary"} />
@@ -1429,47 +1465,9 @@
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <div className={`absolute top-4 left-4 text-xs font-bold uppercase flex flex-wrap items-center gap-2 ${theme.subText} tracking-wider`}><span className="px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 backdrop-blur-md truncate max-w-[100px] sm:max-w-none">{tense === 'mixed' ? 'Mix' : (tense === 'Base' ? 'Słowo En.' : tense)}</span></div>
-                                                        <button onClick={(e) => { e.stopPropagation(); setIsPlToEn(!isPlToEn); }} className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold border ${theme.controlsBorder} ${theme.buttonBg} flex items-center gap-1 shadow-sm group`}>
-                                                        <Icon path={iconPaths.swap} size={14} className="text-accent group-hover:rotate-180 transition-transform duration-300"/> {isPlToEn ? "PL ➔ EN" : "EN ➔ PL"}
-                                                        </button>
-                                                        <div className="flex-1 flex items-center justify-center w-full px-2">
-                                                            <h2 className={`${getWordSizeClass(isPlToEn ? (displayData ? displayData.translation : '') : (displayData ? displayData.word : ''))} font-black text-center break-words leading-tight ${theme.cardFrontText} drop-shadow-sm tracking-tight`}>
-                                                                {displayData ? (isPlToEn ? displayData.translation : displayData.word) : '...'}
-                                                            </h2>
-                                                        </div>
-                                                        <div className={`absolute bottom-4 text-xs flex items-center gap-1 font-bold uppercase ${theme.subText} opacity-60 tracking-widest animate-pulse`}><Icon path={iconPaths.rotate} size={12}/> Kliknij, aby obrócić</div>
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveBackBg} transition-colors duration-500`} style={{ transform: (cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? 'rotateX(180deg)' : 'rotateY(180deg)' }}>
-                                                {(cardSide === 4 || (prevCardSide === 4 && cardSide !== 1)) ? (
-                                                    <div className="w-full h-full flex flex-col animate-fadeIn relative">
-                                                        <div className="flex-none mb-3 border-b border-white/10 pb-2">
-                                                            <h3 className={`text-lg font-bold flex items-center gap-2 ${(!isDarkMode && isSide4Active) ? 'text-accent' : 'text-accent-light'}`}><Icon path={iconPaths.infoCircle} size={20}/> Gramatyka</h3>
-                                                        </div>
-                                                        <div className="flex-1 overflow-y-auto custom-scrollbar text-left text-base leading-relaxed pr-2 -mr-2 relative">
-                                                            <div className="p-1">
-                                                            {displayData && displayData.infoText ? (
-                                                                <div className={`whitespace-pre-line font-medium ${(!isDarkMode && isSide4Active) ? 'text-primary-dark' : ''}`}>{displayData.infoText}</div>
-                                                            ) : (
-                                                                <div className="italic opacity-60 text-center mt-16 flex flex-col items-center gap-3"><Icon path={iconPaths.fileText} size={40} className="opacity-30" />Brak informacji gramatycznych dla tego czasu.</div>
-                                                            )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex-none mt-4 w-full">
-                                                            <button onClick={showSentences} className={`w-full ${(!isDarkMode && isSide4Active) ? theme.buttonBg : 'bg-white/10 hover:bg-white/20 tactile-button text-white'} font-bold py-3 rounded-xl text-base flex items-center justify-center gap-2`}>
-                                                                <Icon path={iconPaths.book} size={20}/> Wróć do zdań
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="absolute top-4 right-4 text-xs font-bold text-accent-light uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md shadow-inner">
+                                                        <div className={`absolute top-4 right-4 text-xs font-bold text-accent-light uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md shadow-inner`}>
                                                             {isPlToEn ? "Po angielsku" : "Tłumaczenie"}
                                                         </div>
-
                                                         {/* USUNIĘTY PRZYCISK I Z TYŁU */}
 
                                                         <h2 className={`${getTranslationSizeClass(isPlToEn ? (displayData ? displayData.word : '') : (displayData ? displayData.translation : ''))} font-black mb-4 text-center leading-tight break-words max-w-full tracking-tight drop-shadow-md`}>
