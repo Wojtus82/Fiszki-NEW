@@ -339,7 +339,6 @@
                     return "text-lg sm:text-xl"; 
                 };
                 
-                // ZMIANA: Ulepszona logika "skalowania" (dobierania mniejszej czcionki)
                 const getPhoneticSizeClass = (text) => {
                     if (!text) return "text-3xl sm:text-4xl";
                     const len = text.length;
@@ -347,7 +346,7 @@
                     if (len < 20) return "text-2xl sm:text-3xl";
                     if (len < 30) return "text-xl sm:text-2xl";
                     if (len < 40) return "text-lg sm:text-xl";
-                    return "text-sm sm:text-lg"; // Dla bardzo długich
+                    return "text-sm sm:text-lg"; 
                 };
 
                 const [fullDatabase, setFullDatabase] = useState([]);
@@ -1341,19 +1340,17 @@
                                             <div className={`absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 sm:p-5 backface-hidden ${effectiveFrontBg} transition-colors duration-500`} style={{ transform: 'rotateY(0deg)' }}>
                                                 {(cardSide === 3 || (prevCardSide === 3 && (cardSide === 2 || cardSide === 4))) ? (
                                                     <div className="w-full h-full flex flex-col animate-fadeIn relative">
-                                                        <div className="flex-none mb-3 border-b border-gray-200/10 pb-2 relative">
-                                                            <div className="flex justify-between items-center w-full">
-                                                                <h3 className={`font-bold flex items-center gap-2 text-base ${theme.headerText}`}><Icon path={iconPaths.book} size={18} className="text-accent"/> Zdania</h3>
-                                                                
-                                                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                                                    <button onClick={showGrammarInfo} className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
-                                                                        <Icon path={iconPaths.infoCircle} size={16} className="text-accent"/> <span className="text-[10px] font-bold uppercase">Gramatyka</span>
-                                                                    </button>
+                                                        <div className="flex justify-between items-center mb-3 border-b border-gray-200/10 pb-2 flex-none relative">
+                                                            <h3 className={`font-bold flex items-center gap-2 text-base ${theme.headerText}`}><Icon path={iconPaths.book} size={18} className="text-accent"/> Zdania</h3>
+                                                            
+                                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                                                                <button onClick={showGrammarInfo} className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
+                                                                    <Icon path={iconPaths.infoCircle} size={16} className="text-accent"/> <span className="text-[10px] font-bold uppercase">Gramatyka</span>
+                                                                </button>
 
-                                                                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
-                                                                        <Icon path={iconPaths.clock} size={16} className="text-accent"/>
-                                                                        <select value={tense} onChange={(e) => setTense(e.target.value)} onClick={(e) => e.stopPropagation()} className={`bg-transparent text-[10px] !font-bold uppercase outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
-                                                                    </div>
+                                                                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
+                                                                    <Icon path={iconPaths.clock} size={16} className="text-accent"/>
+                                                                    <select value={tense} onChange={(e) => setTense(e.target.value)} onClick={(e) => e.stopPropagation()} className={`bg-transparent text-[10px] !font-bold uppercase outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1361,13 +1358,24 @@
                                                         
                                                         <div className="relative w-full mt-3 flex justify-between items-center flex-none p-2 rounded-xl bg-black/5 dark:bg-white/5">
                                                                 
-                                                            <button onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${viewAllSentences ? 'bg-accent/15 text-accent border border-accent/20 shadow-none' : theme.buttonBg}`} title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}>
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} 
+                                                                onMouseDown={(e) => e.stopPropagation()} 
+                                                                onTouchStart={(e) => e.stopPropagation()}
+                                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${viewAllSentences ? 'bg-accent/15 text-accent border border-accent/20 shadow-none' : theme.buttonBg}`} 
+                                                                title={viewAllSentences ? "Pokaż tylko dla tego słowa" : "Wczytaj wszystkie zdania z tej kategorii"}
+                                                            >
                                                                 <div className={viewAllSentences ? "" : "animate-spin-three"}><Icon path={iconPaths.reloadCustom} size={16} /></div><span className="text-[10px] font-bold uppercase whitespace-nowrap">All</span>
                                                             </button>
                                                             
                                                             <div className={`font-mono text-lg font-bold opacity-70 ${theme.subText} tracking-wider`}>{currentPhoneticToDisplay}</div>
                                                             
-                                                            <button onClick={togglePauseDuration} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${theme.buttonBg}`}>
+                                                            <button 
+                                                                onClick={togglePauseDuration} 
+                                                                onMouseDown={(e) => e.stopPropagation()} 
+                                                                onTouchStart={(e) => e.stopPropagation()}
+                                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${theme.buttonBg}`}
+                                                            >
                                                                 <Icon path={iconPaths.runningMan} size={16} className={pauseDuration !== 0 ? "text-accent" : "opacity-50"} />
                                                                 <span className={pauseDuration !== 0 ? "text-accent" : "opacity-50"}>{pauseDuration > 0 ? `+${pauseDuration}` : pauseDuration}</span>
                                                             </button>
