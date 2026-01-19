@@ -560,10 +560,11 @@
                                     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
                                 setAvailableLevels(extractedLevels);
 
+                                // ZMIANA: Dodano "Conditionals" i "Mix" do listy kolumn
                                 const tenseColumns = [
                                     "Beginner", "Present Simple", "Present continuous", "Past Simple", 
                                     "Future Simple", "Present Perfect", "Past Continuous", "Going To",
-                                    "Questions"
+                                    "Questions", "Conditionals", "Mix"
                                 ];
 
                                 const foundGrammar = {};
@@ -1222,8 +1223,9 @@
                                                 className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-accent"
                                             >
                                                 <option value="Base">Podstawowy</option>
-                                                {availableTenses.map(t => (<option key={t} value={t}>{t}</option>))}
-                                                <option value="mixed">Mix czasów</option>
+                                                {/* ZMIANA: Dodano numerację */}
+                                                {availableTenses.map((t, i) => (<option key={t} value={t}>{i + 1}. {t}</option>))}
+                                                <option value="mixed">Mix czasów (Auto)</option>
                                             </select>
                                         </div>
 
@@ -1391,8 +1393,9 @@
                                                                         className={`bg-transparent text-[10px] !font-bold uppercase outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}
                                                                     >
                                                                         <option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>
-                                                                        {availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}
-                                                                        <option value="mixed" className="text-gray-900 bg-white">Mix czasów</option>
+                                                                        {/* ZMIANA: Dodano numerację */}
+                                                                        {availableTenses.map((t, i) => (<option key={t} value={t} className="text-gray-900 bg-white">{i + 1}. {t}</option>))}
+                                                                        <option value="mixed" className="text-gray-900 bg-white">Mix czasów (Auto)</option>
                                                                     </select>
                                                                 </div>
                                                             </div>
