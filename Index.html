@@ -714,7 +714,7 @@
                     return sentences;
                 }, [viewAllSentences, currentWordIds, fullDatabase, tense, selectedLevels, selectedCategories, voiceVariant]);
 
-                // ZMIANA: Obsługa autostartu po zmianie trybu ALL
+                // ZMIANA: Obsługa autostartu po zmianie trybu ALL LUB ZMIANIE CZASU
                 useEffect(() => { 
                     itemRefs.current = []; 
                     setSpeakingSentenceIndex(0); 
@@ -724,7 +724,7 @@
                         autoResumeRef.current = false;
                         setTimeout(() => handleSpeak(), 100);
                     }
-                }, [allCategorySentences, viewAllSentences]);
+                }, [allCategorySentences, viewAllSentences, tense]); // Dodano 'tense' do zależności
 
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
@@ -1209,7 +1209,18 @@
                                         {/* 6. Czas */}
                                         <div className="space-y-3">
                                             <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Wybrany czas zdań</label>
-                                            <select value={tense} onChange={(e) => setTense(e.target.value)} className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-accent">
+                                            {/* ZMIANA: Dodano obsługę autoResume przy zmianie czasu w menu */}
+                                            <select 
+                                                value={tense} 
+                                                onChange={(e) => {
+                                                    if (isSpeaking) {
+                                                        autoResumeRef.current = true;
+                                                        cancelSpeech();
+                                                    }
+                                                    setTense(e.target.value);
+                                                }} 
+                                                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-accent"
+                                            >
                                                 <option value="Base">Podstawowy</option>
                                                 {availableTenses.map(t => (<option key={t} value={t}>{t}</option>))}
                                                 <option value="mixed">Mix czasów</option>
@@ -1366,7 +1377,23 @@
 
                                                                 <div className={`flex items-center gap-1 px-2 py-1 rounded-lg tactile-button ${theme.buttonBg}`}>
                                                                     <Icon path={iconPaths.clock} size={16} className="text-accent"/>
-                                                                    <select value={tense} onChange={(e) => setTense(e.target.value)} onClick={(e) => e.stopPropagation()} className={`bg-transparent text-[10px] !font-bold uppercase outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}><option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>{availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}<option value="mixed" className="text-gray-900 bg-white">Mix czasów</option></select>
+                                                                    {/* ZMIANA: Dodano obsługę autoResume przy zmianie czasu na karcie */}
+                                                                    <select 
+                                                                        value={tense} 
+                                                                        onChange={(e) => {
+                                                                            if (isSpeaking) {
+                                                                                autoResumeRef.current = true;
+                                                                                cancelSpeech();
+                                                                            }
+                                                                            setTense(e.target.value);
+                                                                        }} 
+                                                                        onClick={(e) => e.stopPropagation()} 
+                                                                        className={`bg-transparent text-[10px] !font-bold uppercase outline-none w-[90px] ${theme.selectText} appearance-none cursor-pointer`}
+                                                                    >
+                                                                        <option value="Base" className="text-gray-900 bg-white">Wybierz czas</option>
+                                                                        {availableTenses.map(t => (<option key={t} value={t} className="text-gray-900 bg-white">{t}</option>))}
+                                                                        <option value="mixed" className="text-gray-900 bg-white">Mix czasów</option>
+                                                                    </select>
                                                                 </div>
                                                             </div>
                                                         </div>
