@@ -424,6 +424,9 @@
                 const pausedIntentionally = useRef(false);
                 const isPausedRef = useRef(false);
                 
+                // ZMIANA: Ref do śledzenia potrzeby autostartu po zmianie widoku
+                const autoResumeRef = useRef(false);
+                
                 const lastTapRef = useRef(0);
                 const tapCountRef = useRef(0);
 
@@ -712,7 +715,17 @@
                     return sentences;
                 }, [viewAllSentences, currentWordIds, fullDatabase, tense, selectedLevels, selectedCategories, voiceVariant]);
 
-                useEffect(() => { itemRefs.current = []; setSpeakingSentenceIndex(0); }, [allCategorySentences, viewAllSentences]);
+                // ZMIANA: Obsługa autostartu po zmianie trybu ALL
+                useEffect(() => { 
+                    itemRefs.current = []; 
+                    setSpeakingSentenceIndex(0); 
+                    
+                    // Jeśli flaga autostartu jest ustawiona, uruchom czytanie po chwili (aby stan się ustabilizował)
+                    if (autoResumeRef.current) {
+                        autoResumeRef.current = false;
+                        setTimeout(() => handleSpeak(), 100);
+                    }
+                }, [allCategorySentences, viewAllSentences]);
 
                 const getDisplayData = () => {
                     if (!fullDatabase.length) return null;
@@ -768,7 +781,6 @@
                 const showBeginnerInfo = (e) => { if(e) e.stopPropagation(); cancelSpeech(); setPrevCardSide(cardSide); setCardSide(5); setRotation(180); setRotationX(180); };
                 const togglePauseDuration = (e) => { e.stopPropagation(); setPauseDuration(prev => { if (prev >= 2) return -2; return prev + 1; }); };
                 
-                // NOWA FUNKCJA - Wymuszenie OLED + Fullscreen
                 const toggleOledFullscreen = () => {
                     setOledMode(true);
                     const elem = document.documentElement;
@@ -1359,7 +1371,15 @@
                                                         <div className="relative w-full mt-3 flex justify-between items-center flex-none p-2 rounded-xl bg-black/5 dark:bg-white/5">
                                                                 
                                                             <button 
-                                                                onClick={(e) => { e.stopPropagation(); setViewAllSentences(!viewAllSentences); }} 
+                                                                onClick={(e) => { 
+                                                                    e.stopPropagation(); 
+                                                                    // ZMIANA: Zatrzymujemy stare czytanie przed zmianą widoku
+                                                                    if (isSpeaking) {
+                                                                        autoResumeRef.current = true;
+                                                                        cancelSpeech();
+                                                                    }
+                                                                    setViewAllSentences(!viewAllSentences); 
+                                                                }} 
                                                                 onMouseDown={(e) => e.stopPropagation()} 
                                                                 onTouchStart={(e) => e.stopPropagation()}
                                                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${viewAllSentences ? 'bg-accent/15 text-accent border border-accent/20 shadow-none' : theme.buttonBg}`} 
