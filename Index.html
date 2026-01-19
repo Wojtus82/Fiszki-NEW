@@ -1125,12 +1125,14 @@
                             if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
                             else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                         })}>
-                            {/* ZMIANA: Wyświetlanie chmurki z instrukcją tylko jeśli licznik < 3 */}
+                            {/* ZMIANA: Wyświetlanie chmurki z instrukcją ZAWSZE */}
                             {showOledHint && (
-                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-center animate-popIn">
-                                    <div className="text-4xl mb-2">👆👆👆</div>
-                                    <p className="text-white font-bold text-lg">Kliknij 3 razy w ekran,<br/>aby wrócić.</p>
-                                    <p className="text-white/50 text-xs mt-2">(Komunikat zniknie za chwilę)</p>
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[100000]">
+                                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-center animate-popIn">
+                                        <div className="text-4xl mb-2">👆👆👆</div>
+                                        <p className="text-white font-bold text-lg">Kliknij 3 razy w ekran,<br/>aby wrócić.</p>
+                                        <p className="text-white/50 text-xs mt-2">(Komunikat zniknie za chwilę)</p>
+                                    </div>
                                 </div>
                             )}
                         </div>)}
