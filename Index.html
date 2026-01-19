@@ -402,8 +402,6 @@
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
                 
-                // ZMIANA: Stan dla licznika użyć OLED
-                const [oledUsageCount, setOledUsageCount] = useState(() => getStorage('oled-usage-count', 0));
                 const [showOledHint, setShowOledHint] = useState(false);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
@@ -787,16 +785,12 @@
                 
                 // NOWA FUNKCJA - Wymuszenie OLED + Fullscreen + Licznik użyć
                 const toggleOledFullscreen = () => {
-                    if (oledUsageCount < 3) {
-                        setShowOledHint(true);
-                        const newCount = oledUsageCount + 1;
-                        setOledUsageCount(newCount);
-                        setStorage('oled-usage-count', newCount);
-                        
-                        setTimeout(() => {
-                            setShowOledHint(false);
-                        }, 4000); 
-                    }
+                    // Always show hint
+                    setShowOledHint(true);
+                    
+                    setTimeout(() => {
+                        setShowOledHint(false);
+                    }, 4000); 
 
                     setOledMode(true);
                     const elem = document.documentElement;
