@@ -401,6 +401,10 @@
 
                 const [isStartAnimating, setIsStartAnimating] = useState(false);
                 const [oledMode, setOledMode] = useState(false);
+                
+                // ZMIANA: Stan dla licznika użyć OLED
+                const [oledUsageCount, setOledUsageCount] = useState(() => getStorage('oled-usage-count', 0));
+                const [showOledHint, setShowOledHint] = useState(false);
 
                 const [viewAllSentences, setViewAllSentences] = useState(false);
                 const [activeSentenceIndex, setActiveSentenceIndex] = useState(null);
@@ -781,7 +785,19 @@
                 const showBeginnerInfo = (e) => { if(e) e.stopPropagation(); cancelSpeech(); setPrevCardSide(cardSide); setCardSide(5); setRotation(180); setRotationX(180); };
                 const togglePauseDuration = (e) => { e.stopPropagation(); setPauseDuration(prev => { if (prev >= 2) return -2; return prev + 1; }); };
                 
+                // NOWA FUNKCJA - Wymuszenie OLED + Fullscreen + Licznik użyć
                 const toggleOledFullscreen = () => {
+                    if (oledUsageCount < 3) {
+                        setShowOledHint(true);
+                        const newCount = oledUsageCount + 1;
+                        setOledUsageCount(newCount);
+                        setStorage('oled-usage-count', newCount);
+                        
+                        setTimeout(() => {
+                            setShowOledHint(false);
+                        }, 4000); 
+                    }
+
                     setOledMode(true);
                     const elem = document.documentElement;
                     if (elem.requestFullscreen) {
@@ -1114,7 +1130,16 @@
                             setOledMode(false);
                             if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
                             else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                        })}></div>)}
+                        })}>
+                            {/* ZMIANA: Wyświetlanie chmurki z instrukcją tylko jeśli licznik < 3 */}
+                            {showOledHint && (
+                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-center animate-popIn">
+                                    <div className="text-4xl mb-2">👆👆👆</div>
+                                    <p className="text-white font-bold text-lg">Kliknij 3 razy w ekran,<br/>aby wrócić.</p>
+                                    <p className="text-white/50 text-xs mt-2">(Komunikat zniknie za chwilę)</p>
+                                </div>
+                            )}
+                        </div>)}
                         
                         {/* --- MENU USTAWIEŃ (RIGHT SLIDE-IN) --- */}
                         {isMenuOpen && (
