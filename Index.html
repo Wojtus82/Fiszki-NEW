@@ -424,7 +424,6 @@
                 const pausedIntentionally = useRef(false);
                 const isPausedRef = useRef(false);
                 
-                // ZMIANA: Ref do śledzenia potrzeby autostartu po zmianie widoku
                 const autoResumeRef = useRef(false);
                 
                 const lastTapRef = useRef(0);
@@ -817,11 +816,15 @@
                         
                         let tempQueue = [];
 
-                        const pushMixedSentence = (rawText, vIndex, gIndex) => {
+                        // ZMIANA: Dodano overrideTargetWord, aby w trybie ALL każde zdanie miało swoje słowo
+                        const pushMixedSentence = (rawText, vIndex, gIndex, overrideTargetWord = null) => {
                             let text = cleanSentence(rawText);
                             text = text.replace(/\.$/, ''); 
 
-                            if (!targetWord || !isMixedLangMode) {
+                            // Użyj lokalnego słowa jeśli podano, w przeciwnym razie globalnego targetWord
+                            const effectiveTarget = overrideTargetWord || targetWord;
+
+                            if (!effectiveTarget || !isMixedLangMode) {
                                 tempQueue.push({ 
                                     text: text, 
                                     isSentence: true, 
@@ -830,7 +833,7 @@
                                     lang: isMixedLangMode ? 'pl-PL' : targetEnLang 
                                 });
                             } else {
-                                const escapedTarget = targetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                const escapedTarget = effectiveTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                 const regex = new RegExp(`(${escapedTarget})`, 'gi');
                                 const parts = text.split(regex);
 
@@ -838,7 +841,7 @@
                                     if (!part.trim()) return;
                                     if (/^[.,?!]+$/.test(part.trim())) return;
 
-                                    const isEnWord = part.toLowerCase() === targetWord.toLowerCase();
+                                    const isEnWord = part.toLowerCase() === effectiveTarget.toLowerCase();
                                     tempQueue.push({
                                         text: part,
                                         isSentence: true, 
@@ -860,18 +863,19 @@
                                     tempQueue.push({ text: lastWord, isWord: true, globalIndex: index, lang: targetEnLang });
                                     tempQueue.push({ text: ".", isPause: true, customLevel: pauseDuration }); 
                                 }
+                                
+                                // Pobieramy słowo przypisane do konkretnego zdania
                                 const rowTargetWord = s.word ? s.word.split('(')[0].trim() : "";
-                                if (isMixedLangMode && rowTargetWord) {
-                                    pushMixedSentence(s.en, index, index);
-                                } else {
-                                    pushMixedSentence(s.en, index, index);
-                                }
+                                
+                                // Przekazujemy je do funkcji budującej kolejkę
+                                pushMixedSentence(s.en, index, index, rowTargetWord);
+                                
                                 tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
                             });
 
                         } else if (cardSide === 3) {
                             displayData.sentences.forEach((s, index) => {
-                                pushMixedSentence(s.en, index);
+                                pushMixedSentence(s.en, index, index); // Tu używamy globalnego targetWord (brak 4 argumentu)
                                 tempQueue.push({ text: "...", isPause: true, customLevel: pauseDuration });
                             });
                         } else if (cardSide === 5) {
